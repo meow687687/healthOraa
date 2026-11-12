@@ -1,4 +1,4 @@
-import { Download } from "lucide-react";
+import { Download, MessageCircle } from "lucide-react";
 import { Badge, LABEL, PANEL, cn } from "@healthoraa/ui";
 import { formatIstDateTime } from "../../lib/istTime";
 import type { ConsultationItem, ConsultationState } from "../../types/consultations";
@@ -11,7 +11,19 @@ const STATE_LABEL: Record<ConsultationState, { tone: "emerald" | "amber" | "neut
   cancelled: { tone: "neutral", label: "Cancelled" },
 };
 
-export function PastConsultations({ items, onOpenRx }: { items: ConsultationItem[]; onOpenRx: (item: ConsultationItem) => void }) {
+// The follow-up chat is offered on completed consultations while their window is open.
+const chatOpen = (item: ConsultationItem): boolean =>
+  item.state === "completed" && item.followupExpiresAt !== null && Date.parse(item.followupExpiresAt) > Date.now();
+
+export function PastConsultations({
+  items,
+  onOpenRx,
+  onOpenChat,
+}: {
+  items: ConsultationItem[];
+  onOpenRx: (item: ConsultationItem) => void;
+  onOpenChat: (item: ConsultationItem) => void;
+}) {
   if (items.length === 0) {
     return <p className="text-sm text-text-muted">No past consultations yet.</p>;
   }
@@ -31,16 +43,28 @@ export function PastConsultations({ items, onOpenRx }: { items: ConsultationItem
                 <span className="font-mono text-[11px] text-text-muted">{item.reference}</span>
               </div>
             </div>
-            {item.prescription && (
-              <button
-                type="button"
-                onClick={() => onOpenRx(item)}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-aura-line2 bg-aura-s3 px-4 py-2 text-xs font-semibold text-text-primary hover:bg-aura-s2"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download Digital Rx
-              </button>
-            )}
+            <div className="flex shrink-0 flex-wrap gap-2">
+              {chatOpen(item) && (
+                <button
+                  type="button"
+                  onClick={() => onOpenChat(item)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-accent-blue/30 bg-accent-blue/10 px-4 py-2 text-xs font-semibold text-accent-blue hover:bg-accent-blue/20"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Message doctor
+                </button>
+              )}
+              {item.prescription && (
+                <button
+                  type="button"
+                  onClick={() => onOpenRx(item)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-aura-line2 bg-aura-s3 px-4 py-2 text-xs font-semibold text-text-primary hover:bg-aura-s2"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download Digital Rx
+                </button>
+              )}
+            </div>
           </li>
         );
       })}

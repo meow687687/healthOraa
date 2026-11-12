@@ -49,6 +49,8 @@ export interface ConsultationItem {
   chiefComplaint: string | null;
   reference: string;
   prescription: PrescriptionRecord | null;
+  // Set when the consultation completes. The follow-up chat is open until this time.
+  followupExpiresAt: string | null;
 }
 
 export interface DeviceBooking {

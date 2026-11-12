@@ -39,6 +39,7 @@ export const buildFallbackConsultations = (now: Date): ConsultationItem[] => {
       endsAt: plusMinutes(pastDate),
       chiefComplaint: "Cystic acne on the jaw and irregular cycles",
       reference: "HLX-FB0001",
+      followupExpiresAt: null,
       prescription: {
         id: "fb-rx-001",
         doctorName: "Dr. Arishta Sharma",
@@ -60,6 +61,7 @@ export const buildFallbackConsultations = (now: Date): ConsultationItem[] => {
       chiefComplaint: "Dry, itchy patches behind the knees",
       reference: "HLX-FB0002",
       prescription: null,
+      followupExpiresAt: null,
     },
   ];
 };

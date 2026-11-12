@@ -6,6 +6,8 @@ export type ConsultationStatus = Database["public"]["Enums"]["consultation_statu
 // are not stored on the consultations table yet, so live rows leave them null.
 export interface QueueConsultation {
   id: string;
+  // Null for demo consultations, which have no database row.
+  patientId: string | null;
   patientName: string;
   age: number | null;
   gender: string | null;

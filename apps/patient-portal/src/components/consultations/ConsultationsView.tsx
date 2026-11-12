@@ -9,6 +9,7 @@ import { UpcomingCard } from "./UpcomingCard";
 import { DoctorCard } from "./DoctorCard";
 import { PastConsultations } from "./PastConsultations";
 import { RxPreviewModal } from "./RxPreviewModal";
+import { FollowupChatDrawer } from "../chat/FollowupChatDrawer";
 import { BookingDrawer } from "./BookingDrawer";
 
 const OPEN_STATES: ConsultationItem["state"][] = ["awaiting_payment", "confirmed", "held_on_device"];
@@ -19,6 +20,7 @@ export default function ConsultationsView() {
   const doctors = useDoctors();
   const [bookingWith, setBookingWith] = useState<DoctorOption | null>(null);
   const [rxFor, setRxFor] = useState<ConsultationItem | null>(null);
+  const [chatFor, setChatFor] = useState<ConsultationItem | null>(null);
 
   const items = consultations.data ?? [];
   const upcoming = items
@@ -73,11 +75,12 @@ export default function ConsultationsView() {
           </h2>
         </div>
         {consultations.isError && <div className={ERROR_BOX}>Could not load your history.</div>}
-        {!consultations.isPending && <PastConsultations items={history} onOpenRx={setRxFor} />}
+        {!consultations.isPending && <PastConsultations items={history} onOpenRx={setRxFor} onOpenChat={setChatFor} />}
       </section>
 
       {bookingWith && <BookingDrawer key={bookingWith.id} doctor={bookingWith} onClose={() => setBookingWith(null)} />}
       {rxFor?.prescription && <RxPreviewModal prescription={rxFor.prescription} onClose={() => setRxFor(null)} />}
+      {chatFor && <FollowupChatDrawer key={chatFor.id} item={chatFor} onClose={() => setChatFor(null)} />}
     </div>
   );
 }

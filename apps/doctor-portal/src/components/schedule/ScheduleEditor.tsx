@@ -66,7 +66,7 @@ export function ScheduleEditor({ view }: { view: ScheduleView }) {
   const onPublish = () => {
     setNotice(null);
     publish.mutate(
-      { snapshot, previousSlots: view.publishedSlots },
+      { snapshot },
       {
         onSuccess: (count) =>
           setNotice(`Published ${count} slots for the upcoming week. Booked slots stay booked.`),

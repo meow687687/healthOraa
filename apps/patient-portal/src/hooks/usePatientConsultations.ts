@@ -20,6 +20,7 @@ interface MedicineRow {
 
 interface ConsultationRow {
   id: string;
+  followup_expires_at: string | null;
   slot_start: string;
   slot_end: string;
   status: Enums<"consultation_status">;
@@ -70,6 +71,7 @@ const toItem = (row: ConsultationRow): ConsultationItem => {
     chiefComplaint: row.chief_complaint,
     reference: `HLX-${row.id.slice(0, 6).toUpperCase()}`,
     prescription,
+    followupExpiresAt: row.followup_expires_at,
   };
 };
 
@@ -82,6 +84,7 @@ const fromDeviceBooking = (booking: DeviceBooking): ConsultationItem => ({
   chiefComplaint: booking.chiefComplaint,
   reference: booking.reference,
   prescription: null,
+  followupExpiresAt: null,
 });
 
 // Patient's consultations with their prescriptions, plus bookings held on this device.
@@ -110,7 +113,7 @@ export const usePatientConsultations = () => {
           const { data, error } = await supabase
             .from("consultations")
             .select(
-              "id, slot_start, slot_end, status, booking_status, chief_complaint, profiles!consultations_doctor_id_fkey(full_name), prescriptions(id, diagnosis, followup_days, created_at, prescription_medicines(name, dosage, frequency, duration_days, instructions))",
+              "id, slot_start, slot_end, status, booking_status, chief_complaint, followup_expires_at, profiles!consultations_doctor_id_fkey(full_name), prescriptions(id, diagnosis, followup_days, created_at, prescription_medicines(name, dosage, frequency, duration_days, instructions))",
             )
             .eq("patient_id", patient.id)
             .order("slot_start", { ascending: false });

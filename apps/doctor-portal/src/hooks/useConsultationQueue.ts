@@ -14,6 +14,7 @@ const QUEUE_STATUSES: ConsultationStatus[] = ["scheduled", "in_progress", "compl
 
 interface QueueRow {
   id: string;
+  patient_id: string;
   slot_start: string;
   slot_end: string;
   status: ConsultationStatus;
@@ -29,6 +30,7 @@ const startOfToday = (): string => {
 
 const toQueueItem = (row: QueueRow): QueueConsultation => ({
   id: row.id,
+  patientId: row.patient_id,
   patientName: row.profiles?.full_name ?? "Unknown patient",
   age: null,
   gender: null,
@@ -75,7 +77,7 @@ export const useConsultationQueue = () => {
         async () => {
           const { data, error } = await supabase
             .from("consultations")
-            .select("id, slot_start, slot_end, status, followup_expires_at, profiles!consultations_patient_id_fkey(full_name)")
+            .select("id, patient_id, slot_start, slot_end, status, followup_expires_at, profiles!consultations_patient_id_fkey(full_name)")
             .eq("doctor_id", doctor.id)
             .in("status", QUEUE_STATUSES)
             .gte("slot_start", startOfToday())

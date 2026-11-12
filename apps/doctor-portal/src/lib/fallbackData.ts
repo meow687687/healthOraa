@@ -12,6 +12,7 @@ export const buildFallbackQueue = (now: Date): QueueConsultation[] => {
   return [
     {
       id: "fb-consultation-001",
+      patientId: null,
       patientName: "Meera Iyer",
       age: 29,
       gender: "Female",
@@ -23,6 +24,7 @@ export const buildFallbackQueue = (now: Date): QueueConsultation[] => {
     },
     {
       id: "fb-consultation-002",
+      patientId: null,
       patientName: "Rohan Kapoor",
       age: 34,
       gender: "Male",
@@ -34,6 +36,7 @@ export const buildFallbackQueue = (now: Date): QueueConsultation[] => {
     },
     {
       id: "fb-consultation-003",
+      patientId: null,
       patientName: "Anjali Desai",
       age: 41,
       gender: "Female",

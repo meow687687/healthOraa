@@ -653,6 +653,9 @@ isOneToOne: false
               "consultation_row": Database["public"]['Tables']["consultations"]['Row'],"order_id": string
             }[]
                            },
+"issue_prescription":
+{ Args: { "p_clinical_notes": string,"p_consultation_id": string,"p_diagnosis": string,"p_followup_days": number,"p_medicines": Json }; Returns: string
+                           },
 "place_shop_order":
 { Args: { "p_patient_id": string,"p_shipping_address": string }; Returns: {
               "created_at": string,

@@ -8,20 +8,43 @@ export type AvailabilityRule = {
   end_time: string;
 };
 export type Practitioner = { id: string; slot_duration_minutes: number };
-export type Slot = { practitioner_id: string; start_time: string; end_time: string; is_booked: false };
+export type Slot = {
+  practitioner_id: string;
+  start_time: string;
+  end_time: string;
+  is_booked: false;
+};
 
 function istDateParts(now: Date): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   }).formatToParts(now);
-  return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)])) as {
-    year: number; month: number; day: number;
+  return Object.fromEntries(
+    parts.filter((part) => part.type !== "literal").map((
+      part,
+    ) => [part.type, Number(part.value)]),
+  ) as {
+    year: number;
+    month: number;
+    day: number;
   };
 }
 
 function timeInIst(date: Date, time: string): Date {
   const [hours, minutes, seconds = 0] = time.split(":").map(Number);
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), hours, minutes, seconds) - IST_OFFSET_MS);
+  return new Date(
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+      hours,
+      minutes,
+      seconds,
+    ) - IST_OFFSET_MS,
+  );
 }
 
 export function makeSlots(
@@ -30,9 +53,15 @@ export function makeSlots(
   existing: Set<string>,
   now: Date,
 ): Slot[] {
-  const durations = new Map(practitioners.map((practitioner) => [practitioner.id, practitioner.slot_duration_minutes]));
+  const durations = new Map(
+    practitioners.map((
+      practitioner,
+    ) => [practitioner.id, practitioner.slot_duration_minutes]),
+  );
   const firstDay = istDateParts(now);
-  const firstDate = new Date(Date.UTC(firstDay.year, firstDay.month - 1, firstDay.day));
+  const firstDate = new Date(
+    Date.UTC(firstDay.year, firstDay.month - 1, firstDay.day),
+  );
   const generated = new Map<string, Slot>();
 
   for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
@@ -44,7 +73,11 @@ export function makeSlots(
       if (!duration || duration <= 0) continue;
       const rangeStart = timeInIst(date, rule.start_time);
       const rangeEnd = timeInIst(date, rule.end_time);
-      for (let start = rangeStart; start.getTime() + duration * 60_000 <= rangeEnd.getTime(); start = new Date(start.getTime() + duration * 60_000)) {
+      for (
+        let start = rangeStart;
+        start.getTime() + duration * 60_000 <= rangeEnd.getTime();
+        start = new Date(start.getTime() + duration * 60_000)
+      ) {
         if (start <= now) continue;
         const startTime = start.toISOString();
         const key = `${rule.practitioner_id}:${startTime}`;
@@ -63,6 +96,8 @@ export function makeSlots(
 
 export function istWindow(now: Date): { start: Date; end: Date } {
   const today = istDateParts(now);
-  const start = new Date(Date.UTC(today.year, today.month - 1, today.day) - IST_OFFSET_MS);
+  const start = new Date(
+    Date.UTC(today.year, today.month - 1, today.day) - IST_OFFSET_MS,
+  );
   return { start, end: new Date(start.getTime() + 14 * DAY_MS) };
 }

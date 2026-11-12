@@ -16,6 +16,7 @@ type VerificationStatus = PractitionerWithProfile["verification_status"];
 function StatusBadge({ isActive, verification }: { isActive: boolean; verification: VerificationStatus }) {
   if (verification === "pending") return <Badge tone="amber">Pending Review</Badge>;
   if (verification === "rejected") return <Badge tone="red">Rejected</Badge>;
+  if (verification === "verified") return isActive ? <Badge tone="emerald">Verified</Badge> : <Badge tone="neutral">Inactive</Badge>;
   return isActive ? <Badge tone="emerald">Active</Badge> : <Badge tone="neutral">Inactive</Badge>;
 }
 

@@ -7,7 +7,8 @@
     "db:types": "pnpm exec supabase gen types typescript --local > packages/types/src/database.types.ts",
     "dev": "turbo dev",
     "build": "turbo build",
-    "lint": "turbo lint"
+    "lint": "turbo lint",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.ts"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
   },
   "type": "module",
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "^24.19.2",
     "autoprefixer": "^10.6.2",
     "eslint": "^10.14.0",

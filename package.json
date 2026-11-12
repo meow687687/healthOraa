@@ -1,0 +1,34 @@
+{
+  "name": "healthOraa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "db:types": "pnpm exec supabase gen types typescript --local > packages/types/src/database.types.ts",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.3.0",
+      "onFail": "download"
+    }
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "autoprefixer": "^10.6.2",
+    "eslint": "^10.14.0",
+    "postcss": "^8.5.32",
+    "prettier": "^3.9.10",
+    "supabase": "^3.1.0",
+    "tailwindcss": "^4.3.5",
+    "turbo": "^2.11.10",
+    "typescript": "^7.0.2"
+  }
+}

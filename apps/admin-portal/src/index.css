@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+/* Horizontal table scrolling on narrow screens. The first column stays pinned so row identity is never lost. */
+.table-scroll {
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+}
+
+.table-scroll th:first-child,
+.table-scroll td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: #0E1016;
+}
+
+.table-scroll tbody tr:hover td:first-child {
+  background-color: #151823;
+}
+
+body {
+  @apply m-0 bg-aura-canvas text-text-primary font-sans antialiased;
+}

@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+
+# Environment files — NEVER commit secrets
+.env
+.env.local
+.env.*.local
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Turbo cache
+.turbo/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Expo / React Native
+.expo/
+apps/mobile/.expo/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Claude / internal tooling
+.claude/
+.commandcode/
+.remember/
+prompts.md
+AGENTS.md
+apps/mobile/AGENTS.md

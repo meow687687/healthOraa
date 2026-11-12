@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Obsidian Design System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#07080C;--s1:#0E1016;--s2:#151823;--s3:#1D2130;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
+--t1:#F4F6FB;--t2:#A3A9BA;--t3:#6B7185;
+--lime:#CCFF33;--lime-d:#9BD100;--blue:#4F7BFF;--blue-d:#3A5BD9;--violet:#8B6CFF;--green:#7BE05A;--amber:#FFB020;--red:#FF5A6E;
+--r-sm:10px;--r-md:16px;--r-lg:24px;--r-pill:999px;
+--glass:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.015));
+--font:'Manrope',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:radial-gradient(900px 500px at 80% -10%,rgba(79,123,255,.14),transparent),radial-gradient(700px 400px at 0% 0%,rgba(204,255,51,.07),transparent),var(--bg);color:var(--t1);font:400 15px/1.55 var(--font)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+header.hero{padding:64px 0 36px}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--lime)}
+h1{font-size:clamp(38px,7vw,68px);line-height:1.02;margin:12px 0;letter-spacing:-.03em;font-weight:800}
+.lead{color:var(--t2);max-width:620px;font-size:17px}
+nav.top{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+nav.top a{color:var(--t2);text-decoration:none;font-size:13px;padding:7px 14px;border:1px solid var(--line);border-radius:var(--r-pill)}
+nav.top a:hover{color:var(--bg);background:var(--lime);border-color:var(--lime)}
+section{padding-top:56px}
+h2{font-size:28px;letter-spacing:-.02em;margin:0 0 6px}
+.sub{color:var(--t2);margin:0 0 24px;max-width:640px}
+h3{font:600 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin:28px 0 12px}
+.card{background:var(--glass),var(--s1);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px}
+.grid{display:grid;gap:14px}.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.sw{border-radius:var(--r-md);overflow:hidden;border:1px solid var(--line);cursor:pointer;background:var(--s1)}
+.sw i{display:block;height:64px}.sw b{display:block;padding:10px 12px 0;font-size:13px}.sw span{display:block;padding:0 12px 10px;font:400 11px var(--mono);color:var(--t3)}
+.ref{font-size:11px;color:var(--t3);font-family:var(--mono)}
+.ty div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.ty div:last-child{border:0}.ty small{font:400 11px var(--mono);color:var(--t3);white-space:nowrap}
+.btn{font:600 14px var(--font);border:0;border-radius:var(--r-pill);padding:13px 26px;cursor:pointer;transition:transform .15s,box-shadow .2s,background .2s;color:var(--t1)}
+.btn:active{transform:scale(.97)}
+.b-pri{background:linear-gradient(180deg,#DFFF63,var(--lime-d));color:#10140A;box-shadow:0 8px 28px -8px rgba(204,255,51,.55),inset 0 1px 0 rgba(255,255,255,.5)}
+.b-pri:hover{box-shadow:0 10px 36px -6px rgba(204,255,51,.75)}
+.b-sec{background:var(--s3);border:1px solid var(--line2)}.b-sec:hover{background:#262B3D}
+.b-out{background:transparent;border:1px solid var(--blue);color:#9DB6FF}.b-out:hover{background:rgba(79,123,255,.14)}
+.b-ghost{background:transparent;color:var(--t2)}.b-ghost:hover{color:var(--t1);background:var(--s2)}
+.b-dng{background:rgba(255,90,110,.14);color:var(--red);border:1px solid rgba(255,90,110,.3)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 11px;border-radius:var(--r-pill);background:var(--s3);color:var(--t2);border:1px solid var(--line)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.c-lime{color:var(--lime)}.c-blue{color:#8FAAFF}.c-green{color:var(--green)}.c-amber{color:var(--amber)}.c-red{color:var(--red)}
+.tabs{display:inline-flex;gap:22px;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;color:var(--t3);font:600 12px var(--font);letter-spacing:.08em;padding:0 0 10px;cursor:pointer;text-transform:uppercase}
+.tabs button.on{color:var(--t1);box-shadow:0 2px 0 var(--blue)}
+.seg{display:inline-flex;background:var(--s2);border-radius:var(--r-pill);padding:4px;border:1px solid var(--line)}
+.seg button{background:none;border:0;color:var(--t2);font:600 13px var(--font);padding:7px 16px;border-radius:var(--r-pill);cursor:pointer}
+.seg button.on{background:var(--lime);color:#10140A}
+input.in{width:100%;background:var(--s2);border:1px solid var(--line);border-radius:var(--r-md);padding:13px 16px;color:var(--t1);font:400 14px var(--font);outline:0}
+input.in:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(79,123,255,.18)}
+.tg{width:46px;height:26px;border-radius:var(--r-pill);background:var(--s3);border:1px solid var(--line2);position:relative;cursor:pointer;transition:.2s}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--t2);transition:.2s}
+.tg.on{background:var(--lime);border-color:var(--lime)}.tg.on::after{left:23px;background:#10140A}
+.stat .lab{color:var(--t3);font-size:13px}.stat .val{font-size:38px;font-weight:800;letter-spacing:-.03em;margin:4px 0 12px}
+.bars{display:flex;gap:8px;align-items:flex-end;height:120px}
+.bars span{flex:1;border-radius:var(--r-pill);background:linear-gradient(180deg,#3a3d46,#2a2c33);transition:.2s}
+.bars span.hi{background:linear-gradient(180deg,#E4FF74,var(--lime-d));box-shadow:0 0 24px rgba(204,255,51,.35)}
+.ring{--p:80;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--lime) calc(var(--p)*1%),var(--s3) 0)}
+.ring::before{content:attr(data-l);display:grid;place-items:center;width:78px;height:78px;border-radius:50%;background:var(--s1);font-weight:700;font-size:18px}
+.li{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r-md);background:var(--s2);border:1px solid var(--line)}
+.av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--blue))}
+.li .m{flex:1}.li .m b{display:block;font-size:14px}.li .m small{color:var(--t3);font-size:12px}
+.side{display:flex;flex-direction:column;gap:8px;width:64px;padding:12px;background:var(--s1);border-radius:var(--r-lg);border:1px solid var(--line)}
+.side i{height:40px;border-radius:12px;display:grid;place-items:center;color:var(--t3);font-style:normal}
+.side i.on{background:var(--s3);color:var(--lime)}
+.tip{display:inline-block;background:var(--s3);border:1px solid var(--line2);border-radius:var(--r-md);padding:8px 14px;font-size:13px;font-weight:600}
+.sp{display:flex;align-items:center;gap:12px;font:400 12px var(--mono);color:var(--t3);margin:6px 0}.sp i{display:block;height:12px;background:var(--blue);border-radius:3px}
+.rd{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px}.rd div{height:80px;background:var(--s3);border:1px solid var(--line2);display:grid;place-items:center;font:400 12px var(--mono);color:var(--t2)}
+.el div{height:90px;border-radius:var(--r-md);background:var(--s2);display:grid;place-items:center;font:400 12px var(--mono);color:var(--t2)}
+ul.rules{margin:0;padding-left:18px;color:var(--t2)}ul.rules li{margin:6px 0}
+.do b{color:var(--green)}.dont b{color:var(--red)}
+footer{margin-top:64px;color:var(--t3);font-size:13px;border-top:1px solid var(--line);padding-top:20px}
+#toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(80px);background:var(--lime);color:#10140A;padding:9px 18px;border-radius:var(--r-pill);font-weight:700;font-size:13px;transition:.25s}
+#toast.show{transform:translateX(-50%)}
+</style></head><body><div class="wrap">
+
+<header class="hero">
+<div class="eyebrow">Design System · v1.0</div>
+<h1>Obsidian</h1>
+<p class="lead">A dark, glassy, data-first system for dashboards. Deep near-black canvases, one electric accent per screen, soft rounded surfaces and calm, readable numbers. Distilled from three references: a lime ride-earnings dashboard, an indigo e-commerce overview and a 3D logistics globe.</p>
+<nav class="top"><a href="#principles">Principles</a><a href="#color">Color</a><a href="#type">Typography</a><a href="#space">Space &amp; Shape</a><a href="#components">Components</a><a href="#data">Data viz</a><a href="#usage">Usage</a></nav>
+</header>
+
+<section id="principles"><h2>Principles</h2><p class="sub">Four rules that every screen should obey.</p>
+<div class="grid g4">
+<div class="card"><b>1. One hero accent</b><p class="sub" style="margin:8px 0 0">Each screen leads with a single accent (lime or blue). Others only support.</p></div>
+<div class="card"><b>2. Depth by glass</b><p class="sub" style="margin:8px 0 0">Layered surfaces with 1px light borders and faint gradients, never heavy shadows.</p></div>
+<div class="card"><b>3. Numbers are heroes</b><p class="sub" style="margin:8px 0 0">Big, tight, bold figures. Labels stay small and muted.</p></div>
+<div class="card"><b>4. Soft geometry</b><p class="sub" style="margin:8px 0 0">Large radii, pill controls, rounded bars and rings. No sharp corners.</p></div>
+</div></section>
+
+<section id="color"><h2>Color</h2><p class="sub">Click any swatch to copy its hex. Surfaces step up in lightness; accents are used sparingly.</p>
+<h3>Surfaces</h3><div class="grid g4" id="sw1"></div>
+<h3>Accents</h3><div class="grid g4" id="sw2"></div>
+<h3>Text &amp; lines</h3><div class="grid g4" id="sw3"></div>
+<h3>Themes by reference</h3>
+<div class="grid g3">
+<div class="card"><b>Volt</b> <span class="ref">ref 1</span><p class="sub" style="margin:6px 0 0">Black + lime. Use for performance, earnings, energy, mobility.</p></div>
+<div class="card"><b>Indigo</b> <span class="ref">ref 2</span><p class="sub" style="margin:6px 0 0">Navy surfaces + electric blue/violet. Use for commerce, analytics, SaaS admin.</p></div>
+<div class="card"><b>Orbit</b> <span class="ref">ref 3</span><p class="sub" style="margin:6px 0 0">Ink black + blue with green/amber status set. Use for maps, logistics, ops.</p></div>
+</div></section>
+
+<section id="type"><h2>Typography</h2><p class="sub">Manrope for UI and numbers, JetBrains Mono for labels, codes and tiny metadata. Tight tracking on large sizes.</p>
+<div class="card ty">
+<div><span style="font-size:56px;font-weight:800;letter-spacing:-.035em">$450.00</span><small>Display · 56/60 · 800 · -3.5%</small></div>
+<div><span style="font-size:36px;font-weight:700;letter-spacing:-.025em">Overview</span><small>H1 · 36/40 · 700</small></div>
+<div><span style="font-size:24px;font-weight:700;letter-spacing:-.02em">Today’s Earning</span><small>H2 · 24/30 · 700</small></div>
+<div><span style="font-size:18px;font-weight:600">Card title</span><small>H3 · 18/24 · 600</small></div>
+<div><span style="font-size:15px;color:var(--t2)">Body copy for descriptions and list content.</span><small>Body · 15/24 · 400</small></div>
+<div><span style="font-size:13px;color:var(--t3)">Caption and muted labels</span><small>Caption · 13/18 · 500</small></div>
+<div><span style="font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--lime)">Overline label</span><small>Mono · 11 · +12% caps</small></div>
+</div></section>
+
+<section id="space"><h2>Space, radius &amp; elevation</h2><p class="sub">Base unit is 4px. Components nest in generous padding.</p>
+<div class="grid g2">
+<div class="card"><h3 style="margin-top:0">Spacing scale</h3>
+<div class="sp"><i style="width:4px"></i>4 · xs</div><div class="sp"><i style="width:8px"></i>8 · sm</div><div class="sp"><i style="width:12px"></i>12 · md</div><div class="sp"><i style="width:16px"></i>16 · lg</div><div class="sp"><i style="width:24px"></i>24 · xl (card padding)</div><div class="sp"><i style="width:32px"></i>32 · 2xl</div><div class="sp"><i style="width:48px"></i>48 · 3xl (section gap)</div></div>
+<div class="card"><h3 style="margin-top:0">Radius</h3>
+<div class="rd"><div style="border-radius:10px">10 · sm</div><div style="border-radius:16px">16 · md</div><div style="border-radius:24px">24 · lg</div><div style="border-radius:999px">pill</div></div>
+<h3>Elevation</h3>
+<div class="grid g3 el"><div style="border:1px solid var(--line)">L0 flat</div><div style="background:var(--glass),var(--s2);border:1px solid var(--line2)">L1 glass</div><div style="box-shadow:0 24px 60px -20px rgba(0,0,0,.8),0 0 0 1px var(--line2)">L2 float</div></div></div>
+</div></section>
+
+<section id="components"><h2>Components</h2><p class="sub">All interactive. Primary actions are lime pills; secondary are tonal; outlined blue is for tertiary or navigation actions.</p>
+<h3>Buttons</h3><div class="card row"><button class="btn b-pri">Withdraw</button><button class="btn b-sec">View Details</button><button class="btn b-out">Changelogs</button><button class="btn b-ghost">Cancel</button><button class="btn b-dng">Delete</button></div>
+<h3>Chips &amp; status</h3><div class="card row"><span class="chip c-lime">30% Better</span><span class="chip c-green">Delivered</span><span class="chip c-blue">On the way</span><span class="chip c-amber">Waiting</span><span class="chip c-red">Failed</span></div>
+<h3>Navigation &amp; selection</h3>
+<div class="grid g3">
+<div class="card"><div class="tabs" id="tabs"><button>Day</button><button class="on">Week</button><button>Month</button><button>Year</button></div></div>
+<div class="card"><div class="seg" id="seg"><button>Charged</button><button class="on">Used</button></div></div>
+<div class="card row" style="justify-content:space-between"><span>Dark mode</span><div class="tg on" id="tg"></div></div>
+</div>
+<h3>Input, tooltip &amp; sidebar</h3>
+<div class="grid g3">
+<div class="card"><input class="in" placeholder="Search rides, orders…"></div>
+<div class="card"><span class="tip">10 checkouts</span><p class="sub" style="margin:12px 0 0">Tooltips: s3 surface, 16px radius, bold 13px.</p></div>
+<div class="card"><div class="side"><i class="on">◧</i><i>◉</i><i>▤</i><i>⚙</i></div></div>
+</div>
+<h3>Stat card &amp; list row</h3>
+<div class="grid g3">
+<div class="card stat"><span class="chip c-lime">30% Better</span><div class="lab" style="margin-top:14px">Earning</div><div class="val">$450.00</div><button class="btn b-pri" style="width:100%">Withdraw</button></div>
+<div class="card"><div class="lab" style="color:var(--t3);font-size:13px">Today’s Earning</div><div class="bars" id="bars" style="margin-top:12px"></div></div>
+<div class="card" style="display:grid;gap:10px"><div class="li"><div class="av"></div><div class="m"><b>Jordan 3 Retro UNC</b><small>Yeezy Supply</small></div><b>$842</b></div><div class="li"><div class="av" style="background:linear-gradient(135deg,var(--lime),var(--green))"></div><div class="m"><b>Banani Ride</b><small>4 June · 07:40 PM</small></div><b>$250</b></div></div>
+</div></section>
+
+<section id="data"><h2>Data visualization</h2><p class="sub">Charts are quiet until something matters. Highlight one datum in the accent; everything else stays grey or translucent.</p>
+<div class="grid g3">
+<div class="card" style="display:flex;gap:20px;justify-content:space-around"><div style="text-align:center"><div class="ring" style="--p:80" data-l="80%"></div><div class="ref" style="margin-top:8px">Acceptance</div></div><div style="text-align:center"><div class="ring" style="--p:98;--lime:var(--blue)" data-l="4.9"></div><div class="ref" style="margin-top:8px">Rating</div></div></div>
+<div class="card"><svg viewBox="0 0 300 120" width="100%"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4F7BFF" stop-opacity=".35"/><stop offset="1" stop-color="#4F7BFF" stop-opacity="0"/></linearGradient></defs><path d="M0 80 C40 100 70 40 110 50 S180 100 220 70 S280 30 300 40 V120 H0Z" fill="url(#g)"/><path d="M0 80 C40 100 70 40 110 50 S180 100 220 70 S280 30 300 40" fill="none" stroke="#4F7BFF" stroke-width="3" stroke-linecap="round"/><circle cx="165" cy="85" r="6" fill="#fff" stroke="#4F7BFF" stroke-width="3"/></svg><div class="ref">Smooth line + soft fill + ringed marker</div></div>
+<div class="card"><div style="display:flex;gap:8px;align-items:flex-end;height:100px"><span style="flex:1;height:40%;background:#4F7BFF;border-radius:6px"></span><span style="flex:1;height:100%;background:var(--green);border-radius:6px"></span><span style="flex:1;height:36%;background:#3A3F55;border-radius:6px"></span><span style="flex:1;height:46%;background:var(--amber);border-radius:6px"></span></div><div class="ref" style="margin-top:8px">Categorical bars, status palette</div></div>
+</div>
+<ul class="rules" style="margin-top:18px"><li>Max 1 accent colour per chart, status colours only for state.</li><li>Rings start at 12 o’clock, clockwise, with the value centred.</li><li>Gridlines at 6–8% white. Axis labels use caption style.</li></ul></section>
+
+<section id="usage"><h2>Usage &amp; accessibility</h2>
+<div class="grid g2">
+<div class="card do"><b>Do</b><ul class="rules"><li>Use lime text only on dark surfaces; use #10140A on lime fills.</li><li>Keep card padding at 24px and gaps at 14–16px.</li><li>Pair every status colour with an icon or label.</li><li>Show a 4px focus ring in blue at 18% opacity.</li></ul></div>
+<div class="card dont"><b>Don’t</b><ul class="rules"><li>Mix lime and blue as equal accents on one screen.</li><li>Use pure #000 cards on a #000 page; step up surfaces.</li><li>Use body text below 13px or contrast below 4.5:1.</li><li>Animate more than one hero element at once.</li></ul></div>
+</div>
+<h3>Motion</h3><div class="card"><span class="ref">Duration 150ms (hover/press) · 250ms (toggle/tab) · 400ms (chart enter) · easing cubic-bezier(.2,.8,.2,1) · press scale .97</span></div>
+</section>
+<footer>Obsidian v1.0 · tokens are CSS variables on :root, ready to port to Tailwind or a Figma variables set.</footer>
+</div><div id="toast">Copied</div>
+<script>
+const S=(id,a)=>{const e=document.getElementById(id);a.forEach(([n,h])=>{const d=document.createElement('div');d.className='sw';d.innerHTML='<i style="background:'+h+'"></i><b>'+n+'</b><span>'+h+'</span>';d.onclick=()=>{try{navigator.clipboard.writeText(h)}catch(e){};const t=document.getElementById('toast');t.textContent='Copied '+h;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1200)};e.appendChild(d)})};
+S('sw1',[['Canvas','#07080C'],['Surface 1','#0E1016'],['Surface 2','#151823'],['Surface 3','#1D2130']]);
+S('sw2',[['Volt Lime','#CCFF33'],['Electric Blue','#4F7BFF'],['Violet','#8B6CFF'],['Success','#7BE05A'],['Warning','#FFB020'],['Danger','#FF5A6E'],['Lime Deep','#9BD100'],['Blue Deep','#3A5BD9']]);
+S('sw3',[['Text 1','#F4F6FB'],['Text 2','#A3A9BA'],['Text 3','#6B7185'],['Line','#FFFFFF14']]);
+const b=document.getElementById('bars');[60,85,45,75,50,100,70].forEach((h,i)=>{const s=document.createElement('span');s.style.height=h+'%';if(i==5)s.className='hi';b.appendChild(s)});
+const on=(id,fn)=>document.querySelectorAll('#'+id+' button').forEach(x=>x.onclick=()=>{document.querySelectorAll('#'+id+' button').forEach(y=>y.classList.remove('on'));x.classList.add('on')});
+on('tabs');on('seg');document.getElementById('tg').onclick=e=>e.currentTarget.classList.toggle('on');
+</script></body></html>

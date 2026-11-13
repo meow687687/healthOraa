@@ -8,6 +8,8 @@ import { QueueAction, type QueueCardProps } from "./QueueCard";
 const minutesUntil = (iso: string, now: number): number => Math.round((Date.parse(iso) - now) / 60_000);
 
 export function timingLine(consultation: QueueConsultation, now: number): string {
+  if (consultation.status === "completed") return "Completed";
+  if (consultation.status === "cancelled") return "Cancelled";
   const diff = minutesUntil(consultation.slotStart, now);
   if (consultation.status === "in_progress") return `In progress for ${Math.max(0, -diff)} min`;
   if (diff > 0) return `Starts in ${diff} min`;

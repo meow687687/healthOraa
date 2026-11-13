@@ -77,7 +77,7 @@ export function UpcomingCard({ item }: { item: ConsultationItem }) {
       </div>
 
       <ul aria-label="Before your visit" className="space-y-2 text-sm">
-        <Check label="Intake form submitted" done={item.state !== "held_on_device"} />
+        <Check label="Intake form submitted" done={item.intakeOnFile ?? item.state !== "held_on_device"} />
         <Check label="Payment confirmed" done={item.state === "confirmed"} />
         <Check label="Join from 10 minutes before the start" done={false} />
       </ul>

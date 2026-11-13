@@ -29,26 +29,20 @@ export default function ActiveProgramView({ onOpenConsultations }: { onOpenConsu
   const query = useActiveProgram();
   const now = useNow();
 
-  if (query.isPending) {
-    return <p className="py-16 text-center text-sm text-text-secondary">Loading your program...</p>;
-  }
-  if (!query.data) {
-    return <p className="py-16 text-center text-sm text-text-muted">Could not load your program.</p>;
-  }
-  return <ProgramDashboard patientId={patient.id} data={query.data} now={now} onOpenConsultations={onOpenConsultations} />;
+  // The visit summary sits outside the programme guards, so a programme failure never hides it.
+  return (
+    <div className="space-y-6">
+      <NextVisitCard now={now} onOpen={onOpenConsultations} />
+      {query.isPending && <p className="py-16 text-center text-sm text-text-secondary">Loading your program...</p>}
+      {!query.isPending && !query.data && (
+        <p className="py-16 text-center text-sm text-text-muted">Could not load your program.</p>
+      )}
+      {query.data && <ProgramDashboard patientId={patient.id} data={query.data} />}
+    </div>
+  );
 }
 
-function ProgramDashboard({
-  patientId,
-  data,
-  now,
-  onOpenConsultations,
-}: {
-  patientId: string;
-  data: ActiveProgramData;
-  now: number;
-  onOpenConsultations: () => void;
-}) {
+function ProgramDashboard({ patientId, data }: { patientId: string; data: ActiveProgramData }) {
   const { program, dayLogs } = data;
   const [chatOpen, setChatOpen] = useState(false);
   const save = useSaveDayLog(patientId, program);
@@ -69,8 +63,6 @@ function ProgramDashboard({
 
   return (
     <div className="space-y-6">
-      <NextVisitCard now={now} onOpen={onOpenConsultations} />
-
       <section aria-labelledby="today-plan-title" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

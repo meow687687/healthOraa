@@ -2,8 +2,11 @@ import type { QueueConsultation } from "../../types/queue";
 
 const NOT_RECORDED = "Not recorded";
 
-const listOrEmpty = (items: string[] | undefined): string =>
-  items && items.length > 0 ? items.join(", ") : "None reported";
+// Undefined means no intake was read: say so. An empty list is a recorded "none".
+const listOrEmpty = (items: string[] | undefined): string => {
+  if (items === undefined) return NOT_RECORDED;
+  return items.length > 0 ? items.join(", ") : "None reported";
+};
 
 // What the doctor reads before the call. Missing values say so, rather than showing a dash.
 // `stacked` gives two columns for narrow panes, such as the room's intake column.

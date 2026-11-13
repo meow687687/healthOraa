@@ -15,6 +15,7 @@ export function RoomIntake({ consultation: live }: { consultation: QueueConsulta
     : live;
   const intakeOnFile = consultation.age !== null || consultation.symptomsDuration != null;
   const allergies = consultation.allergies ?? [];
+  const allergiesRecorded = consultation.allergies !== undefined;
 
   return (
     <section aria-label="Patient intake" className="space-y-5 rounded-3xl border border-aura-line bg-aura-s1 p-5">
@@ -24,8 +25,9 @@ export function RoomIntake({ consultation: live }: { consultation: QueueConsulta
 
       <div className="flex flex-wrap gap-2">
         {!intakeOnFile && <Badge tone="neutral">Intake not on file</Badge>}
-        {intakeOnFile && allergies.length > 0 && <Badge tone="red">Allergy: {allergies.join(", ")}</Badge>}
-        {intakeOnFile && allergies.length === 0 && <Badge tone="emerald">No allergies reported</Badge>}
+        {!allergiesRecorded && <Badge tone="neutral">Allergies not recorded</Badge>}
+        {allergiesRecorded && allergies.length > 0 && <Badge tone="red">Allergy: {allergies.join(", ")}</Badge>}
+        {allergiesRecorded && allergies.length === 0 && <Badge tone="emerald">No allergies reported</Badge>}
       </div>
 
       <IntakeSummary consultation={consultation} stacked />

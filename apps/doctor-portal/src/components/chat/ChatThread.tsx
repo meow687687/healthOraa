@@ -72,7 +72,7 @@ export function ChatThread({ consultation }: { consultation: QueueConsultation }
         </div>
       )}
 
-      <div className="flex min-h-[12rem] flex-1 flex-col py-4">
+      <div className="flex min-h-0 flex-1 flex-col py-4">
         {thread.isLoading && <p className="text-xs text-text-muted">Loading conversation...</p>}
         {thread.isError && <div className={ERROR_BOX}>Could not load the conversation.</div>}
         {thread.data && thread.data.length === 0 && (

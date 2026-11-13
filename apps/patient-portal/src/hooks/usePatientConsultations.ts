@@ -26,6 +26,7 @@ interface ConsultationRow {
   status: Enums<"consultation_status">;
   booking_status: Enums<"booking_status">;
   chief_complaint: string | null;
+  patient_intake_forms: { id: string }[] | null;
   profiles: { full_name: string } | null;
   prescriptions: {
     id: string;
@@ -73,6 +74,8 @@ const toItem = (row: ConsultationRow): ConsultationItem => {
     reference: `HLX-${row.id.slice(0, 6).toUpperCase()}`,
     prescription,
     followupExpiresAt: row.followup_expires_at,
+    // True only when an intake row is stored for this visit, not when the booking is confirmed.
+    intakeOnFile: (row.patient_intake_forms?.length ?? 0) > 0,
   };
 };
 
@@ -86,6 +89,7 @@ const fromDeviceBooking = (booking: DeviceBooking): ConsultationItem => ({
   reference: booking.reference,
   prescription: null,
   followupExpiresAt: null,
+  intakeOnFile: false,
 });
 
 // Patient's consultations with their prescriptions, plus bookings held on this device.
@@ -114,7 +118,7 @@ export const usePatientConsultations = () => {
           const { data, error } = await supabase
             .from("consultations")
             .select(
-              "id, slot_start, slot_end, status, booking_status, chief_complaint, followup_expires_at, profiles!consultations_doctor_id_fkey(full_name), prescriptions(id, diagnosis, followup_days, created_at, prescription_medicines(name, dosage, frequency, duration_days, instructions))",
+              "id, slot_start, slot_end, status, booking_status, chief_complaint, followup_expires_at, patient_intake_forms!patient_intake_forms_consultation_id_fkey(id), profiles!consultations_doctor_id_fkey(full_name), prescriptions(id, diagnosis, followup_days, created_at, prescription_medicines(name, dosage, frequency, duration_days, instructions))",
             )
             .eq("patient_id", patient.id)
             .order("slot_start", { ascending: false });

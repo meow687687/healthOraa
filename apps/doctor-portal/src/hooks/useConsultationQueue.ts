@@ -52,8 +52,9 @@ const toQueueItem = (row: QueueRow, intake: IntakeRow | undefined): QueueConsult
   status: row.status,
   followupExpiresAt: row.followup_expires_at,
   symptomsDuration: intake?.symptoms_duration ?? null,
-  allergies: intake?.known_allergies ?? [],
-  medications: intake?.current_medications ?? [],
+  // Undefined when no intake was read, so the card shows "Not recorded" rather than a claim of none.
+  allergies: intake ? (intake.known_allergies ?? []) : undefined,
+  medications: intake ? (intake.current_medications ?? []) : undefined,
 });
 
 // One extra request for the whole queue. If it fails, the queue still loads without intake detail.

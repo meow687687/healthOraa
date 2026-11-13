@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { ArrowLeft } from "lucide-react";
 import { BTN_TEXT, ERROR_BOX, PANEL, cn } from "@healthoraa/ui";
 import type { QueueConsultation, RoomPane } from "../../types/queue";
@@ -29,6 +29,7 @@ interface ConsultationRoomProps {
 // Below the large breakpoint the three panes become tabs.
 export function ConsultationRoom({ consultation, initialPane, now, onExit, onSigned }: ConsultationRoomProps) {
   const [pane, setPane] = useState<RoomPane>(initialPane);
+  const tabRefs = useRef<Record<RoomPane, HTMLButtonElement | null>>({ intake: null, rx: null, chat: null });
   const live = !isMockConsultation(consultation.id);
   const saved = useLatestPrescription(consultation.id);
 
@@ -67,13 +68,38 @@ export function ConsultationRoom({ consultation, initialPane, now, onExit, onSig
         </p>
       </div>
 
-      <div role="tablist" aria-label="Room sections" className="flex gap-1 rounded-full border border-aura-line2 bg-aura-s1 p-1 lg:hidden">
+      <div
+        role="tablist"
+        aria-label="Room sections"
+        className="flex gap-1 rounded-full border border-aura-line2 bg-aura-s1 p-1 lg:hidden"
+        onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+          // Arrow keys move between the tabs; Home and End jump to the ends.
+          const order = PANES.map((item) => item.id);
+          const at = order.indexOf(pane);
+          const next =
+            event.key === "ArrowRight" ? order[(at + 1) % order.length]
+            : event.key === "ArrowLeft" ? order[(at - 1 + order.length) % order.length]
+            : event.key === "Home" ? order[0]
+            : event.key === "End" ? order[order.length - 1]
+            : null;
+          if (!next) return;
+          event.preventDefault();
+          setPane(next);
+          tabRefs.current[next]?.focus();
+        }}
+      >
         {PANES.map((item) => (
           <button
             key={item.id}
+            ref={(node) => {
+              tabRefs.current[item.id] = node;
+            }}
+            id={`room-tab-${item.id}`}
             type="button"
             role="tab"
             aria-selected={pane === item.id}
+            aria-controls={`room-panel-${item.id}`}
+            tabIndex={pane === item.id ? 0 : -1}
             onClick={() => setPane(item.id)}
             className={cn(
               "min-h-[44px] flex-1 rounded-full px-3 text-[13px] font-semibold cursor-pointer",
@@ -86,12 +112,14 @@ export function ConsultationRoom({ consultation, initialPane, now, onExit, onSig
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
-        <div className={pane === "intake" ? "block" : "hidden lg:block"}>
+        <div id="room-panel-intake" role="tabpanel" aria-labelledby="room-tab-intake" className={pane === "intake" ? "block" : "hidden lg:block"}>
           <RoomIntake consultation={consultation} />
         </div>
 
         <section
-          aria-label="Prescription composer"
+          id="room-panel-rx"
+          role="tabpanel"
+          aria-labelledby="room-tab-rx"
           className={cn(PANEL, "p-5 md:p-6", pane === "rx" ? "block" : "hidden lg:block")}
         >
           <h3 className="mb-5 text-lg font-semibold text-text-primary">Prescription</h3>
@@ -99,8 +127,11 @@ export function ConsultationRoom({ consultation, initialPane, now, onExit, onSig
         </section>
 
         <section
-          aria-label="Follow-up chat"
-          className={cn(PANEL, "min-h-[24rem] flex-col p-5 md:p-6", pane === "chat" ? "flex" : "hidden lg:flex")}
+          id="room-panel-chat"
+          role="tabpanel"
+          aria-labelledby="room-tab-chat"
+          // A fixed height keeps the thread scrolling inside the pane instead of growing the page.
+          className={cn(PANEL, "h-[32rem] flex-col p-5 md:p-6 lg:h-[36rem]", pane === "chat" ? "flex" : "hidden lg:flex")}
         >
           <h3 className="mb-3 text-lg font-semibold text-text-primary">7-day follow-up chat</h3>
           <ChatThread consultation={consultation} />

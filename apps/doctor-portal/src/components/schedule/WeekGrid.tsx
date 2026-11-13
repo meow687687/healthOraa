@@ -26,11 +26,14 @@ export function WeekGrid({
   durationMinutes,
   selectedDay,
   onSelect,
+  invalidDays,
 }: {
   rules: WindowDraft[];
   durationMinutes: number;
   selectedDay: number;
   onSelect: (dayOfWeek: number) => void;
+  // Days with a window that cannot be saved. Marked here, so an error stays visible when another day is open.
+  invalidDays: Set<number>;
 }) {
   // Seven equal columns on phones. The time-label column joins them from the medium breakpoint.
   const columns = "grid-cols-7 md:grid-cols-[44px_repeat(7,minmax(0,1fr))]";
@@ -42,6 +45,7 @@ export function WeekGrid({
         {DAY_ORDER.map((day) => {
           const count = slotsForDay(rules, day, durationMinutes);
           const selected = selectedDay === day;
+          const invalid = invalidDays.has(day);
           return (
             <button
               key={day}
@@ -53,6 +57,8 @@ export function WeekGrid({
                 selected ? "border-accent-blue/50 bg-aura-s3 text-text-primary" : "border-aura-line bg-aura-s2 text-text-secondary hover:text-text-primary",
               )}
             >
+              {invalid && <span className="sr-only">, has an error</span>}
+              {invalid && <span aria-hidden="true" className="mx-auto mb-0.5 block h-1.5 w-1.5 rounded-full bg-accent-amber" />}
               <span className="block truncate text-[13px] font-semibold md:hidden">{DAY_NAMES[day].slice(0, 2)}</span>
               <span className="hidden truncate text-[13px] font-semibold md:block">{DAY_NAMES[day].slice(0, 3)}</span>
               <span className="block truncate font-mono text-[11px] tabular-nums text-text-muted md:hidden">{count}</span>

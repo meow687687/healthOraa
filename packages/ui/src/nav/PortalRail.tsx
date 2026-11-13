@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Menu } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../cn";
@@ -29,18 +29,41 @@ interface PortalRailProps<T extends string> {
 // Three layouts from one list: a labelled rail (xl), an icon rail with tooltips (md to xl), and a bottom bar (phones).
 export function PortalRail<T extends string>({ groups, active, onSelect, footer, phonePrimary }: PortalRailProps<T>) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreButton = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
   const all = groups.flatMap((group) => group.items);
   const bar = all.length <= 4 ? all : all.filter((item) => (phonePrimary ?? all.slice(0, 3).map((i) => i.id)).includes(item.id));
   const overflow = all.length <= 4 ? [] : all.filter((item) => !bar.includes(item));
 
+  // Opening moves focus into the sheet. Closing, by any route, returns focus to the More button.
   useEffect(() => {
     if (!moreOpen) return;
-    const onKey = (event: KeyboardEvent) => {
+    sheet.current?.querySelector<HTMLElement>("button")?.focus();
+    const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") setMoreOpen(false);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      moreButton.current?.focus();
+    };
   }, [moreOpen]);
+
+  // Tab and Shift+Tab cycle inside the sheet, so the page behind it cannot take focus.
+  const trapFocus = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Tab" || !sheet.current) return;
+    const items = Array.from(sheet.current.querySelectorAll<HTMLElement>("button"));
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   const choose = (id: T) => {
     onSelect(id);
@@ -76,7 +99,7 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
         className="fixed inset-y-0 left-0 z-30 hidden w-16 flex-col items-center gap-6 border-r border-aura-line bg-aura-s1 py-5 md:flex xl:hidden"
       >
         <Brand compact />
-        <nav className="flex flex-1 flex-col items-center gap-4">
+        <nav className="flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto">
           {all.map((item) => (
             <NavButton key={item.id} item={item} active={active === item.id} onSelect={choose} layout="icon" />
           ))}
@@ -96,6 +119,7 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
         ))}
         {overflow.length > 0 ? (
           <button
+            ref={moreButton}
             type="button"
             onClick={() => setMoreOpen((open) => !open)}
             aria-expanded={moreOpen}
@@ -115,9 +139,11 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
         <div className="fixed inset-0 z-40 md:hidden" onMouseDown={() => setMoreOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
           <div
+            ref={sheet}
             role="dialog"
             aria-modal="true"
             aria-label="All sections"
+            onKeyDown={trapFocus}
             onMouseDown={(event) => event.stopPropagation()}
             className="absolute inset-x-3 bottom-20 rounded-3xl border border-aura-line bg-aura-s1 p-4 shadow-aura-card"
           >

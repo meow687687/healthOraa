@@ -130,7 +130,13 @@ export function ScheduleEditor({ view }: { view: ScheduleView }) {
       </section>
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <WeekGrid rules={rules} durationMinutes={durationMinutes} selectedDay={selectedDay} onSelect={setSelectedDay} />
+        <WeekGrid
+          rules={rules}
+          durationMinutes={durationMinutes}
+          selectedDay={selectedDay}
+          onSelect={setSelectedDay}
+          invalidDays={new Set(rules.filter((rule) => errorFor(rule) !== null).map((rule) => rule.day_of_week))}
+        />
         <DayCard
           dayOfWeek={selectedDay}
           windows={rules.filter((rule) => rule.day_of_week === selectedDay)}

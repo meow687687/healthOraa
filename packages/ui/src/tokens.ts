@@ -24,6 +24,7 @@ export const TONE_TEXT: Record<Tone, string> = {
 };
 
 export const PANEL = "bg-aura-s1 border border-aura-line rounded-3xl p-6 shadow-aura-card";
+export const SKELETON = "animate-pulse bg-aura-s2 rounded-2xl";
 export const PILL = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold font-mono whitespace-nowrap";
 export const LABEL = "text-xs font-mono uppercase tracking-wider text-text-muted";
 export const TABLE_HEAD = "border-b border-aura-line text-xs font-mono uppercase tracking-wider text-text-muted whitespace-nowrap";

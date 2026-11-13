@@ -6,34 +6,30 @@ import type { DoctorOption } from "../types/consultations";
 
 export const doctorsKey = ["consultations", "doctors"] as const;
 
-interface DoctorRow {
+// Columns returned by get_verified_practitioners. Contact details are not part of this list.
+interface PractitionerRow {
   id: string;
-  qualification: string;
-  registration_number: string;
-  consultation_fee_inr: number;
-  slot_duration_minutes: number;
+  full_name: string;
   avatar_url: string | null;
-  profiles: { full_name: string } | null;
+  qualification: string;
+  consultation_fee_inr: number | string;
+  slot_duration_minutes: number;
 }
 
-// Verified, active practitioners. Falls back to the demo list only when the read fails.
+// Verified, active practitioners, through the restricted listing function. Falls back to the demo list
+// only when the read fails.
 export const useDoctors = () =>
   useQuery<DoctorOption[], Error>({
     queryKey: doctorsKey,
     queryFn: () =>
       withSingleFallback(
         async () => {
-          const { data, error } = await supabase
-            .from("practitioner_details")
-            .select("id, qualification, registration_number, consultation_fee_inr, slot_duration_minutes, avatar_url, profiles(full_name)")
-            .eq("verification_status", "verified")
-            .eq("is_active", true);
+          const { data, error } = await supabase.rpc("get_verified_practitioners");
           if (error) throw new Error(error.message);
-          return ((data ?? []) as DoctorRow[]).map((row) => ({
+          return ((data ?? []) as PractitionerRow[]).map((row) => ({
             id: row.id,
-            displayName: row.profiles?.full_name ?? "Practitioner",
+            displayName: row.full_name || "Practitioner",
             qualification: row.qualification,
-            registrationNumber: row.registration_number,
             feeInr: Number(row.consultation_fee_inr),
             slotDurationMinutes: row.slot_duration_minutes,
             avatarUrl: row.avatar_url,

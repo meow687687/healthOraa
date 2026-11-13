@@ -1,3 +1,4 @@
+import { EmptyState } from "@healthoraa/ui";
 import { useState } from "react";
 import { ArrowDown, ArrowUp, ImageOff, Loader2, Megaphone, Plus, Trash2 } from "lucide-react";
 import type { AppBanner } from "@healthoraa/types";
@@ -174,12 +175,13 @@ export default function BannersView() {
         {isError && <div className={ERROR_BOX}>Could not load banners: {error.message}</div>}
 
         {!isLoading && !isError && banners?.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <p className="text-sm font-semibold text-text-primary">No banners yet</p>
-            <p className="text-xs text-text-muted">
-              Create a banner to feature a program, doctor or product on the home carousel.
-            </p>
-          </div>
+          <EmptyState
+            icon={Megaphone}
+            title="No banners yet"
+            description="Create a banner to feature a program, doctor or product on the home carousel."
+            action={{ label: "Create Banner", onClick: () => setIsDrawerOpen(true) }}
+            className="border-0 bg-transparent shadow-none"
+          />
         )}
 
         {!isLoading && !isError && banners && banners.length > 0 && (

@@ -34,7 +34,7 @@ export function ProductCard({ product, onAdd, adding }: { product: ShopProduct; 
 
       <div className="flex items-end justify-between gap-3">
         <div className="space-y-1">
-          <p className="font-mono text-base font-bold text-white">{formatPaise(rupeesToPaise(product.priceInr))}</p>
+          <p className="font-mono text-base font-bold tabular-nums text-white">{formatPaise(rupeesToPaise(product.priceInr))}</p>
           {soldOut && <p className="text-xs font-semibold text-accent-red">Out of stock</p>}
           {low && <p className="text-xs font-semibold text-accent-amber">Only {product.stock} left</p>}
           {!soldOut && !low && <p className="text-xs text-text-muted">In stock</p>}

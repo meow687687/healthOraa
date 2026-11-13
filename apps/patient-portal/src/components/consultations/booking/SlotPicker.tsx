@@ -52,6 +52,7 @@ export function SlotPicker({
                 onClick={() => onSelect(slot)}
                 className={cn(
                   CHIP,
+                  "tabular-nums",
                   on ? "border-accent-blue bg-accent-blue/15 text-accent-blue" : "border-aura-line2 bg-aura-s2 text-text-secondary hover:text-text-primary",
                 )}
               >
@@ -71,7 +72,7 @@ export function SlotPicker({
           <p className="text-sm font-semibold text-text-primary">{doctor.displayName}</p>
           <Badge tone="blue">{doctor.qualification}</Badge>
         </div>
-        <p className="font-mono text-xs text-text-muted">
+        <p className="font-mono text-xs tabular-nums text-text-muted">
           {formatPaise(rupeesToPaise(doctor.feeInr))} consultation fee · {doctor.slotDurationMinutes}-minute slots
         </p>
       </section>

@@ -38,7 +38,7 @@ export function CartLineItem({
     <li className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-aura-line bg-aura-s2 p-4">
       <div className="min-w-[10rem] flex-1 space-y-1">
         <p className="truncate text-sm font-semibold text-text-primary">{product.title}</p>
-        <p className="font-mono text-xs text-text-muted">{formatPaise(rupeesToPaise(product.priceInr))} each</p>
+        <p className="font-mono text-xs tabular-nums text-text-muted">{formatPaise(rupeesToPaise(product.priceInr))} each</p>
       </div>
 
       <div className="ml-auto flex items-center gap-2">

@@ -1,3 +1,4 @@
+import { EmptyState } from "@healthoraa/ui";
 import { useState } from "react";
 import { Check, ChevronRight, Loader2, Package } from "lucide-react";
 import type { OrderStatus } from "@healthoraa/types";
@@ -92,7 +93,7 @@ function StatusStepper({
 export default function OrdersView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [trackingDraft, setTrackingDraft] = useState<Record<string, string>>({});
-  const { data: orders, isLoading, isError, error } = useOrders();
+  const { data: orders, isLoading, isError, error, refetch } = useOrders();
   const updateStatus = useUpdateOrderStatus();
 
   const updatingId = updateStatus.isPending ? updateStatus.variables?.id : undefined;
@@ -131,10 +132,13 @@ export default function OrdersView() {
         {isError && <div className={ERROR_BOX}>Could not load orders: {error.message}</div>}
 
         {!isLoading && !isError && orders?.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <p className="text-sm font-semibold text-text-primary">No orders yet</p>
-            <p className="text-xs text-text-muted">Orders placed in the wellness store will appear here.</p>
-          </div>
+          <EmptyState
+            icon={Package}
+            title="No orders yet"
+            description="Orders placed in the wellness store will appear here."
+            action={{ label: "Refresh orders", onClick: () => void refetch() }}
+            className="border-0 bg-transparent shadow-none"
+          />
         )}
 
         {!isLoading && !isError && orders && orders.length > 0 && (

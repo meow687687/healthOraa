@@ -1,3 +1,4 @@
+import { EmptyState } from "@healthoraa/ui";
 import { useState } from "react";
 import { Loader2, Pencil, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import type { Product } from "@healthoraa/types";
@@ -50,10 +51,13 @@ export default function ShopView() {
         {isError && <div className={ERROR_BOX}>Could not load products: {error.message}</div>}
 
         {!isLoading && !isError && products?.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <p className="text-sm font-semibold text-text-primary">No products yet</p>
-            <p className="text-xs text-text-muted">Add a SKU to start stocking the wellness store.</p>
-          </div>
+          <EmptyState
+            icon={ShoppingBag}
+            title="No products yet"
+            description="Add a SKU to start stocking the wellness store."
+            action={{ label: "Create Product", onClick: () => setIsDrawerOpen(true) }}
+            className="border-0 bg-transparent shadow-none"
+          />
         )}
 
         {!isLoading && !isError && products && products.length > 0 && (

@@ -85,7 +85,7 @@ function ChatBody({ consultation, onClose }: { consultation: QueueConsultation; 
         <p className="text-xs text-text-secondary">
           Consultation on {formatDate(new Date(consultation.slotStart))} at {formatTime(consultation.slotStart)}
         </p>
-        <Badge tone={countdown.tone}>{countdown.label}</Badge>
+        <Badge tone={countdown.tone} className="tabular-nums">{countdown.label}</Badge>
       </DrawerHeader>
 
       {!open && (

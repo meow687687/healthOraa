@@ -124,7 +124,7 @@ function DossierBody({ patient, onClose }: { patient: PatientRecord; onClose: ()
 
         <section aria-labelledby="dossier-history" className="space-y-3">
           <h3 id="dossier-history" className={LABEL}>Clinical history</h3>
-          <ClinicalTimeline visits={patient.visits} prescriptions={patient.prescriptions} />
+          <ClinicalTimeline visits={patient.visits} prescriptions={patient.prescriptions} onClose={onClose} />
         </section>
 
         <section aria-labelledby="dossier-labs" className="space-y-3">

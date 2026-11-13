@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Stethoscope } from "lucide-react";
-import { ERROR_BOX, LABEL, PANEL, cn } from "@healthoraa/ui";
+import { ERROR_BOX, EmptyState, LABEL } from "@healthoraa/ui";
 import { useDoctors } from "../../hooks/useDoctors";
 import { usePatientConsultations } from "../../hooks/usePatientConsultations";
 import { useNow } from "../../hooks/useNow";
@@ -18,6 +18,8 @@ export default function ConsultationsView() {
   const now = useNow(30_000);
   const consultations = usePatientConsultations();
   const doctors = useDoctors();
+  const discoveryRef = useRef<HTMLElement>(null);
+  const findDoctor = () => discoveryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   const [bookingWith, setBookingWith] = useState<DoctorOption | null>(null);
   const [rxFor, setRxFor] = useState<ConsultationItem | null>(null);
   const [chatFor, setChatFor] = useState<ConsultationItem | null>(null);
@@ -37,17 +39,16 @@ export default function ConsultationsView() {
         ) : next ? (
           <UpcomingCard item={next} />
         ) : (
-          <div className={cn(PANEL, "flex flex-col items-center gap-3 py-10 text-center")}>
-            <div className="rounded-full border border-accent-blue/20 bg-accent-blue/10 p-3 text-accent-blue">
-              <Stethoscope className="h-5 w-5" />
-            </div>
-            <p className="text-sm font-semibold text-text-primary">No consultation booked</p>
-            <p className="max-w-sm text-xs text-text-secondary">Choose a doctor below and pick a time that suits you.</p>
-          </div>
+          <EmptyState
+            icon={Stethoscope}
+            title="No consultation booked"
+            description="Choose a doctor below and pick a time that suits you."
+            action={{ label: "Find a doctor", onClick: findDoctor }}
+          />
         )}
       </section>
 
-      <section aria-labelledby="discovery-title" className="space-y-4">
+      <section ref={discoveryRef} aria-labelledby="discovery-title" className="space-y-4">
         <div>
           <p className={LABEL}>Doctor discovery</p>
           <h2 id="discovery-title" className="mt-1 text-base font-semibold text-text-primary">
@@ -57,7 +58,12 @@ export default function ConsultationsView() {
         {doctors.isPending ? (
           <p className="text-sm text-text-secondary">Loading doctors...</p>
         ) : (doctors.data ?? []).length === 0 ? (
-          <p className="text-sm text-text-muted">No doctors are accepting consultations right now.</p>
+          <EmptyState
+            icon={Stethoscope}
+            title="No doctors are accepting consultations right now"
+            description="Verified doctors appear here when they open slots. Check again shortly."
+            action={{ label: "Refresh doctors", onClick: () => void doctors.refetch() }}
+          />
         ) : (
           <div className="space-y-3">
             {(doctors.data ?? []).map((doctor) => (
@@ -75,7 +81,7 @@ export default function ConsultationsView() {
           </h2>
         </div>
         {consultations.isError && <div className={ERROR_BOX}>Could not load your history.</div>}
-        {!consultations.isPending && <PastConsultations items={history} onOpenRx={setRxFor} onOpenChat={setChatFor} />}
+        {!consultations.isPending && <PastConsultations onFindDoctor={findDoctor} items={history} onOpenRx={setRxFor} onOpenChat={setChatFor} />}
       </section>
 
       {bookingWith && <BookingDrawer key={bookingWith.id} doctor={bookingWith} onClose={() => setBookingWith(null)} />}

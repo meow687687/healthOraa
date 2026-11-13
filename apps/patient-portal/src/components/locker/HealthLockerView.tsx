@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Upload } from "lucide-react";
-import { BTN_PRIMARY, ERROR_BOX, LABEL, PANEL, cn } from "@healthoraa/ui";
+import { FileText, Upload } from "lucide-react";
+import { BTN_PRIMARY, EmptyState, ERROR_BOX, LABEL } from "@healthoraa/ui";
 import { useHealthLocker } from "../../hooks/useHealthLocker";
 import { downloadLocalDocument, downloadRecord } from "../../lib/download";
 import type { LockerDocument } from "../../types/locker";
@@ -93,9 +93,12 @@ export default function HealthLockerView() {
         {downloadError && <div className={ERROR_BOX}>{downloadError}</div>}
 
         {visible.length === 0 ? (
-          <div className={cn(PANEL, "py-14 text-center text-sm text-text-muted")}>
-            No documents in this category yet.
-          </div>
+          <EmptyState
+            icon={FileText}
+            title="No documents in this category yet"
+            description="Upload a report or prescription to keep it with your health records."
+            action={{ label: "Upload document", onClick: () => setUploading(true) }}
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {visible.map((document) => (

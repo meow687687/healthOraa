@@ -9,5 +9,6 @@ export * from "./auth";
 export * from "./realtime";
 export * from "./chat";
 export * from "./Toast";
+export * from "./DataTable";
 export { EmptyState } from "./EmptyState";
 export { SkeletonBlock } from "./Skeleton";

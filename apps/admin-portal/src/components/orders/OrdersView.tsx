@@ -1,4 +1,4 @@
-import { EmptyState } from "@healthoraa/ui";
+import { DataTable, EmptyState, type DataColumn, type DataFilter } from "@healthoraa/ui";
 import { useState } from "react";
 import { Check, ChevronRight, Loader2, Package } from "lucide-react";
 import type { OrderStatus } from "@healthoraa/types";
@@ -7,19 +7,8 @@ import { useOrders, useUpdateOrderStatus } from "../../hooks/useOrders";
 import type { OrderWithCustomer } from "../../hooks/useOrders";
 import { formatInr } from "../programs/programMeta";
 import { Badge } from "../ui/Badge";
-import { RowActions } from "../ui/RowActions";
 import { ViewHeader } from "../ui/ViewHeader";
-import {
-  ERROR_BOX,
-  INPUT,
-  MONEY,
-  NUM,
-  PANEL,
-  ROW_MICRO,
-  TABLE_HEAD,
-  TONE_CLASS,
-  type Tone,
-} from "../ui/tokens";
+import { ERROR_BOX, INPUT, MONEY, NUM, PANEL, ROW_MICRO, TONE_CLASS, type Tone } from "../ui/tokens";
 import { cn } from "../../lib/cn";
 
 const STATUS_META: Record<OrderStatus, { label: string; tone: Tone }> = {
@@ -90,8 +79,17 @@ function StatusStepper({
   );
 }
 
+const FILTERS: DataFilter<OrderWithCustomer>["options"] = [
+  { id: "all", label: "All" },
+  { id: "pending", label: "Pending" },
+  { id: "paid", label: "Paid" },
+  { id: "shipped", label: "Shipped" },
+  { id: "delivered", label: "Delivered" },
+  { id: "cancelled", label: "Cancelled" },
+];
+
 export default function OrdersView() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("all");
   const [trackingDraft, setTrackingDraft] = useState<Record<string, string>>({});
   const { data: orders, isLoading, isError, error, refetch } = useOrders();
   const updateStatus = useUpdateOrderStatus();
@@ -109,6 +107,87 @@ export default function OrdersView() {
     });
   };
 
+  const columns: DataColumn<OrderWithCustomer>[] = [
+    {
+      id: "id",
+      header: "Order",
+      cell: (order) => <span className={NUM}>#{order.id.slice(0, 8).toUpperCase()}</span>,
+      sortValue: (order) => order.id,
+    },
+    {
+      id: "customer",
+      header: "Customer",
+      cell: (order) => (
+        <div className="min-w-0 max-w-xs">
+          <p className="font-semibold text-text-primary">{order.profiles.full_name}</p>
+          <p className="text-xs text-text-muted line-clamp-1">{order.shipping_address}</p>
+        </div>
+      ),
+      sortValue: (order) => order.profiles.full_name,
+      priority: "secondary",
+    },
+    {
+      id: "total",
+      header: "Total",
+      align: "right",
+      cell: (order) => <span className={MONEY}>{formatInr(order.total_amount_inr)}</span>,
+      sortValue: (order) => order.total_amount_inr,
+    },
+    {
+      id: "date",
+      header: "Date",
+      cell: (order) => (
+        <span className={NUM}>
+          {new Date(order.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+        </span>
+      ),
+      sortValue: (order) => order.created_at,
+      priority: "secondary",
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (order) => <Badge tone={STATUS_META[order.status].tone}>{STATUS_META[order.status].label}</Badge>,
+      sortValue: (order) => order.status,
+    },
+    {
+      id: "update",
+      header: "Update",
+      cell: (order) => {
+        const busy = updatingId === order.id;
+        const next = NEXT_STATUS[order.status];
+        return (
+          <div className="space-y-2" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              <StatusStepper status={order.status} busy={busy} onSelect={(nextStatus) => handleSelect(order, nextStatus)} />
+              <button
+                type="button"
+                disabled={!next || busy}
+                title={next ? `Advance to ${STATUS_META[next].label}` : "No further steps"}
+                aria-label={next ? `Advance to ${STATUS_META[next].label}` : "No further steps"}
+                onClick={() => next && handleSelect(order, next)}
+                className={ROW_MICRO}
+              >
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ChevronRight className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+            {order.status === "shipped" && (
+              <input
+                type="text"
+                aria-label="Tracking number"
+                placeholder="Tracking number"
+                value={trackingDraft[order.id] ?? order.tracking_number ?? ""}
+                onChange={(e) => setTrackingDraft((prev) => ({ ...prev, [order.id]: e.target.value }))}
+                className={cn(INPUT, "py-1.5 text-xs font-mono")}
+              />
+            )}
+          </div>
+        );
+      },
+      priority: "secondary",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <ViewHeader
@@ -122,118 +201,40 @@ export default function OrdersView() {
         }
       />
 
-      <div className={cn(PANEL, "overflow-hidden")}>
-        {isLoading && (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-text-secondary">
-            <Loader2 className="w-4 h-4 animate-spin" /> Loading orders...
-          </div>
-        )}
+      {isError && <div className={ERROR_BOX}>Could not load orders: {error.message}</div>}
 
-        {isError && <div className={ERROR_BOX}>Could not load orders: {error.message}</div>}
-
-        {!isLoading && !isError && orders?.length === 0 && (
-          <EmptyState
-            icon={Package}
-            title="No orders yet"
-            description="Orders placed in the wellness store will appear here."
-            action={{ label: "Refresh orders", onClick: () => void refetch() }}
-            className="border-0 bg-transparent shadow-none"
+      {!isError && (
+        <div className={cn(PANEL, "overflow-hidden")}>
+          <DataTable
+            caption="Customer orders"
+            rows={orders ?? []}
+            columns={columns}
+            getRowId={(order) => order.id}
+            searchText={(order) => `${order.profiles.full_name} ${order.shipping_address} ${order.id}`}
+            searchPlaceholder="Search customer, address or order ID"
+            filter={{
+              active: statusFilter,
+              options: FILTERS,
+              onChange: setStatusFilter,
+              match: (order, id) => id === "all" || order.status === id,
+            }}
+            isLoading={isLoading}
+            emptyState={
+              <EmptyState
+                icon={Package}
+                title="No orders yet"
+                description="Orders placed in the wellness store will appear here."
+                action={{ label: "Refresh orders", onClick: () => void refetch() }}
+              />
+            }
           />
-        )}
-
-        {!isLoading && !isError && orders && orders.length > 0 && (
-          <div className="table-scroll overflow-x-auto -mx-6">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className={TABLE_HEAD}>
-                  <th className="px-6 py-4 font-medium">Order ID</th>
-                  <th className="px-6 py-4 font-medium">Customer</th>
-                  <th className="px-6 py-4 font-medium">Total</th>
-                  <th className="px-6 py-4 font-medium">Date</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Update Status</th>
-                  <th className="px-6 py-4 font-medium w-20" aria-label="Actions" />
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => {
-                  const busy = updatingId === order.id;
-                  const isSelected = selectedId === order.id;
-                  const next = NEXT_STATUS[order.status];
-                  const needsTracking = order.status === "shipped";
-                  return (
-                    <tr
-                      key={order.id}
-                      onClick={() => setSelectedId(order.id)}
-                      className={cn(
-                        "group border-b border-aura-line last:border-0 transition-colors",
-                        isSelected ? "bg-aura-s2" : "hover:bg-aura-s2/60",
-                      )}
-                    >
-                      <td className={cn("px-6 py-4", NUM)}>#{order.id.slice(0, 8).toUpperCase()}</td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-text-primary">{order.profiles.full_name}</p>
-                        <p className="text-xs text-text-muted line-clamp-1 max-w-xs">{order.shipping_address}</p>
-                      </td>
-                      <td className={cn("px-6 py-4", MONEY)}>{formatInr(order.total_amount_inr)}</td>
-                      <td className={cn("px-6 py-4", NUM)}>
-                        {new Date(order.created_at).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge tone={STATUS_META[order.status].tone}>{STATUS_META[order.status].label}</Badge>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-2">
-                          <StatusStepper
-                            status={order.status}
-                            busy={busy}
-                            onSelect={(nextStatus) => handleSelect(order, nextStatus)}
-                          />
-                          {needsTracking && (
-                            <input
-                              type="text"
-                              aria-label="Tracking number"
-                              placeholder="Tracking number"
-                              value={trackingDraft[order.id] ?? order.tracking_number ?? ""}
-                              onChange={(e) =>
-                                setTrackingDraft((prev) => ({ ...prev, [order.id]: e.target.value }))
-                              }
-                              className={cn(INPUT, "py-1.5 text-xs font-mono")}
-                            />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <RowActions active={isSelected}>
-                          <button
-                            type="button"
-                            disabled={!next || busy}
-                            title={next ? `Advance to ${STATUS_META[next].label}` : "No further steps"}
-                            aria-label={next ? `Advance to ${STATUS_META[next].label}` : "No further steps"}
-                            onClick={() => next && handleSelect(order, next)}
-                            className={ROW_MICRO}
-                          >
-                            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                          </button>
-                        </RowActions>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {updateStatus.isError && (
-              <p className="px-6 py-3 text-xs text-accent-red border-t border-aura-line">
-                Could not update order: {updateStatus.error.message}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+          {updateStatus.isError && (
+            <p className="px-6 py-3 text-xs text-accent-red border-t border-aura-line">
+              Could not update order: {updateStatus.error.message}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -581,7 +581,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "book_consultation_slot":
+            "admin_dashboard_summary":
+{ Args: { "p_days"?: number }; Returns: Json
+                           },
+"book_consultation_slot":
 { Args: { "p_chief_complaint": string,"p_patient_id": string,"p_slot_id": string }; Returns: {
               "amount_inr": number,
 "booking_status": Database["public"]['Enums']["booking_status"],

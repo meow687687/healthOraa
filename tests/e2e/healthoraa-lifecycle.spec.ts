@@ -94,11 +94,14 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     await signInAs(doctor, "doctor");
 
     await doctor.getByRole("button", { name: "Schedule", exact: true }).click();
+    // Wait for the publish RPC itself. The confirmation toast leaves the screen after 3.5 seconds and can
+    // be missed under load, so the database count below is the real check.
+    const published = doctor.waitForResponse((response) => response.url().includes("/rpc/publish_schedule"), { timeout: 30_000 });
     await doctor.getByRole("button", { name: "Publish Slots for Upcoming Week", exact: true }).click();
-    // The confirmation is a toast, which leaves the screen after 3.5 seconds, so read it right away.
-    const notice = doctor.getByRole("status").filter({ hasText: /Slots published: \d+ for the upcoming week/ });
-    await expect(notice).toBeVisible({ timeout: 30_000 });
-    state.slotsPublished = Number((await notice.textContent())?.match(/Slots published: (\d+)/)?.[1] ?? 0);
+    const response = await published;
+    expect(response.status()).toBe(200);
+    // The count the RPC reports must match what it persisted.
+    state.slotsPublished = Number(await response.json());
     expect(state.slotsPublished).toBeGreaterThan(0);
 
     const generated = Number(

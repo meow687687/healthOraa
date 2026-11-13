@@ -13,6 +13,7 @@ export function DayCard({
   dayOfWeek,
   windows,
   durationMinutes,
+  slotCount,
   errorFor,
   onToggleDay,
   onAddWindow,
@@ -22,6 +23,7 @@ export function DayCard({
   dayOfWeek: number;
   windows: WindowDraft[];
   durationMinutes: number;
+  slotCount: number;
   errorFor: (rule: WindowDraft) => string | null;
   onToggleDay: (next: boolean) => void;
   onAddWindow: () => void;
@@ -40,7 +42,9 @@ export function DayCard({
           </h3>
           <div className="flex flex-wrap gap-2">
             <Badge tone={anyActive ? "emerald" : "neutral"}>{anyActive ? "Open" : "Closed"}</Badge>
-            <Badge tone="blue">{durationMinutes} min intervals</Badge>
+            <span className="self-center text-xs text-text-muted">
+              {slotCount} {slotCount === 1 ? "slot" : "slots"} of {durationMinutes} min
+            </span>
           </div>
         </div>
         <ToggleSwitch

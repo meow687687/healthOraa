@@ -17,4 +17,8 @@ export interface QueueConsultation {
   status: ConsultationStatus;
   // Null until the consultation completes. Then it is slot end plus 7 days.
   followupExpiresAt: string | null;
+  // Intake detail. Optional so demo rows can leave it out.
+  symptomsDuration?: string | null;
+  allergies?: string[];
+  medications?: string[];
 }

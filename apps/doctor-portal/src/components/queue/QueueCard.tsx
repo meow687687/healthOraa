@@ -2,7 +2,7 @@ import { BTN_PRIMARY, Badge, PANEL, cn } from "@healthoraa/ui";
 import type { QueueConsultation } from "../../types/queue";
 import { CONSULTATION_STATUS_META, formatTime } from "./consultationMeta";
 
-interface QueueCardProps {
+export interface QueueCardProps {
   consultation: QueueConsultation;
   isActiveRoom: boolean;
   isStarting: boolean;
@@ -16,7 +16,7 @@ const SECONDARY_PILL =
 
 // Every actionable state opens the encounter drawer: intake preview, Rx composer, or notes.
 // Starting a scheduled consultation moves it to in_progress first, then opens the same drawer.
-function QueueAction({ consultation, isActiveRoom, isStarting, onStart, onOpenEncounter, onOpenChat }: QueueCardProps) {
+export function QueueAction({ consultation, isActiveRoom, isStarting, onStart, onOpenEncounter, onOpenChat }: QueueCardProps) {
   switch (consultation.status) {
     case "in_progress":
       return (
@@ -62,8 +62,9 @@ function QueueAction({ consultation, isActiveRoom, isStarting, onStart, onOpenEn
   }
 }
 
-export function QueueCard(props: QueueCardProps) {
-  const { consultation, isActiveRoom } = props;
+// Finished visits use the compact layout: one line, same actions, so the Rx and chat stay one click away.
+export function QueueCard(props: QueueCardProps & { compact?: boolean }) {
+  const { consultation, isActiveRoom, compact = false } = props;
   const meta = CONSULTATION_STATUS_META[consultation.status];
   const ageLine =
     consultation.age !== null
@@ -75,7 +76,9 @@ export function QueueCard(props: QueueCardProps) {
       aria-labelledby={`consultation-${consultation.id}`}
       className={cn(
         PANEL,
-        "flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6",
+        compact
+          ? "flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between"
+          : "flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6",
         isActiveRoom && "border-accent-emerald/40",
       )}
     >
@@ -96,10 +99,12 @@ export function QueueCard(props: QueueCardProps) {
             </h3>
             <Badge tone={meta.tone}>{meta.label}</Badge>
           </div>
-          <p className="text-xs font-mono uppercase tracking-wider text-text-muted">{ageLine}</p>
-          <p className="text-sm text-text-secondary">
-            {consultation.chiefComplaint ?? "No chief complaint on file"}
-          </p>
+          {!compact && <p className="text-xs font-mono uppercase tracking-wider text-text-muted">{ageLine}</p>}
+          {!compact && (
+            <p className="text-sm text-text-secondary">
+              {consultation.chiefComplaint ?? "No chief complaint on file"}
+            </p>
+          )}
           {isActiveRoom && (
             <p className="text-xs font-mono text-accent-emerald">You are in this consultation room</p>
           )}

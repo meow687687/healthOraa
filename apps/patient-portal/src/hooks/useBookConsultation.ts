@@ -15,11 +15,17 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(
 const newReference = (): string => `HLX-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
 type ServerOutcome =
-  | { ok: true; reference: string; notice: string | null; totalPaise: number }
+  | {
+      ok: true;
+      reference: string;
+      notice: string | null;
+      feePaise: number;
+      gstPaise: number;
+      totalPaise: number;
+    }
   | { ok: false; reason: string };
 
-// Calls initiate_consultation_booking, which requires a signed-in patient. The server reads the
-// fee from the practitioner's profile and returns the total (fee plus GST), so the client never sets it.
+// The server reads the practitioner's fee and returns the authoritative fee, GST, and total.
 const bookOnServer = async (patientId: string, slotId: string, intake: PatientIntakeInput): Promise<ServerOutcome> => {
   const { data, error } = await supabase.rpc("initiate_consultation_booking", {
     p_slot_id: slotId,
@@ -46,6 +52,8 @@ const bookOnServer = async (patientId: string, slotId: string, intake: PatientIn
     ok: true,
     reference: row.order_id,
     notice: intakeError ? `The intake form did not reach the clinic: ${intakeError.message}` : null,
+    feePaise: row.fee_paise,
+    gstPaise: row.gst_paise,
     totalPaise: row.total_paise,
   };
 };
@@ -84,11 +92,11 @@ export const useBookConsultation = () => {
       if (slot.source === "live") {
         const outcome = await bookOnServer(patient.id, slot.id, intake);
         if (outcome.ok) {
-          const serverTotal = outcome.totalPaise;
           return {
             ...common,
-            gstPaise: serverTotal - feePaise,
-            totalPaise: serverTotal,
+            feePaise: outcome.feePaise,
+            gstPaise: outcome.gstPaise,
+            totalPaise: outcome.totalPaise,
             reference: outcome.reference,
             state: "awaiting_payment",
             notice: outcome.notice,

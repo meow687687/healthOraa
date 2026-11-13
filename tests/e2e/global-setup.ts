@@ -20,7 +20,10 @@ export default async function globalSetup(): Promise<void> {
     { cwd: REPO_ROOT, detached: true, stdio: ["ignore", log, log] },
   );
   child.unref();
-  if (child.pid) writeFileSync(PID_FILE, String(child.pid));
+  if (child.pid) {
+    writeFileSync(PID_FILE, String(child.pid));
+    process.env.HEALTHORAA_OWNED_RUNTIME_PID = String(child.pid);
+  }
 
   for (let attempt = 0; attempt < 60; attempt += 1) {
     if (await webhookReady()) return;

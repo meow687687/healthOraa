@@ -6,10 +6,12 @@ import { PID_FILE } from "./support/paths";
 // Stops the Edge runtime only when this run started it. The process was started detached, so its
 // process group is killed, and the runtime container is stopped as well.
 export default async function globalTeardown(): Promise<void> {
-  if (!existsSync(PID_FILE)) return;
+  // Setup sets this marker only when it started the runtime. Another run's runtime is left alone.
+  const ownedPid = process.env.HEALTHORAA_OWNED_RUNTIME_PID;
+  if (!ownedPid || !existsSync(PID_FILE)) return;
   const pid = Number(readFileSync(PID_FILE, "utf8"));
   rmSync(PID_FILE, { force: true });
-  if (Number.isInteger(pid) && pid > 0) {
+  if (Number.isInteger(pid) && pid > 0 && String(pid) === ownedPid) {
     try {
       process.kill(-pid, "SIGTERM");
     } catch {
@@ -19,8 +21,8 @@ export default async function globalTeardown(): Promise<void> {
     for (let attempt = 0; attempt < 20 && processGroupAlive(pid); attempt += 1) {
       await sleep(250);
     }
+    spawnSync("docker", ["stop", "supabase_edge_runtime_healthOraa"], { stdio: "ignore" });
   }
-  spawnSync("docker", ["stop", "supabase_edge_runtime_healthOraa"], { stdio: "ignore" });
 }
 
 const processGroupAlive = (pid: number): boolean => {

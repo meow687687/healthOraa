@@ -67,7 +67,7 @@ function EncounterBody({
       </>
     );
   }
-  if (live && saved.isError) {
+  if (live && saved.isError && saved.data === undefined) {
     return (
       <>
         {header}
@@ -84,7 +84,14 @@ function EncounterBody({
   return (
     <>
       {header}
-      <PatientBanner consultation={consultation} intake={intake.data} />
+      <div>
+        {live && saved.isError && (
+          <div role="alert" className={ERROR_BOX}>
+            Could not refresh the saved prescription. Your current edits are preserved.
+          </div>
+        )}
+        <PatientBanner consultation={consultation} intake={intake.data} />
+      </div>
       <PrescriptionForm
         consultation={consultation}
         initialValues={initialValues}

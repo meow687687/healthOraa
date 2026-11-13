@@ -61,7 +61,10 @@ test.describe.serial("review fixes", () => {
     });
     expect(booked.status, JSON.stringify(booked.body)).toBe(200);
     // ₹799.00 plus 18% GST is ₹942.82, which is 94282 paise.
-    expect((booked.body as Array<{ total_paise: number }>)[0].total_paise).toBe(94282);
+    const [breakdown] = booked.body as Array<{ fee_paise: number; gst_paise: number; total_paise: number }>;
+    expect(breakdown.fee_paise).toBe(79900);
+    expect(breakdown.gst_paise).toBe(14382);
+    expect(breakdown.total_paise).toBe(94282);
     expect(psql(`select amount_inr from consultations where chief_complaint = ${lit(`${run} fee`)}`)).toBe("942.82");
     script(`delete from razorpay_order_logs where entity_id in (select id from consultations where chief_complaint = ${lit(`${run} fee`)});`);
     script(`delete from consultations where chief_complaint = ${lit(`${run} fee`)};`);
@@ -116,6 +119,36 @@ test.describe.serial("review fixes", () => {
           `select count(*) from program_enrolments where patient_id = '${PATIENT}' and program_id = '${programId}' and status = 'active'`,
         ),
       ),
+    ).toBe(1);
+  });
+
+  test("an expired enrolment still marked active fails the webhook instead of reporting success", async () => {
+    script(
+      `insert into programs (title, category, duration_days, price_inr, is_active)
+       values (${lit(`${run} stale program`)}, 'custom', 30, 1999, true);`,
+    );
+    const programId = psql(`select id from programs where title = ${lit(`${run} stale program`)}`);
+    // The row is active but its window has ended. It blocks the unique index, yet is not a live enrolment.
+    script(`
+      insert into program_enrolments (patient_id, program_id, started_at, expires_at, status)
+      values ('${PATIENT}', '${programId}', now() - interval '60 days', now() - interval '1 day', 'active');
+    `);
+    const orderId = `order_${run}_stale`;
+    script(`
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(orderId)}, '${PATIENT}', 199900, 'INR', 'created', 'program', '${programId}');
+    `);
+
+    const result = await sendPaymentCaptured({
+      orderId,
+      amountPaise: 199900,
+      currency: "INR",
+      paymentId: `pay_${run}_stale`,
+    });
+    expect(result.status).toBe(500);
+    expect(String(result.body.error)).toContain("expired active enrolment");
+    expect(
+      Number(psql(`select count(*) from program_enrolments where program_id = '${programId}' and status = 'active'`)),
     ).toBe(1);
   });
 

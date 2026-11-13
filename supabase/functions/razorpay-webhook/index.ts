@@ -232,11 +232,30 @@ Deno.serve(async (request) => {
           .toISOString(),
         status: "active",
       });
-      // 23505: a concurrent delivery created the active enrolment first. That is success.
-      if (error && error.code !== "23505") {
-        return jsonResponse({
-          error: "Payment saved, but enrolment creation failed",
-        }, 500);
+      if (error) {
+        // 23505 means an active row already holds this program slot. It is success only when that row
+        // is an unexpired enrolment. An expired row still marked active blocks the new one, and the
+        // payment then needs a human decision, so the request fails loudly.
+        if (error.code !== "23505") {
+          return jsonResponse({
+            error: "Payment saved, but enrolment creation failed",
+          }, 500);
+        }
+        const { data: liveEnrolment, error: liveError } = await supabase
+          .from("program_enrolments")
+          .select("id")
+          .eq("patient_id", orderLog.user_id)
+          .eq("program_id", orderLog.entity_id)
+          .eq("status", "active")
+          .gt("expires_at", new Date().toISOString())
+          .limit(1)
+          .maybeSingle();
+        if (liveError || !liveEnrolment) {
+          return jsonResponse({
+            error:
+              "Payment saved, but an expired active enrolment blocks the new one. Needs manual enrolment repair.",
+          }, 500);
+        }
       }
     }
   } else {

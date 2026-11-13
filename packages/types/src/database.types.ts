@@ -650,7 +650,7 @@ isOneToOne: false
       } },
 "initiate_consultation_booking":
 { Args: { "p_chief_complaint": string,"p_patient_id": string,"p_slot_id": string }; Returns: {
-              "consultation_row": Database["public"]['Tables']["consultations"]['Row'],"order_id": string,"total_paise": number
+              "consultation_row": Database["public"]['Tables']["consultations"]['Row'],"fee_paise": number,"gst_paise": number,"order_id": string,"total_paise": number
             }[]
                            },
 "issue_prescription":

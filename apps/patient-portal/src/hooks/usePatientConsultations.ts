@@ -4,6 +4,7 @@ import { watchTables, withSingleFallback } from "@healthoraa/ui";
 import type { Enums } from "@healthoraa/types";
 import { supabase } from "../lib/supabase";
 import { usePatient } from "../context/PatientContext";
+import { useAuth } from "../context/AuthContext";
 import { buildFallbackConsultations } from "../lib/consultationFallback";
 import { readDeviceBookings } from "../lib/deviceBookingStore";
 import type { ConsultationItem, ConsultationState, DeviceBooking, PrescriptionRecord } from "../types/consultations";
@@ -95,6 +96,7 @@ const fromDeviceBooking = (booking: DeviceBooking): ConsultationItem => ({
 // Patient's consultations with their prescriptions, plus bookings held on this device.
 export const usePatientConsultations = () => {
   const patient = usePatient();
+  const { isPrototype } = useAuth();
   const queryClient = useQueryClient();
 
   // Realtime: status transitions on this patient's consultations and newly issued
@@ -113,21 +115,21 @@ export const usePatientConsultations = () => {
   return useQuery<ConsultationItem[], Error>({
     queryKey: patientConsultationsKey(patient.id),
     queryFn: async () => {
-      const server = await withSingleFallback(
-        async () => {
-          const { data, error } = await supabase
-            .from("consultations")
-            .select(
-              "id, slot_start, slot_end, status, booking_status, chief_complaint, followup_expires_at, patient_intake_forms!patient_intake_forms_consultation_id_fkey(id), profiles!consultations_doctor_id_fkey(full_name), prescriptions(id, diagnosis, followup_days, created_at, prescription_medicines(name, dosage, frequency, duration_days, instructions))",
-            )
-            .eq("patient_id", patient.id)
-            .order("slot_start", { ascending: false });
-          if (error) throw new Error(error.message);
-          return ((data ?? []) as unknown as ConsultationRow[]).map(toItem);
-        },
-        buildFallbackConsultations(new Date()),
-        "consultations",
-      );
+      // A live failure is an error the screen can show. Sample visits appear only in the offline prototype.
+      const live = async (): Promise<ConsultationItem[]> => {
+        const { data, error } = await supabase
+          .from("consultations")
+          .select(
+            "id, slot_start, slot_end, status, booking_status, chief_complaint, followup_expires_at, patient_intake_forms!patient_intake_forms_consultation_id_fkey(id), profiles!consultations_doctor_id_fkey(full_name), prescriptions(id, diagnosis, followup_days, created_at, prescription_medicines(name, dosage, frequency, duration_days, instructions))",
+          )
+          .eq("patient_id", patient.id)
+          .order("slot_start", { ascending: false });
+        if (error) throw new Error(error.message);
+        return ((data ?? []) as unknown as ConsultationRow[]).map(toItem);
+      };
+      const server = isPrototype
+        ? await withSingleFallback(live, buildFallbackConsultations(new Date()), "consultations")
+        : await live();
       const device = readDeviceBookings().map(fromDeviceBooking);
       return [...device, ...server].sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt));
     },

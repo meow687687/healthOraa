@@ -29,6 +29,8 @@ interface PortalRailProps<T extends string> {
 // Three layouts from one list: a labelled rail (xl), an icon rail with tooltips (md to xl), and a bottom bar (phones).
 export function PortalRail<T extends string>({ groups, active, onSelect, footer, phonePrimary }: PortalRailProps<T>) {
   const [moreOpen, setMoreOpen] = useState(false);
+  // The icon tooltip sits outside the scrolling rail, so it is never clipped.
+  const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const all = groups.flatMap((group) => group.items);
@@ -101,7 +103,7 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
         <Brand compact />
         <nav className="flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto">
           {all.map((item) => (
-            <NavButton key={item.id} item={item} active={active === item.id} onSelect={choose} layout="icon" />
+            <NavButton key={item.id} item={item} active={active === item.id} onSelect={choose} layout="icon" onHint={setTip} />
           ))}
         </nav>
       </aside>
@@ -134,6 +136,16 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
           </button>
         ) : null}
       </nav>
+
+      {tip ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-[60] hidden -translate-y-1/2 whitespace-nowrap rounded-lg border border-aura-line2 bg-aura-s3 px-2.5 py-1.5 text-[13px] text-text-primary shadow-aura-elevated md:block xl:hidden"
+          style={{ top: tip.top, left: tip.left }}
+        >
+          {tip.label}
+        </div>
+      ) : null}
 
       {moreOpen ? (
         <div className="fixed inset-0 z-40 md:hidden" onMouseDown={() => setMoreOpen(false)}>
@@ -184,11 +196,13 @@ function NavButton<T extends string>({
   active,
   onSelect,
   layout,
+  onHint,
 }: {
   item: PortalNavItem<T>;
   active: boolean;
   onSelect: (id: T) => void;
   layout: "wide" | "icon" | "bar";
+  onHint?: (tip: { label: string; top: number; left: number } | null) => void;
 }) {
   const Icon = item.icon;
   const stateClass = active ? "bg-aura-s3 text-text-primary shadow-aura-elevated" : "text-text-muted hover:bg-aura-s2 hover:text-text-primary";
@@ -219,18 +233,24 @@ function NavButton<T extends string>({
       </button>
     );
   }
+  const show = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    onHint?.({ label: item.label, top: rect.top + rect.height / 2, left: rect.right + 12 });
+  };
+  const hide = () => onHint?.(null);
   return (
     <button
       type="button"
       onClick={() => onSelect(item.id)}
+      onMouseEnter={(event) => show(event.currentTarget)}
+      onMouseLeave={hide}
+      onFocus={(event) => show(event.currentTarget)}
+      onBlur={hide}
       aria-current={active ? "page" : undefined}
       aria-label={item.label}
-      className={cn("group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-colors duration-150 cursor-pointer", FOCUS, stateClass)}
+      className={cn("flex h-11 w-11 items-center justify-center rounded-2xl transition-colors duration-150 cursor-pointer", FOCUS, stateClass)}
     >
       <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-      <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap rounded-lg border border-aura-line2 bg-aura-s3 px-2.5 py-1.5 text-[13px] text-text-primary shadow-aura-elevated group-hover:block group-focus-visible:block">
-        {item.label}
-      </span>
     </button>
   );
 }

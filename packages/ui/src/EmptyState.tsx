@@ -6,7 +6,8 @@ interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
   description?: string;
-  action: { label: string; onClick: () => void };
+  // Optional. Leave it out where no next step exists, for example a chart with no data yet.
+  action?: { label: string; onClick: () => void };
   className?: string;
 }
 
@@ -19,9 +20,11 @@ export function EmptyState({ icon: Icon, title, description, action, className }
       </span>
       <p className="text-sm font-semibold text-text-primary">{title}</p>
       {description && <p className="max-w-sm text-xs text-text-muted">{description}</p>}
-      <button type="button" onClick={action.onClick} className={cn(BTN_PRIMARY, "mt-1 px-5 py-2")}>
-        {action.label}
-      </button>
+      {action && (
+        <button type="button" onClick={action.onClick} className={cn(BTN_PRIMARY, "mt-1 px-5 py-2")}>
+          {action.label}
+        </button>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Badge, SessionPill } from "@healthoraa/ui";
+import { AccountMenu, Badge } from "@healthoraa/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useDoctor } from "../../context/DoctorContext";
 
@@ -17,7 +17,7 @@ export function TopBar() {
   const { user, isPrototype, signOut } = useAuth();
 
   return (
-    <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-aura-line bg-aura-s1/60 px-4 py-3 backdrop-blur-md lg:h-20 lg:flex-nowrap lg:px-8 lg:py-0">
+    <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-aura-line bg-aura-s1/90 px-4 py-3 backdrop-blur-md lg:h-20 lg:flex-nowrap lg:px-8 lg:py-0">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-accent-blue to-accent-violet text-xs font-bold text-white">
           {initialsOf(doctor.displayName)}
@@ -45,7 +45,7 @@ export function TopBar() {
             <Badge tone="violet">Offline prototype identity</Badge>
           </div>
         ) : (
-          <SessionPill email={user.email} role={user.role} onSignOut={signOut} />
+          <AccountMenu email={user.email} role={user.role} displayName={doctor.displayName} onSignOut={() => void signOut()} />
         )}
       </div>
     </header>

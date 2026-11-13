@@ -43,16 +43,16 @@ export default function ConsultationsView() {
             icon={Stethoscope}
             title="No consultation booked"
             description="Choose a doctor below and pick a time that suits you."
-            action={{ label: "Find a doctor", onClick: findDoctor }}
+            action={{ label: "Book a visit", onClick: findDoctor }}
           />
         )}
       </section>
 
       <section ref={discoveryRef} aria-labelledby="discovery-title" className="space-y-4">
         <div>
-          <p className={LABEL}>Doctor discovery</p>
+          <p className={LABEL}>Doctors</p>
           <h2 id="discovery-title" className="mt-1 text-base font-semibold text-text-primary">
-            Find a doctor
+            Book a visit
           </h2>
         </div>
         {doctors.isPending ? (
@@ -81,7 +81,7 @@ export default function ConsultationsView() {
           </h2>
         </div>
         {consultations.isError && <div className={ERROR_BOX}>Could not load your history.</div>}
-        {!consultations.isPending && <PastConsultations onFindDoctor={findDoctor} items={history} onOpenRx={setRxFor} onOpenChat={setChatFor} />}
+        {!consultations.isPending && <PastConsultations items={history} onOpenRx={setRxFor} onOpenChat={setChatFor} />}
       </section>
 
       {bookingWith && <BookingDrawer key={bookingWith.id} doctor={bookingWith} onClose={() => setBookingWith(null)} />}

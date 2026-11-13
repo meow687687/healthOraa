@@ -8,5 +8,6 @@ export const signInAs = async (page: Page, portal: Portal): Promise<void> => {
   await page.goto(PORTALS[portal], { waitUntil: "networkidle" });
   // The persona button's accessible name also contains its email, so match the label as a substring.
   await page.getByRole("button", { name: PERSONAS[portal].button }).click();
-  await expect(page.getByRole("button", { name: "Sign Out", exact: true })).toBeVisible({ timeout: 20_000 });
+  // Every portal keeps sign-out inside its account menu, so the session is confirmed by that control.
+  await expect(page.getByRole("button", { name: "Account menu", exact: true })).toBeVisible({ timeout: 20_000 });
 };

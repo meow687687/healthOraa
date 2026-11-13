@@ -94,11 +94,14 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     await signInAs(doctor, "doctor");
 
     await doctor.getByRole("button", { name: "Schedule", exact: true }).click();
+    // Wait for the publish RPC itself. The confirmation toast leaves the screen after 3.5 seconds and can
+    // be missed under load, so the database count below is the real check.
+    const published = doctor.waitForResponse((response) => response.url().includes("/rpc/publish_schedule"), { timeout: 30_000 });
     await doctor.getByRole("button", { name: "Publish Slots for Upcoming Week", exact: true }).click();
-    // The confirmation is a toast, which leaves the screen after 3.5 seconds, so read it right away.
-    const notice = doctor.getByRole("status").filter({ hasText: /Slots published: \d+ for the upcoming week/ });
-    await expect(notice).toBeVisible({ timeout: 30_000 });
-    state.slotsPublished = Number((await notice.textContent())?.match(/Slots published: (\d+)/)?.[1] ?? 0);
+    const response = await published;
+    expect(response.status()).toBe(200);
+    // The count the RPC reports must match what it persisted.
+    state.slotsPublished = Number(await response.json());
     expect(state.slotsPublished).toBeGreaterThan(0);
 
     const generated = Number(
@@ -176,7 +179,7 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     await expect.poll(() => psql(`select status from consultations where id = '${state.consultationId}'`)).toBe(
       "in_progress",
     );
-    const composer = doctor.getByRole("dialog");
+    const composer = doctor.getByRole("tabpanel", { name: "Prescription", exact: true });
     await composer.locator("#rx-diagnosis").fill("E2E: PCOD with hormonal acne");
     await composer.getByLabel("Drug name").first().fill("Metformin 500mg");
     await composer.getByLabel("Dosage").first().fill("1 tablet");
@@ -217,7 +220,7 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     // Doctor sends from the portal while this drawer stays open.
     const card = doctor.getByRole("article").filter({ hasText: "Priya Mehta" });
     await card.getByRole("button", { name: "Open Follow-up Chat", exact: true }).click();
-    const docChat = doctor.getByRole("dialog");
+    const docChat = doctor.getByRole("tabpanel", { name: "Follow-up chat", exact: true });
     await docChat.getByPlaceholder("Write a message to the patient").fill(followupText);
     await docChat.getByRole("button", { name: "Send message", exact: true }).click();
 
@@ -231,13 +234,15 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     ).toBe("1");
   });
   test("6. doctor reopens the saved Rx, corrects it, and the patient sees the correction", async () => {
-    // Close the open chat drawers, so the composer and the Rx preview are the only dialogs.
+    // Close the patient chat drawer, so the Rx preview is the only open dialog.
     await patient.keyboard.press("Escape");
     await doctor.keyboard.press("Escape");
 
+    // Step 5 left the consultation room open on its chat pane. Return to the queue first.
+    await doctor.getByRole("button", { name: "Back to queue", exact: true }).click();
     const card = doctor.getByRole("article").filter({ hasText: "Priya Mehta" });
     await card.getByRole("button", { name: "Write Prescription / View Notes", exact: true }).click();
-    const composer = doctor.getByRole("dialog");
+    const composer = doctor.getByRole("tabpanel", { name: "Prescription", exact: true });
     // The composer starts from the saved prescription, not a blank form.
     await expect(composer.locator("#rx-diagnosis")).toHaveValue("E2E: PCOD with hormonal acne");
     await expect(composer.getByLabel("Drug name").first()).toHaveValue("Metformin 500mg");

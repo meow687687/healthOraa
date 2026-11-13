@@ -601,7 +601,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "book_consultation_slot":
+            "admin_dashboard_summary":
+{ Args: { "p_days"?: number }; Returns: Json
+                           },
+"book_consultation_slot":
 { Args: { "p_chief_complaint": string,"p_patient_id": string,"p_slot_id": string }; Returns: {
               "amount_inr": number,
 "booking_status": Database["public"]['Enums']["booking_status"],
@@ -678,7 +681,7 @@ isOneToOne: false
       } },
 "get_verified_practitioners":
 { Args: Record<PropertyKey, never>; Returns: {
-              "avatar_url": string,"bio": string,"consultation_fee_inr": number,"full_name": string,"id": string,"languages_spoken": (string)[],"qualification": string,"slot_duration_minutes": number,"specialization": string,"years_of_experience": number
+              "avatar_url": string | null,"bio": string | null,"consultation_fee_inr": number,"full_name": string,"id": string,"languages_spoken": (string)[] | null,"qualification": string,"slot_duration_minutes": number,"specialization": string | null,"years_of_experience": number | null
             }[]
                            },
 "initiate_consultation_booking":

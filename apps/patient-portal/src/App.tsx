@@ -8,15 +8,15 @@ import PatientShopView from "./components/shop/PatientShopView";
 import HealthLockerView from "./components/locker/HealthLockerView";
 
 export default function App() {
-  const [view, setView] = useState<PatientView>("programs");
+  const [view, setView] = useState<PatientView>("today");
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-aura-canvas font-sans text-text-primary antialiased">
       <TopBar />
 
-      {/* pb-36 keeps the last card clear of the floating nav rail and the Message Dietitian pill. */}
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-36 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
-        {view === "programs" && <ActiveProgramView />}
+      {/* pb-28 keeps the last card clear of the fixed bottom bar. */}
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-28 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
+        {view === "today" && <ActiveProgramView onOpenConsultations={() => setView("consultations")} />}
         {view === "consultations" && <ConsultationsView />}
         {view === "shop" && <PatientShopView />}
         {view === "locker" && <HealthLockerView />}

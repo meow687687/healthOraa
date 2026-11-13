@@ -14,8 +14,8 @@ export default {
           line2: 'rgba(255, 255, 255, 0.14)',
         },
         accent: {
-          blue: '#3B82F6',
-          'blue-glow': 'rgba(59, 130, 246, 0.25)',
+          blue: '#4387F6',
+          'blue-glow': 'rgba(67, 135, 246, 0.25)',
           emerald: '#10B981',
           'emerald-glow': 'rgba(16, 185, 129, 0.25)',
           amber: '#FFB020',
@@ -25,7 +25,7 @@ export default {
         text: {
           primary: '#F4F6FB',
           secondary: '#A3A9BA',
-          muted: '#6B7185',
+          muted: '#838899',
         }
       },
       fontFamily: {

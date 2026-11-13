@@ -31,9 +31,12 @@ export function DocumentCard({
       <div className="min-w-0 flex-1 space-y-1.5">
         <h3 className="text-sm font-semibold text-text-primary">{document.title}</h3>
         <p className={LABEL}>{formatDocumentDate(document.documentDate)}</p>
-        <span className="inline-flex rounded-full border border-aura-line2 bg-aura-s2 px-2 py-0.5 font-mono text-[11px] text-text-secondary">
-          {formatFileSize(document.fileSizeBytes)}
-        </span>
+        {/* Records without a stored size show no size chip, rather than "Size unknown". */}
+        {document.fileSizeBytes !== null && (
+          <span className="inline-flex rounded-full border border-aura-line2 bg-aura-s2 px-2 py-0.5 font-mono text-[11px] text-text-secondary">
+            {formatFileSize(document.fileSizeBytes)}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">

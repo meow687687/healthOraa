@@ -1,28 +1,43 @@
 import { useState } from "react";
-import { NavRail } from "./components/shell/NavRail";
-import type { DoctorView } from "./components/shell/NavRail";
+import { Calendar, Stethoscope, UserCheck, Users } from "lucide-react";
+import { PortalRail } from "@healthoraa/ui";
 import { TopBar } from "./components/shell/TopBar";
 import ConsultationQueueView from "./components/queue/ConsultationQueueView";
 import PractitionerProfileView from "./components/profile/PractitionerProfileView";
 import PatientsView from "./components/patients/PatientsView";
 import ScheduleView from "./components/schedule/ScheduleView";
 
+export type DoctorView = "queue" | "schedule" | "patients" | "profile";
+
+const GROUPS = [
+  {
+    id: "main",
+    title: null,
+    items: [
+      { id: "queue" as const, label: "Queue", icon: Stethoscope },
+      { id: "schedule" as const, label: "Schedule", icon: Calendar },
+      { id: "patients" as const, label: "Patients", icon: Users },
+      { id: "profile" as const, label: "Profile", icon: UserCheck },
+    ],
+  },
+];
+
 export default function App() {
   const [view, setView] = useState<DoctorView>("queue");
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-aura-canvas font-sans text-text-primary antialiased">
-      <NavRail active={view} onSelect={setView} />
+    <div className="min-h-screen w-full bg-aura-canvas font-sans text-text-primary antialiased">
+      <PortalRail groups={GROUPS} active={view} onSelect={setView} />
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-20 lg:pb-0">
+      <div className="flex min-h-screen min-w-0 flex-col md:pl-16 xl:pl-[232px]">
         <TopBar />
-        <div className="mx-auto w-full max-w-5xl p-4 md:p-6 lg:p-8">
+        <main className="mx-auto w-full max-w-5xl flex-1 p-4 pb-24 md:p-6 md:pb-8 lg:p-8">
           {view === "queue" && <ConsultationQueueView />}
           {view === "schedule" && <ScheduleView />}
           {view === "patients" && <PatientsView />}
           {view === "profile" && <PractitionerProfileView />}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

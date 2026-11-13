@@ -15,7 +15,7 @@ export default {
         },
         accent: {
           blue: '#4387F6',
-          'blue-glow': 'rgba(59, 130, 246, 0.25)',
+          'blue-glow': 'rgba(67, 135, 246, 0.25)',
           emerald: '#10B981',
           'emerald-glow': 'rgba(16, 185, 129, 0.25)',
           amber: '#FFB020',

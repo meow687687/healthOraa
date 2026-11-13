@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Send } from "lucide-react";
-import { Badge, Drawer, DrawerHeader, ERROR_BOX, cn } from "@healthoraa/ui";
+import { Badge, ERROR_BOX, cn } from "@healthoraa/ui";
 import { useConsultationChat, useSendMessage } from "../../hooks/useConsultationChat";
 import { useDoctor } from "../../context/DoctorContext";
 import { daysRemaining, isWindowOpen } from "../../lib/followupWindow";
@@ -12,7 +12,7 @@ import { formatTime } from "../queue/consultationMeta";
 
 const WINDOW_CLOSED_TEXT = "7-Day follow-up window closed. Patient must book a follow-up consultation.";
 
-// Re-renders every minute so the countdown stays current while the drawer is open.
+// Re-renders every minute so the countdown stays current.
 function useNow(intervalMs: number): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -22,25 +22,8 @@ function useNow(intervalMs: number): number {
   return now;
 }
 
-export default function ConsultationChatDrawer({
-  consultation,
-  onClose,
-}: {
-  consultation: QueueConsultation | null;
-  onClose: () => void;
-}) {
-  // Keep the last consultation mounted while the drawer slides out.
-  const [shown, setShown] = useState<QueueConsultation | null>(consultation);
-  if (consultation && consultation !== shown) setShown(consultation);
-
-  return (
-    <Drawer isOpen={consultation !== null} onClose={onClose} labelledBy="chat-drawer-title" className="max-w-xl p-6 md:p-8">
-      {shown && <ChatBody key={shown.id} consultation={shown} onClose={onClose} />}
-    </Drawer>
-  );
-}
-
-function ChatBody({ consultation, onClose }: { consultation: QueueConsultation; onClose: () => void }) {
+// The 7-day follow-up thread. Used inside the consultation room.
+export function ChatThread({ consultation }: { consultation: QueueConsultation }) {
   const { doctor } = useDoctor();
   const now = useNow(60_000);
   const thread = useConsultationChat(consultation.id);
@@ -75,18 +58,13 @@ function ChatBody({ consultation, onClose }: { consultation: QueueConsultation; 
   };
 
   return (
-    <>
-      <DrawerHeader
-        eyebrow="7-day follow-up chat"
-        title={consultation.patientName}
-        titleId="chat-drawer-title"
-        onClose={onClose}
-      >
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-text-secondary">
           Consultation on {formatDate(new Date(consultation.slotStart))} at {formatTime(consultation.slotStart)}
         </p>
         <Badge tone={countdown.tone} className="tabular-nums">{countdown.label}</Badge>
-      </DrawerHeader>
+      </div>
 
       {!open && (
         <div role="status" className="mt-6 rounded-2xl border border-accent-red/30 bg-accent-red/10 px-4 py-3 text-sm text-accent-red">
@@ -94,7 +72,7 @@ function ChatBody({ consultation, onClose }: { consultation: QueueConsultation; 
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col py-6">
+      <div className="flex min-h-0 flex-1 flex-col py-4">
         {thread.isLoading && <p className="text-xs text-text-muted">Loading conversation...</p>}
         {thread.isError && <div className={ERROR_BOX}>Could not load the conversation.</div>}
         {thread.data && thread.data.length === 0 && (
@@ -134,7 +112,7 @@ function ChatBody({ consultation, onClose }: { consultation: QueueConsultation; 
           <Send className="h-4 w-4" />
         </button>
       </form>
-    </>
+    </div>
   );
 }
 

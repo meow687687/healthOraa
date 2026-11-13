@@ -20,7 +20,18 @@ interface QueueRow {
   slot_end: string;
   status: ConsultationStatus;
   followup_expires_at: string | null;
+  chief_complaint: string | null;
   profiles: { full_name: string } | null;
+}
+
+interface IntakeRow {
+  consultation_id: string;
+  age: number | null;
+  gender: string | null;
+  chief_complaint: string | null;
+  symptoms_duration: string | null;
+  known_allergies: string[] | null;
+  current_medications: string[] | null;
 }
 
 const startOfToday = (): string => {
@@ -29,18 +40,38 @@ const startOfToday = (): string => {
   return day.toISOString();
 };
 
-const toQueueItem = (row: QueueRow): QueueConsultation => ({
+const toQueueItem = (row: QueueRow, intake: IntakeRow | undefined): QueueConsultation => ({
   id: row.id,
   patientId: row.patient_id,
   patientName: row.profiles?.full_name ?? "Unknown patient",
-  age: null,
-  gender: null,
-  chiefComplaint: null,
+  age: intake?.age ?? null,
+  gender: intake?.gender ?? null,
+  chiefComplaint: intake?.chief_complaint ?? row.chief_complaint,
   slotStart: row.slot_start,
   slotEnd: row.slot_end,
   status: row.status,
   followupExpiresAt: row.followup_expires_at,
+  symptomsDuration: intake?.symptoms_duration ?? null,
+  // Undefined when no intake was read, so the card shows "Not recorded" rather than a claim of none.
+  allergies: intake ? (intake.known_allergies ?? []) : undefined,
+  medications: intake ? (intake.current_medications ?? []) : undefined,
 });
+
+// One extra request for the whole queue. If it fails, the queue still loads without intake detail.
+const fetchIntakes = async (ids: string[]): Promise<Map<string, IntakeRow>> => {
+  const byId = new Map<string, IntakeRow>();
+  if (ids.length === 0) return byId;
+  const { data, error } = await supabase
+    .from("patient_intake_forms")
+    .select("consultation_id, age, gender, chief_complaint, symptoms_duration, known_allergies, current_medications")
+    .in("consultation_id", ids);
+  if (error) {
+    console.warn("Intake details could not load", error.message);
+    return byId;
+  }
+  for (const row of (data ?? []) as IntakeRow[]) byId.set(row.consultation_id, row);
+  return byId;
+};
 
 // Applied after every fetch. The fallback queue is rebuilt on each fetch, so a signed
 // prescription would otherwise revert to in-progress on the next refetch.
@@ -84,13 +115,15 @@ export const useConsultationQueue = () => {
         async () => {
           const { data, error } = await supabase
             .from("consultations")
-            .select("id, patient_id, slot_start, slot_end, status, followup_expires_at, profiles!consultations_patient_id_fkey(full_name)")
+            .select("id, patient_id, slot_start, slot_end, status, followup_expires_at, chief_complaint, profiles!consultations_patient_id_fkey(full_name)")
             .eq("doctor_id", doctor.id)
             .in("status", QUEUE_STATUSES)
             .gte("slot_start", startOfToday())
             .order("slot_start", { ascending: true });
           if (error) throw new Error(error.message);
-          return ((data ?? []) as QueueRow[]).map(toQueueItem);
+          const rows = (data ?? []) as QueueRow[];
+          const intakes = await fetchIntakes(rows.map((row) => row.id));
+          return rows.map((row) => toQueueItem(row, intakes.get(row.id)));
         },
         buildFallbackQueue(FALLBACK_ANCHOR),
         "consultation queue",

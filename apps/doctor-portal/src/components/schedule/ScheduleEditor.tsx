@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Eye, Save, Send } from "lucide-react";
 import { availabilityWindowSchema, SLOT_DURATION_OPTIONS } from "@healthoraa/validation";
 import { Badge, ERROR_BOX, PANEL, cn, useToast } from "@healthoraa/ui";
-import { DAY_ORDER, conflictingRuleIds, snapshotsEqual } from "../../lib/scheduleGenerator";
+import { conflictingRuleIds, snapshotsEqual } from "../../lib/scheduleGenerator";
 import { formatDate } from "../../lib/prescriptionOptions";
 import { useSaveScheduleDraft, usePublishSlots } from "../../hooks/useDoctorSchedule";
 import type { ScheduleSnapshot, ScheduleView, WindowDraft } from "../../types/schedule";
 import { DayCard } from "./DayCard";
+import { WeekGrid, slotsForDay } from "./WeekGrid";
 import { SlotPreviewDrawer } from "./SlotPreviewDrawer";
 
 const PILL_OUTLINE =
@@ -19,6 +20,8 @@ export function ScheduleEditor({ view }: { view: ScheduleView }) {
   const [rules, setRules] = useState<WindowDraft[]>(() => view.draft.rules);
   const [durationMinutes, setDurationMinutes] = useState(view.draft.durationMinutes);
   const [previewOpen, setPreviewOpen] = useState(false);
+  // Monday first. The day inspector edits this day; the week grid shows all seven.
+  const [selectedDay, setSelectedDay] = useState(1);
   const toast = useToast();
   const save = useSaveScheduleDraft();
   const publish = usePublishSlots();
@@ -76,7 +79,7 @@ export function ScheduleEditor({ view }: { view: ScheduleView }) {
 
   return (
     <div className="space-y-6">
-      <section className={cn(PANEL, "space-y-4")}>
+      <section className={cn(PANEL, "space-y-4 lg:sticky lg:top-20 lg:z-10")}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-lg font-bold tracking-tight text-white">Weekly Schedule</h2>
@@ -126,20 +129,25 @@ export function ScheduleEditor({ view }: { view: ScheduleView }) {
         {!hasErrors && unsaved && <Badge tone="amber">Unsaved changes</Badge>}
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {DAY_ORDER.map((dayOfWeek) => (
-          <DayCard
-            key={dayOfWeek}
-            dayOfWeek={dayOfWeek}
-            windows={rules.filter((rule) => rule.day_of_week === dayOfWeek)}
-            durationMinutes={durationMinutes}
-            errorFor={errorFor}
-            onToggleDay={(next) => toggleDay(dayOfWeek, next)}
-            onAddWindow={() => addWindow(dayOfWeek)}
-            onUpdate={updateWindow}
-            onRemove={removeWindow}
-          />
-        ))}
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <WeekGrid
+          rules={rules}
+          durationMinutes={durationMinutes}
+          selectedDay={selectedDay}
+          onSelect={setSelectedDay}
+          invalidDays={new Set(rules.filter((rule) => errorFor(rule) !== null).map((rule) => rule.day_of_week))}
+        />
+        <DayCard
+          dayOfWeek={selectedDay}
+          windows={rules.filter((rule) => rule.day_of_week === selectedDay)}
+          durationMinutes={durationMinutes}
+          slotCount={slotsForDay(rules, selectedDay, durationMinutes)}
+          errorFor={errorFor}
+          onToggleDay={(next) => toggleDay(selectedDay, next)}
+          onAddWindow={() => addWindow(selectedDay)}
+          onUpdate={updateWindow}
+          onRemove={removeWindow}
+        />
       </div>
 
       <SlotPreviewDrawer

@@ -19,12 +19,10 @@ export function PastConsultations({
   items,
   onOpenRx,
   onOpenChat,
-  onFindDoctor,
 }: {
   items: ConsultationItem[];
   onOpenRx: (item: ConsultationItem) => void;
   onOpenChat: (item: ConsultationItem) => void;
-  onFindDoctor: () => void;
 }) {
   if (items.length === 0) {
     return (
@@ -32,7 +30,6 @@ export function PastConsultations({
         icon={History}
         title="No past consultations yet"
         description="Completed and cancelled consultations will be listed here."
-        action={{ label: "Find a doctor", onClick: onFindDoctor }}
       />
     );
   }

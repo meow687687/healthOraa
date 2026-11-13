@@ -50,6 +50,8 @@ export interface ConsultationItem {
   prescription: PrescriptionRecord | null;
   // Set when the consultation completes. The follow-up chat is open until this time.
   followupExpiresAt: string | null;
+  // Whether an intake form is stored on the server. Optional for demo rows, which have none.
+  intakeOnFile?: boolean;
 }
 
 export interface DeviceBooking {

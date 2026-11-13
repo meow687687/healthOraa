@@ -10,7 +10,8 @@ AS $$
 DECLARE
     v_days INT := LEAST(GREATEST(COALESCE(p_days, 30), 7), 90);
     v_now TIMESTAMPTZ := NOW();
-    v_from TIMESTAMPTZ := NOW() - make_interval(days => LEAST(GREATEST(COALESCE(p_days, 30), 7), 90));
+    -- Midnight IST on the first day of the window, the same start the daily series uses.
+    v_from TIMESTAMPTZ := ((NOW() AT TIME ZONE 'Asia/Kolkata')::date - (v_days - 1))::timestamp AT TIME ZONE 'Asia/Kolkata';
     v_week_ago TIMESTAMPTZ := NOW() - INTERVAL '7 days';
     v_two_weeks_ago TIMESTAMPTZ := NOW() - INTERVAL '14 days';
     v_result JSONB;
@@ -128,14 +129,18 @@ BEGIN
                   WHERE created_at >= v_from GROUP BY status) AS s
         ),
 
+        -- One cohort: every later stage counts visits booked into slots published in the window.
         'funnel', jsonb_build_object(
             'slots_published', (SELECT count(*) FROM public.consultation_slots WHERE created_at >= v_from),
-            'booked', (SELECT count(*) FROM public.consultations
-                       WHERE created_at >= v_from AND booking_status <> 'cancelled'),
-            'paid', (SELECT count(*) FROM public.consultations
-                     WHERE created_at >= v_from AND booking_status = 'confirmed'),
-            'completed', (SELECT count(*) FROM public.consultations
-                          WHERE created_at >= v_from AND status = 'completed')
+            'booked', (SELECT count(*) FROM public.consultations AS c
+                       JOIN public.consultation_slots AS s ON s.id = c.slot_id
+                       WHERE s.created_at >= v_from AND c.booking_status <> 'cancelled'),
+            'paid', (SELECT count(*) FROM public.consultations AS c
+                     JOIN public.consultation_slots AS s ON s.id = c.slot_id
+                     WHERE s.created_at >= v_from AND c.booking_status = 'confirmed'),
+            'completed', (SELECT count(*) FROM public.consultations AS c
+                          JOIN public.consultation_slots AS s ON s.id = c.slot_id
+                          WHERE s.created_at >= v_from AND c.status = 'completed')
         ),
 
         'heatmap', (
@@ -160,7 +165,8 @@ BEGIN
                 FROM public.order_items AS oi
                 JOIN public.orders AS o ON o.id = oi.order_id
                 JOIN public.products AS p ON p.id = oi.product_id
-                WHERE o.status <> 'cancelled' AND o.created_at >= v_from
+                -- Only paid orders count as sold. Pending and cancelled orders do not.
+                WHERE o.status IN ('paid', 'shipped', 'delivered') AND o.created_at >= v_from
                 GROUP BY oi.product_id, p.title
                 ORDER BY units DESC
                 LIMIT 5

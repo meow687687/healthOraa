@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { Badge, EmptyState, PANEL, SkeletonBlock, cn, useToast } from "@healthoraa/ui";
 import { useConsultationQueue } from "../../hooks/useConsultationQueue";
@@ -35,6 +35,8 @@ export default function ConsultationQueueView() {
   const toast = useToast();
   const now = useNow();
   const [room, setRoom] = useState<OpenRoom | null>(null);
+  // Counts every selection. A start that finishes after the doctor picked another visit must not open its own room.
+  const selectionSeq = useRef(0);
 
   const queue = data ?? [];
   const inProgress = queue.filter((c) => c.status === "in_progress").length;
@@ -46,13 +48,16 @@ export default function ConsultationQueueView() {
   const startingId = startConsultation.isPending ? (startConsultation.variables?.id ?? null) : null;
 
   const openRoom = (consultation: QueueConsultation, pane: RoomPane) => {
+    selectionSeq.current += 1;
     setActiveConsultationId(consultation.id);
     setRoom((current) => ({ consultation, pane, session: (current?.session ?? 0) + 1 }));
   };
 
   const startAndOpen = async (consultation: QueueConsultation) => {
+    const seqAtStart = selectionSeq.current;
     try {
       await startConsultation.mutateAsync(consultation);
+      if (selectionSeq.current !== seqAtStart) return;
       openRoom({ ...consultation, status: "in_progress" }, "rx");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not start this consultation.");

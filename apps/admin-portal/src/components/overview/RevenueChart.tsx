@@ -53,6 +53,7 @@ export default function RevenueChart({ summary }: { summary: DashboardSummary })
       }
       table={
         <ValueTable
+          columns={["This period", "Previous period"]}
           caption="Captured revenue by day"
           rows={rows.map((row) => ({ label: row.label, values: [formatInrFull(row.current), formatInrFull(row.previous)] }))}
         />

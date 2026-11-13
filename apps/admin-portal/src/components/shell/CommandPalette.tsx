@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { ALL_NAV_ITEMS, type TabId } from "./navConfig";
@@ -26,6 +26,30 @@ export function CommandPalette({ open, onClose, onSelect }: CommandPaletteProps)
     return ALL_NAV_ITEMS.filter((item) => item.label.toLowerCase().includes(needle));
   }, [query]);
 
+  // Escape closes from anywhere in the palette. Focus returns to whatever opened it.
+  // The opener is recorded before the search field takes focus, so close can return to it.
+  const opener = useRef<HTMLElement | null>(null);
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    opener.current = document.activeElement as HTMLElement | null;
+    field.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      opener.current?.focus();
+    };
+  }, [open, onClose]);
+
+  // Keeps the highlighted result in view when the arrow keys move past the visible list.
+  useEffect(() => {
+    if (!open || !matches[index]) return;
+    document.getElementById(`jump-${matches[index].id}`)?.scrollIntoView({ block: "nearest" });
+  }, [index, matches, open]);
+
   if (!open) return null;
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -48,11 +72,19 @@ export function CommandPalette({ open, onClose, onSelect }: CommandPaletteProps)
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div role="dialog" aria-modal="true" aria-label="Jump to a section" className="w-full max-w-lg overflow-hidden rounded-3xl border border-aura-line2 bg-aura-s1 shadow-aura-card">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Jump to a section"
+        // Tab stays on the search field, so focus cannot leave the palette while it is open.
+        onKeyDown={(event) => {
+          if (event.key === "Tab") event.preventDefault();
+        }}
+        className="w-full max-w-lg overflow-hidden rounded-3xl border border-aura-line2 bg-aura-s1 shadow-aura-card">
         <div className="flex items-center gap-3 border-b border-aura-line px-4">
           <Search className="h-4 w-4 text-text-muted" aria-hidden="true" />
           <input
-            autoFocus
+            ref={field}
             type="text"
             role="combobox"
             aria-expanded="true"

@@ -46,7 +46,7 @@ export function StatusBars({ summary }: { summary: DashboardSummary }) {
           </ul>
         )
       }
-      table={<ValueTable caption="Orders by status" rows={counts.map((step) => ({ label: step.label, values: [formatCount(step.count)] }))} />}
+      table={<ValueTable caption="Orders by status" columns={["Orders"]} rows={counts.map((step) => ({ label: step.label, values: [formatCount(step.count)] }))} />}
     />
   );
 }

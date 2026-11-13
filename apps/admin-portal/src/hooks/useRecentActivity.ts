@@ -20,13 +20,13 @@ export const useRecentActivity = () =>
           .from("orders")
           .select("id, total_amount_inr, status, created_at, profiles!orders_customer_id_fkey(full_name)")
           .order("created_at", { ascending: false })
-          .limit(6),
+          .limit(10),
         supabase
           .from("payment_transactions")
           .select("id, amount_inr, status, created_at, gateway_payment_id")
           .order("created_at", { ascending: false })
-          .limit(6),
-        supabase.from("profiles").select("id, full_name, role, created_at").order("created_at", { ascending: false }).limit(6),
+          .limit(10),
+        supabase.from("profiles").select("id, full_name, role, created_at").order("created_at", { ascending: false }).limit(10),
       ]);
       const failure = orders.error ?? payments.error ?? people.error;
       if (failure) throw new Error(failure.message);

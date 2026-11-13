@@ -42,7 +42,7 @@ function StatusStepper({
     <div
       role="radiogroup"
       aria-label="Order status"
-      className="inline-flex items-center gap-1 rounded-full bg-aura-s1 border border-aura-line p-1"
+      className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-full bg-aura-s1 border border-aura-line p-1"
     >
       {WORKFLOW_STEPS.map((step, index) => {
         const selected = step === status;
@@ -158,7 +158,7 @@ export default function OrdersView() {
         const next = NEXT_STATUS[order.status];
         return (
           <div className="space-y-2" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <StatusStepper status={order.status} busy={busy} onSelect={(nextStatus) => handleSelect(order, nextStatus)} />
               <button
                 type="button"
@@ -184,7 +184,6 @@ export default function OrdersView() {
           </div>
         );
       },
-      priority: "secondary",
     },
   ];
 

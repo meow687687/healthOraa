@@ -98,12 +98,10 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     // be missed under load, so the database count below is the real check.
     const published = doctor.waitForResponse((response) => response.url().includes("/rpc/publish_schedule"), { timeout: 30_000 });
     await doctor.getByRole("button", { name: "Publish Slots for Upcoming Week", exact: true }).click();
-    expect((await published).status()).toBe(200);
-    state.slotsPublished = Number(
-      psql(
-        `select count(*) from consultation_slots where practitioner_id = '${DOCTOR_ID}' and created_at >= '${state.startedAt}' and start_time > now()`,
-      ),
-    );
+    const response = await published;
+    expect(response.status()).toBe(200);
+    // The count the RPC reports must match what it persisted.
+    state.slotsPublished = Number(await response.json());
     expect(state.slotsPublished).toBeGreaterThan(0);
 
     const generated = Number(

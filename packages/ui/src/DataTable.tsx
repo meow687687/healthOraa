@@ -98,8 +98,10 @@ export function DataTable<T>({
     });
   };
 
+  // Only the row itself opens on Enter or Space. A key press on a button or switch inside the row
+  // belongs to that control.
   const activate = (row: T, event: KeyboardEvent<HTMLElement>) => {
-    if (!onRowClick) return;
+    if (!onRowClick || event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       onRowClick(row);

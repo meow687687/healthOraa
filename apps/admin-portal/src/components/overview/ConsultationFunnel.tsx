@@ -13,6 +13,7 @@ export function ConsultationFunnel({ summary }: { summary: DashboardSummary }) {
     { label: "Completed", value: summary.funnel.completed },
   ];
   const top = steps[0].value;
+  const nothingHappened = steps.every((step) => step.value === 0);
 
   return (
     <ChartCard
@@ -20,12 +21,12 @@ export function ConsultationFunnel({ summary }: { summary: DashboardSummary }) {
       title="Consultation funnel"
       description={`From published slot to completed visit, last ${summary.window_days} days`}
       chart={
-        top === 0 ? (
+        nothingHappened ? (
           <EmptyState icon={CalendarCheck} title="No slots published" description="Publish a week of slots to start the funnel." />
         ) : (
           <ol className="space-y-4">
             {steps.map((step, index) => {
-              const share = (step.value / top) * 100;
+              const share = top > 0 ? (step.value / top) * 100 : 0;
               const previous = index === 0 ? null : steps[index - 1].value;
               const conversion = previous && previous > 0 ? Math.round((step.value / previous) * 100) : null;
               return (

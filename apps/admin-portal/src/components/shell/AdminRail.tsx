@@ -66,7 +66,7 @@ export function AdminRail({ active, onSelect }: AdminRailProps) {
         className="fixed inset-y-0 left-0 z-30 hidden w-16 flex-col items-center gap-6 border-r border-aura-line bg-aura-s1 py-5 md:flex xl:hidden"
       >
         <Brand compact />
-        <nav className="flex flex-1 flex-col items-center gap-4">
+        <nav className="flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto">
           {NAV_GROUPS.flatMap((group) => group.items).map((item) => (
             <NavButton key={item.id} item={item} active={active === item.id} onSelect={choose} />
           ))}
@@ -158,7 +158,7 @@ function NavButton({
       aria-label={item.label}
       className={cn(
         "group relative flex min-h-[44px] items-center transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-blue/20",
-        showLabel ? "w-full gap-3 rounded-2xl px-3" : compactLabel ? "min-w-0 flex-col justify-center gap-1 rounded-2xl px-1" : "h-11 w-11 justify-center rounded-2xl",
+        compactLabel ? "min-w-0 flex-col justify-center gap-1 rounded-2xl px-1" : showLabel ? "w-full gap-3 rounded-2xl px-3" : "h-11 w-11 justify-center rounded-2xl",
         active
           ? "bg-aura-s3 text-text-primary shadow-aura-elevated"
           : "text-text-muted hover:bg-aura-s2 hover:text-text-primary",

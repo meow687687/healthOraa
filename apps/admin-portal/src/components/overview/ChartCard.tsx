@@ -43,11 +43,31 @@ export function ChartCard({
 }
 
 // Plain table used for the "View as table" option.
-export function ValueTable({ caption, rows }: { caption: string; rows: { label: string; values: string[] }[] }) {
+export function ValueTable({
+  caption,
+  columns = [],
+  rows,
+}: {
+  caption: string;
+  columns?: string[];
+  rows: { label: string; values: string[] }[];
+}) {
   return (
     <div className="max-h-72 overflow-auto rounded-2xl border border-aura-line">
       <table className="w-full text-left text-sm">
         <caption className="sr-only">{caption}</caption>
+        {columns.length > 0 && (
+          <thead>
+            <tr className="border-b border-aura-line">
+              <td />
+              {columns.map((column) => (
+                <th key={column} scope="col" className="px-4 py-2.5 text-right text-[13px] font-medium text-text-muted">
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+        )}
         <tbody>
           {rows.map((row) => (
             <tr key={row.label} className="border-b border-aura-line last:border-0">

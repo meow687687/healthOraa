@@ -40,12 +40,17 @@ WHERE u.id IN ('00000000-0000-4000-8000-00000000ad31',
                '22222222-2222-2222-2222-222222222222')
 ON CONFLICT (provider_id, provider) DO NOTHING;
 
+-- The auth.users trigger from 20261113110000 may already have created these rows as patients. The role
+-- and name are set here, so the seeded personas always get the right role.
 INSERT INTO public.profiles (id, role, full_name, phone)
 VALUES
   ('00000000-0000-4000-8000-00000000ad31', 'admin', 'Demo Admin', NULL),
   ('11111111-1111-1111-1111-111111111111', 'practitioner', 'Dr. Arishta Sharma', '9876543210'),
   ('22222222-2222-2222-2222-222222222222', 'patient', 'Priya Mehta', '9123456780')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  role = EXCLUDED.role,
+  full_name = EXCLUDED.full_name,
+  phone = EXCLUDED.phone;
 
 INSERT INTO public.practitioner_details (id, qualification, registration_number, consultation_fee_inr)
 VALUES ('11111111-1111-1111-1111-111111111111', 'MBBS, Dermatology', 'NMC-DEMO-001', 799.00)

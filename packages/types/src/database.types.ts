@@ -451,14 +451,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"created_at": string,"full_name": string,"id": string,"phone": string | null,"role": Database["public"]['Enums']["user_role"],"updated_at": string
+                    "avatar_url": string | null,"created_at": string,"deleted_at": string | null,"expo_push_token": string | null,"full_name": string,"id": string,"phone": string | null,"role": Database["public"]['Enums']["user_role"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_url"?: string | null,"created_at"?: string,"full_name": string,"id": string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
+                    "avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"expo_push_token"?: string | null,"full_name": string,"id": string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
                   }
                   Update: {
-                    "avatar_url"?: string | null,"created_at"?: string,"full_name"?: string,"id"?: string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
+                    "avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"expo_push_token"?: string | null,"full_name"?: string,"id"?: string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -555,6 +555,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"push_outbox": {
+                  Row: {
+                    "attempts": number,"body": string,"created_at": string,"data": NonNullable<Json>,"id": string,"last_error": string | null,"recipient_id": string,"sent_at": string | null,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"body": string,"created_at"?: string,"data"?: NonNullable<Json>,"id"?: string,"last_error"?: string | null,"recipient_id": string,"sent_at"?: string | null,"title": string
+                  }
+                  Update: {
+                    "attempts"?: number,"body"?: string,"created_at"?: string,"data"?: NonNullable<Json>,"id"?: string,"last_error"?: string | null,"recipient_id"?: string,"sent_at"?: string | null,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_outbox_recipient_id_fkey"
+      columns: ["recipient_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"razorpay_order_logs": {
                   Row: {
                     "amount_paise": number,"created_at": string,"currency": string,"entity_id": string,"entity_type": string,"id": string,"order_id": string,"status": string,"user_id": string
@@ -607,11 +627,19 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"create_mobile_order":
+{ Args: { "p_items": Json,"p_shipping_address": string }; Returns: string
+                           },
 "current_user_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["user_role"]
                            },
 "generate_consultation_slots":
 { Args: { "p_date": string,"p_practitioner_id": string }; Returns: number
+                           },
+"get_best_sellers":
+{ Args: { "p_limit"?: number }; Returns: {
+              "category": Database["public"]['Enums']["product_category"],"id": string,"price_inr": number,"stock_count": number,"title": string,"units_sold": number
+            }[]
                            },
 "get_patient_biomarkers":
 { Args: { "p_marker_name"?: string,"p_patient_id": string }; Returns: {
@@ -682,6 +710,9 @@ isOneToOne: false
       } },
 "publish_schedule":
 { Args: { "p_days"?: number,"p_duration_minutes": number,"p_rules": Json }; Returns: number
+                           },
+"queue_push":
+{ Args: { "p_body": string,"p_data": Json,"p_recipient": string,"p_title": string }; Returns: undefined
                            },
 "resolve_erasure_request":
 { Args: { "p_request_id": string }; Returns: {

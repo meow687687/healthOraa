@@ -27,10 +27,13 @@ export function CommandPalette({ open, onClose, onSelect }: CommandPaletteProps)
   }, [query]);
 
   // Escape closes from anywhere in the palette. Focus returns to whatever opened it.
+  // The opener is recorded before the search field takes focus, so close can return to it.
   const opener = useRef<HTMLElement | null>(null);
+  const field = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (!open) return;
     opener.current = document.activeElement as HTMLElement | null;
+    field.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -81,7 +84,7 @@ export function CommandPalette({ open, onClose, onSelect }: CommandPaletteProps)
         <div className="flex items-center gap-3 border-b border-aura-line px-4">
           <Search className="h-4 w-4 text-text-muted" aria-hidden="true" />
           <input
-            autoFocus
+            ref={field}
             type="text"
             role="combobox"
             aria-expanded="true"

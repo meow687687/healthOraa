@@ -28,6 +28,27 @@ const STATE_BADGE: Record<ConsultationState, { tone: "emerald" | "amber" | "neut
   cancelled: { tone: "neutral", label: "Cancelled" },
 };
 
+// One line of the pre-visit checklist. Done items show a tick; the rest show an open circle.
+function Check({ label, done }: { label: string; done: boolean }) {
+  return (
+    <li className="flex items-center gap-2.5 text-text-secondary">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold",
+          done ? "border-accent-emerald/40 bg-accent-emerald/15 text-accent-emerald" : "border-aura-line2 text-text-muted",
+        )}
+      >
+        {done ? "✓" : ""}
+      </span>
+      <span>
+        {label}
+        {done ? <span className="sr-only"> (done)</span> : <span className="sr-only"> (to do)</span>}
+      </span>
+    </li>
+  );
+}
+
 export function UpcomingCard({ item }: { item: ConsultationItem }) {
   const now = useNow();
   const remaining = Date.parse(item.startsAt) - now.getTime();
@@ -54,6 +75,12 @@ export function UpcomingCard({ item }: { item: ConsultationItem }) {
           {formatCountdown(remaining)}
         </p>
       </div>
+
+      <ul aria-label="Before your visit" className="space-y-2 text-sm">
+        <Check label="Intake form submitted" done={item.state !== "held_on_device"} />
+        <Check label="Payment confirmed" done={item.state === "confirmed"} />
+        <Check label="Join from 10 minutes before the start" done={false} />
+      </ul>
 
       <div className="flex flex-wrap items-center gap-3">
         <button

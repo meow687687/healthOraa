@@ -1,8 +1,9 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { FunctionsHttpError } from '@supabase/supabase-js';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../lib/supabase';
 import { RECORD_BUCKET, RECORD_LINK_SECONDS } from '../../lib/records';
+import { functionErrorMessage } from '../../lib/functionError';
+import { uploadRecordFile, safeFileName } from '../../lib/uploads';
 import { useAuth } from '../../auth/AuthProvider';
 
 export const useProfile = () => {
@@ -53,12 +54,61 @@ export const useDeleteAccount = () =>
   useMutation({
     mutationFn: async () => {
       const { error } = await supabase.functions.invoke('delete-account', { method: 'POST' });
-      if (!error) return;
-      let message = 'Account deletion failed. Try again or contact support.';
-      if (error instanceof FunctionsHttpError) {
-        const body = (await error.context.json().catch(() => null)) as { error?: string } | null;
-        if (body?.error) message = body.error;
-      }
-      throw new Error(message);
+      if (error) throw new Error(await functionErrorMessage(error, 'Account deletion failed. Try again or contact support.'));
     },
   });
+
+export const useOrders = () => {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  return useQuery({
+    queryKey: ['orders', userId],
+    enabled: Boolean(userId),
+    queryFn: async () => {
+      if (!userId) throw new Error('Not signed in');
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, created_at, status, total_amount_inr, tracking_number, order_items(quantity, unit_price_inr, products(title))')
+        .eq('customer_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+};
+
+export interface LockerUpload {
+  title: string;
+  category: 'blood_panel' | 'imaging_radiology' | 'prescription' | 'discharge_summary' | 'other';
+  documentDate: string;
+  file: { uri: string; name: string; size: number | null; mimeType: string };
+}
+
+// Uploads the file to the patient's folder, then records the document. If the record fails, the file is left
+// in the private folder and no link to it is shown, so the patient can retry.
+export const useUploadLockerDocument = () => {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: LockerUpload) => {
+      if (!userId) throw new Error('Not signed in');
+      const path = `${userId}/locker/${Date.now()}-${safeFileName(input.file.name)}`;
+      await uploadRecordFile(path, input.file.uri, input.file.mimeType);
+      const { error } = await supabase.from('patient_documents').insert({
+        patient_id: userId,
+        title: input.title,
+        category: input.category,
+        document_date: input.documentDate,
+        file_path: path,
+        file_size_bytes: input.file.size,
+        mime_type: input.file.mimeType,
+        is_verified: false,
+      });
+      if (error) throw new Error(`The document was uploaded but not recorded: ${error.message}`);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['locker', userId] });
+    },
+  });
+};

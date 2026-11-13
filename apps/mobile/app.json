@@ -34,7 +34,14 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Healthoraa uses your photo library so you can attach a meal photo or a report image."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

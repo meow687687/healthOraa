@@ -46,6 +46,7 @@ function BookingFlow({ doctor, onClose }: { doctor: PractitionerView; onClose: (
   const [result, setResult] = useState<BookingResult | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [paymentNote, setPaymentNote] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const feePaise = rupeesToPaise(Number(doctor.consultation_fee_inr));
   const previewTotal = feePaise + gstOn(feePaise);
@@ -68,16 +69,20 @@ function BookingFlow({ doctor, onClose }: { doctor: PractitionerView; onClose: (
 
   const onPay = async () => {
     if (!result) return;
-    const checkout = await startCheckout({
-      orderId: result.orderId,
-      amountPaise: result.totalPaise,
+    setPaymentError(null);
+    setPaymentNote(null);
+    const outcome = await startCheckout({
+      entityType: 'consultation',
+      entityId: result.consultationId,
       description: `Consultation with ${doctor.full_name}`,
     });
-    setPaymentNote(
-      checkout.status === 'pending-verification'
-        ? 'Your slot is held. It is confirmed once the payment is verified on the server.'
-        : null,
-    );
+    if (outcome.status === 'submitted') {
+      setPaymentNote('Payment submitted. The slot is confirmed once Razorpay reports the payment as captured.');
+    } else if (outcome.status === 'cancelled') {
+      setPaymentNote('Payment cancelled. The slot stays booked as awaiting payment until you pay from your consultations.');
+    } else if (outcome.status === 'failed') {
+      setPaymentError(outcome.message);
+    }
   };
 
   if (step === 'slot') {
@@ -157,8 +162,9 @@ function BookingFlow({ doctor, onClose }: { doctor: PractitionerView; onClose: (
         <LabelLine label="Total incl. GST" value={formatPaise(result?.totalPaise ?? 0)} strong />
         <Text style={styles.note}>Order reference {result?.orderId}</Text>
       </Card>
+      {paymentError ? <ErrorBox message={paymentError} /> : null}
       {paymentNote ? <Text style={styles.note}>{paymentNote}</Text> : null}
-      <Button label="Pay with Razorpay" onPress={() => void onPay()} />
+      <Button label={`Pay ${formatPaise(result?.totalPaise ?? 0)} with Razorpay`} onPress={() => void onPay()} />
       <Button label="Done" variant="secondary" onPress={onClose} />
     </>
   );

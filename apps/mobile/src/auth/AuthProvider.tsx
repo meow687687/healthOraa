@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { clearPushToken } from '../lib/notifications';
 
 export type AuthStatus = 'loading' | 'signed-out' | 'signed-in';
 
@@ -86,6 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { needsConfirmation: data.session === null };
       },
       signOut: async () => {
+        // Stop alerts to this device before the session goes. Best effort: sign-out must still succeed offline.
+        const userId = state.session?.user.id;
+        if (userId) await clearPushToken(userId).catch(() => undefined);
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
       },

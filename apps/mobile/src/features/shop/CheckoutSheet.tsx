@@ -88,7 +88,10 @@ function ShippingForm({
       return;
     }
     try {
-      const orderId = await place.mutateAsync({ totalPaise: totals.totalPaise, checkout: values });
+      const orderId = await place.mutateAsync({
+        items: lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })),
+        checkout: values,
+      });
       onPlaced(orderId);
     } catch (error) {
       setFailure(error instanceof Error ? error.message : 'The order could not be placed. Try again.');
@@ -156,15 +159,19 @@ function ShippingForm({
 
 function PlacedOrder({ orderId, totalPaise, onDone }: { orderId: string; totalPaise: number; onDone: () => void }) {
   const [note, setNote] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
   const reference = `HX-${orderId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
 
   const onPay = async () => {
-    const checkout = await startCheckout({ orderId, amountPaise: totalPaise, description: 'Wellness order' });
-    setNote(
-      checkout.status === 'pending-verification'
-        ? 'Your order is saved as pending. It moves forward once the payment is verified on the server.'
-        : null,
-    );
+    setFailure(null);
+    const outcome = await startCheckout({ entityType: 'shop_order', entityId: orderId, description: 'Wellness order' });
+    if (outcome.status === 'submitted') {
+      setNote('Payment submitted. The order moves forward once Razorpay reports the payment as captured.');
+    } else if (outcome.status === 'cancelled') {
+      setNote('Payment cancelled. The order stays pending until it is paid.');
+    } else if (outcome.status === 'failed') {
+      setFailure(outcome.message);
+    }
   };
 
   return (
@@ -174,8 +181,9 @@ function PlacedOrder({ orderId, totalPaise, onDone }: { orderId: string; totalPa
         <LabelLine label="Reference" value={reference} />
         <LabelLine label="Total incl. GST" value={formatPaise(totalPaise)} strong />
       </Card>
+      {failure ? <ErrorBox message={failure} /> : null}
       {note ? <Text style={styles.note}>{note}</Text> : null}
-      <Button label="Pay with Razorpay" onPress={() => void onPay()} />
+      <Button label={`Pay ${formatPaise(totalPaise)} with Razorpay`} onPress={() => void onPay()} />
       <Button label="Done" variant="secondary" onPress={onDone} />
     </>
   );

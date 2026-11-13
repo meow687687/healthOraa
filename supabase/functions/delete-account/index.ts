@@ -48,6 +48,14 @@ Deno.serve(async (request) => {
     return json({ error: "This account cannot be deleted from the app. Contact support." }, 403);
   }
 
+  // First write: the account is blocked from this moment. current_user_role() returns no role for a deleted
+  // profile, so every role-based policy refuses the account on its next request, even before the token expires.
+  const { error: blockError } = await admin
+    .from("profiles")
+    .update({ deleted_at: new Date().toISOString(), expo_push_token: null })
+    .eq("id", userId);
+  if (blockError) return json({ error: "Your account was not deleted. Try again." }, 500);
+
   const { data: documents, error: documentsError } = await admin
     .from("patient_documents")
     .select("file_path")
@@ -73,7 +81,7 @@ Deno.serve(async (request) => {
   // Clinical and order rows keep the profile id, so the profile row stays and only its identity fields are cleared.
   const { error: anonymiseError } = await admin
     .from("profiles")
-    .update({ full_name: "Deleted patient", phone: null, avatar_url: null })
+    .update({ full_name: "Deleted patient", phone: null, avatar_url: null, expo_push_token: null })
     .eq("id", userId);
   if (anonymiseError) return json({ error: "Your account was not fully deleted. Try again." }, 500);
 

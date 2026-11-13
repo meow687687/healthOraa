@@ -1,7 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Activity } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE } from '../../../constants/theme';
-import { Card, EmptyState, Pill, Skeleton, monoStyle } from '../../components/primitives';
+import { useState } from 'react';
+import { Button, Card, EmptyState, Pill, Skeleton, monoStyle } from '../../components/primitives';
+import { ProgramChatSheet, type ProgramChatTarget } from './ProgramChatSheet';
+import { MessageCircle } from 'lucide-react-native';
 import { formatIstShortDate } from '../../lib/time';
 import { useActiveEnrolment } from './queries';
 
@@ -10,6 +13,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // Progress through the active programme, for example "Day 18 of 60".
 export function ProgramProgressCard() {
   const enrolment = useActiveEnrolment();
+  const [chat, setChat] = useState<ProgramChatTarget | null>(null);
 
   if (enrolment.isPending) return <Skeleton height={130} />;
   if (enrolment.isError) {
@@ -25,7 +29,8 @@ export function ProgramProgressCard() {
     );
   }
 
-  const { programs, started_at, expires_at } = enrolment.data;
+  const active = enrolment.data;
+  const { programs, started_at, expires_at } = active;
   const duration = programs?.duration_days ?? 60;
   const elapsedDays = Math.floor((Date.now() - new Date(started_at).getTime()) / DAY_MS) + 1;
   const day = Math.min(Math.max(elapsedDays, 1), duration);
@@ -45,6 +50,19 @@ export function ProgramProgressCard() {
       <View style={styles.track} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: percent }}>
         <View style={[styles.fill, { width: `${percent}%` }]} />
       </View>
+      <Button
+        label="Message your dietitian"
+        variant="secondary"
+        icon={MessageCircle}
+        onPress={() =>
+          setChat({
+            enrolmentId: active.id,
+            title: programs?.title ?? 'Nutrition programme',
+            expiresAt: expires_at,
+          })
+        }
+      />
+      <ProgramChatSheet target={chat} onClose={() => setChat(null)} />
     </Card>
   );
 }

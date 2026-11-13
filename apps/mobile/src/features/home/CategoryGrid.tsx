@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { startCheckout } from '../../lib/payments';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE } from '../../../constants/theme';
-import { Card, ErrorBox, Skeleton, monoStyle } from '../../components/primitives';
+import { Button, Card, ErrorBox, Skeleton, monoStyle } from '../../components/primitives';
 import { Sheet } from '../../components/Sheet';
 import { formatPaise, rupeesToPaise } from '../../lib/money';
 import { HOME_CATEGORIES, useCategoryPrograms, useProgramCounts, type ProgramCategory } from './queries';
@@ -67,9 +68,9 @@ function CategorySheet({
           <Text style={[styles.count, monoStyle]}>
             {program.duration_days} days · {formatPaise(rupeesToPaise(Number(program.price_inr)))}
           </Text>
+          <EnrolButton programId={program.id} title={program.title} />
         </Card>
       ))}
-      <Text style={styles.note}>Enrolment and payment for programmes are not available in this build yet.</Text>
     </Sheet>
   );
 }
@@ -85,3 +86,29 @@ const styles = StyleSheet.create({
   count: { color: COLORS.textMuted, fontSize: 12 },
   note: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
 });
+
+// Opens a payment for the programme. The enrolment starts only when the webhook confirms the payment.
+function EnrolButton({ programId, title }: { programId: string; title: string }) {
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const onPress = async () => {
+    setBusy(true);
+    setFailure(null);
+    setNote(null);
+    const outcome = await startCheckout({ entityType: 'program', entityId: programId, description: title });
+    setBusy(false);
+    if (outcome.status === 'submitted') {
+      setNote('Payment submitted. Your plan starts once Razorpay reports the payment as captured.');
+    } else if (outcome.status === 'failed') {
+      setFailure(outcome.message);
+    }
+  };
+  return (
+    <>
+      {failure ? <ErrorBox message={failure} /> : null}
+      {note ? <Text style={styles.note}>{note}</Text> : null}
+      <Button label="Enrol and pay" busy={busy} onPress={() => void onPress()} />
+    </>
+  );
+}

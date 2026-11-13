@@ -47,26 +47,34 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [push],
   );
 
+  // The success stack is a polite live region that stays mounted, so its messages are announced.
+  // Errors keep their own alert role in a separate stack.
+  const successes = items.filter((item) => item.tone === "success");
+  const errors = items.filter((item) => item.tone === "error");
+  const card = (item: ToastItem) => {
+    const Icon = item.tone === "success" ? CircleCheck : CircleAlert;
+    return (
+      <div
+        key={item.id}
+        role={item.tone === "error" ? "alert" : undefined}
+        className={cn(
+          "pointer-events-auto flex items-start gap-3 rounded-2xl border bg-aura-s3 px-4 py-3 text-sm text-text-primary shadow-aura-elevated",
+          TONE_STYLE[item.tone],
+        )}
+      >
+        <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+        <span className="min-w-0 flex-1">{item.message}</span>
+      </div>
+    );
+  };
   return (
     <ToastContext.Provider value={api}>
       {children}
       <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(92vw,22rem)] flex-col gap-2">
-        {items.map((item) => {
-          const Icon = item.tone === "success" ? CircleCheck : CircleAlert;
-          return (
-            <div
-              key={item.id}
-              role={item.tone === "error" ? "alert" : "status"}
-              className={cn(
-                "pointer-events-auto flex items-start gap-3 rounded-2xl border bg-aura-s3 px-4 py-3 text-sm text-text-primary shadow-aura-elevated",
-                TONE_STYLE[item.tone],
-              )}
-            >
-              <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-              <span className="min-w-0 flex-1">{item.message}</span>
-            </div>
-          );
-        })}
+        <div role="status" aria-live="polite" className="flex flex-col gap-2">
+          {successes.map(card)}
+        </div>
+        {errors.map(card)}
       </div>
     </ToastContext.Provider>
   );

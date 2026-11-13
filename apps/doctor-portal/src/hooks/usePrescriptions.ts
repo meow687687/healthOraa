@@ -8,6 +8,7 @@ import { saveStoredPrescription, type StoredPrescription } from "../lib/prescrip
 import { addDays } from "../lib/prescriptionOptions";
 import type { QueueConsultation } from "../types/queue";
 import { CONSULTATION_QUEUE_KEY } from "./useConsultationQueue";
+import { latestPrescriptionKey } from "./useLatestPrescription";
 
 export interface SavePrescriptionInput {
   consultation: QueueConsultation;
@@ -57,6 +58,9 @@ export const useSavePrescription = () => {
       if (error) throw new Error(`The prescription was not signed: ${error.message}`);
       return { ...record, id: data };
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: CONSULTATION_QUEUE_KEY }),
+    onSuccess: (_record, { consultation }) => {
+      void queryClient.invalidateQueries({ queryKey: latestPrescriptionKey(consultation.id) });
+      return queryClient.invalidateQueries({ queryKey: CONSULTATION_QUEUE_KEY });
+    },
   });
 };

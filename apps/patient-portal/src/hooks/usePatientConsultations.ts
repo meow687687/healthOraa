@@ -44,7 +44,8 @@ const stateFor = (status: Enums<"consultation_status">, bookingStatus: Enums<"bo
 };
 
 const toItem = (row: ConsultationRow): ConsultationItem => {
-  const latest = row.prescriptions[0];
+  // A re-signed prescription is a new row, so take the newest one by time.
+  const latest = [...row.prescriptions].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   const prescription: PrescriptionRecord | null = latest
     ? {
         id: latest.id,

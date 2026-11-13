@@ -225,4 +225,38 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
       ),
     ).toBe("1");
   });
+  test("6. doctor reopens the saved Rx, corrects it, and the patient sees the correction", async () => {
+    // Close the open chat drawers, so the composer and the Rx preview are the only dialogs.
+    await patient.keyboard.press("Escape");
+    await doctor.keyboard.press("Escape");
+
+    const card = doctor.getByRole("article").filter({ hasText: "Priya Mehta" });
+    await card.getByRole("button", { name: "Write Prescription / View Notes", exact: true }).click();
+    const composer = doctor.getByRole("dialog");
+    // The composer starts from the saved prescription, not a blank form.
+    await expect(composer.locator("#rx-diagnosis")).toHaveValue("E2E: PCOD with hormonal acne");
+    await expect(composer.getByLabel("Drug name").first()).toHaveValue("Metformin 500mg");
+
+    await composer.locator("#rx-diagnosis").fill("E2E corrected diagnosis");
+    await composer.getByRole("button", { name: "Issue & Sign Rx", exact: true }).click();
+    await expect(doctor.getByText("Prescription signed and issued to patient portal")).toBeVisible({ timeout: 20_000 });
+    expect(psql(`select count(*) from prescriptions where consultation_id = '${state.consultationId}'`)).toBe("2");
+
+    // The patient's list picks the newest prescription, live.
+    // The new version arrives by realtime. The preview is a snapshot, so reopen it until it shows the correction.
+    const ours = patient.getByRole("listitem").filter({ hasText: runTag });
+    await expect
+      .poll(
+        async () => {
+          await ours.getByRole("button", { name: "Download Digital Rx", exact: true }).click();
+          const rx = patient.getByRole("dialog");
+          const text = (await rx.innerText()) ?? "";
+          await rx.getByRole("button", { name: "Close preview", exact: true }).click();
+          await patient.waitForTimeout(300);
+          return text.includes("E2E corrected diagnosis") && !text.includes("E2E: PCOD with hormonal acne");
+        },
+        { timeout: 30_000, intervals: [1_000] },
+      )
+      .toBe(true);
+  });
 });

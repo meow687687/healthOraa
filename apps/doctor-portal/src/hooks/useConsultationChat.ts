@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { watchTables } from "@healthoraa/ui";
+import { appendByTime, watchTables } from "@healthoraa/ui";
 import { consultationMessageSchema } from "@healthoraa/validation";
 import { supabase } from "../lib/supabase";
 import { useDoctor } from "../context/DoctorContext";
@@ -30,12 +30,6 @@ const toChatMessage = (row: MessageRow): ChatMessage => ({
   pending: false,
 });
 
-// Adds a message to a thread in time order, unless it is already there.
-const appendMessage = (thread: ChatMessage[], message: ChatMessage): ChatMessage[] =>
-  thread.some((m) => m.id === message.id)
-    ? thread
-    : [...thread, message].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
 // Remote thread plus anything saved on this device, in chronological order.
 const mergeThread = (remote: ChatMessage[], consultationId: string): ChatMessage[] =>
   [...remote, ...localChatMessages(consultationId)].sort(
@@ -49,7 +43,7 @@ export const useConsultationChat = (consultationId: string) => {
   const queryClient = useQueryClient();
 
   // Realtime: each new message in this thread is appended to the cache. The doctor's own
-  // messages arrive here too, and appendMessage skips ids already in the thread.
+  // messages arrive here too, and appendByTime skips ids already in the thread.
   useEffect(() => {
     if (isMockConsultation(consultationId)) return;
     return watchTables<MessageRow>(
@@ -59,7 +53,7 @@ export const useConsultationChat = (consultationId: string) => {
       (row) => {
         const message = toChatMessage(row);
         queryClient.setQueryData<ChatMessage[]>(chatMessagesKey(consultationId), (thread) =>
-          thread ? appendMessage(thread, message) : thread,
+          thread ? appendByTime(thread, message) : thread,
         );
       },
     );

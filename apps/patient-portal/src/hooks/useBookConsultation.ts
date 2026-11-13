@@ -15,21 +15,22 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(
 const newReference = (): string => `HLX-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
 type ServerOutcome =
-  | { ok: true; reference: string; notice: string | null }
+  | {
+      ok: true;
+      reference: string;
+      notice: string | null;
+      feePaise: number;
+      gstPaise: number;
+      totalPaise: number;
+    }
   | { ok: false; reason: string };
 
-// Calls initiate_consultation_booking, which requires a signed-in patient. Anonymous calls are refused.
-const bookOnServer = async (
-  patientId: string,
-  slotId: string,
-  intake: PatientIntakeInput,
-  totalRupees: number,
-): Promise<ServerOutcome> => {
+// The server reads the practitioner's fee and returns the authoritative fee, GST, and total.
+const bookOnServer = async (patientId: string, slotId: string, intake: PatientIntakeInput): Promise<ServerOutcome> => {
   const { data, error } = await supabase.rpc("initiate_consultation_booking", {
     p_slot_id: slotId,
     p_patient_id: patientId,
     p_chief_complaint: intake.chief_complaint,
-    p_fee: totalRupees,
   });
   if (error) return { ok: false, reason: error.message };
 
@@ -51,6 +52,9 @@ const bookOnServer = async (
     ok: true,
     reference: row.order_id,
     notice: intakeError ? `The intake form did not reach the clinic: ${intakeError.message}` : null,
+    feePaise: row.fee_paise,
+    gstPaise: row.gst_paise,
+    totalPaise: row.total_paise,
   };
 };
 
@@ -86,9 +90,17 @@ export const useBookConsultation = () => {
 
       let reason: string | null = null;
       if (slot.source === "live") {
-        const outcome = await bookOnServer(patient.id, slot.id, intake, totalPaise / 100);
+        const outcome = await bookOnServer(patient.id, slot.id, intake);
         if (outcome.ok) {
-          return { ...common, reference: outcome.reference, state: "awaiting_payment", notice: outcome.notice };
+          return {
+            ...common,
+            feePaise: outcome.feePaise,
+            gstPaise: outcome.gstPaise,
+            totalPaise: outcome.totalPaise,
+            reference: outcome.reference,
+            state: "awaiting_payment",
+            notice: outcome.notice,
+          };
         }
         reason = outcome.reason;
       }

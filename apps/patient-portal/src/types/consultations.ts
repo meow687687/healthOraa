@@ -4,7 +4,6 @@ export interface DoctorOption {
   id: string;
   displayName: string;
   qualification: string;
-  registrationNumber: string;
   feeInr: number;
   slotDurationMinutes: number;
   avatarUrl: string | null;

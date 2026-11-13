@@ -1,5 +1,5 @@
-import { Download, MessageCircle } from "lucide-react";
-import { Badge, LABEL, PANEL, cn } from "@healthoraa/ui";
+import { Download, History, MessageCircle } from "lucide-react";
+import { Badge, EmptyState, LABEL, PANEL, cn } from "@healthoraa/ui";
 import { formatIstDateTime } from "../../lib/istTime";
 import type { ConsultationItem, ConsultationState } from "../../types/consultations";
 
@@ -19,13 +19,22 @@ export function PastConsultations({
   items,
   onOpenRx,
   onOpenChat,
+  onFindDoctor,
 }: {
   items: ConsultationItem[];
   onOpenRx: (item: ConsultationItem) => void;
   onOpenChat: (item: ConsultationItem) => void;
+  onFindDoctor: () => void;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-text-muted">No past consultations yet.</p>;
+    return (
+      <EmptyState
+        icon={History}
+        title="No past consultations yet"
+        description="Completed and cancelled consultations will be listed here."
+        action={{ label: "Find a doctor", onClick: onFindDoctor }}
+      />
+    );
   }
 
   return (
@@ -35,7 +44,7 @@ export function PastConsultations({
         return (
           <li key={item.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 space-y-1">
-              <p className={LABEL}>{formatIstDateTime(item.startsAt)} IST</p>
+              <p className={cn(LABEL, "tabular-nums")}>{formatIstDateTime(item.startsAt)} IST</p>
               <p className="text-sm font-semibold text-text-primary">{item.doctorName}</p>
               {item.chiefComplaint && <p className="truncate text-xs text-text-secondary">{item.chiefComplaint}</p>}
               <div className="flex flex-wrap gap-2 pt-1">

@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updatePractitionerProfileSchema } from "@healthoraa/validation";
 import type { UpdatePractitionerProfileInput } from "@healthoraa/validation";
-import { PANEL } from "@healthoraa/ui";
+import { PANEL, useToast } from "@healthoraa/ui";
 import { usePractitionerProfile, useUpdatePractitionerProfile } from "../../hooks/usePractitionerProfile";
 import type { PractitionerProfile } from "../../types/profile";
 import { ProfileHeaderCard } from "./ProfileHeaderCard";
@@ -24,6 +24,7 @@ export default function PractitionerProfileView() {
 
 function ProfileEditor({ profile }: { profile: PractitionerProfile }) {
   const save = useUpdatePractitionerProfile();
+  const toast = useToast();
   const form = useForm<UpdatePractitionerProfileInput>({
     resolver: zodResolver(updatePractitionerProfileSchema),
     mode: "onTouched",
@@ -42,6 +43,7 @@ function ProfileEditor({ profile }: { profile: PractitionerProfile }) {
     try {
       await save.mutateAsync(values);
       form.reset(values);
+      toast.success("Profile updated");
     } catch {
       // The message is shown in the save bar; the form stays dirty so the doctor can retry.
     }

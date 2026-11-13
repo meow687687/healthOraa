@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { FALLBACK_ANCHOR, buildFallbackQueue } from "../lib/fallbackData";
 import { followupWindowFrom } from "../lib/followupWindow";
 import { signedConsultationIds } from "../lib/prescriptionStore";
+import { startedConsultationIds } from "../lib/startedStore";
 import { useDoctor } from "../context/DoctorContext";
 import type { ConsultationStatus, QueueConsultation } from "../types/queue";
 
@@ -43,6 +44,12 @@ const toQueueItem = (row: QueueRow): QueueConsultation => ({
 
 // Applied after every fetch. The fallback queue is rebuilt on each fetch, so a signed
 // prescription would otherwise revert to in-progress on the next refetch.
+// Demo consultations started on this device show as in progress until the queue is reloaded.
+const withStartedStatus = (queue: QueueConsultation[]): QueueConsultation[] => {
+  const started = startedConsultationIds();
+  return queue.map((c) => (started.has(c.id) && c.status === "scheduled" ? { ...c, status: "in_progress" } : c));
+};
+
 const withSignedStatus = (queue: QueueConsultation[]): QueueConsultation[] => {
   const signed = signedConsultationIds();
   return queue.map((c) =>
@@ -88,7 +95,7 @@ export const useConsultationQueue = () => {
         buildFallbackQueue(FALLBACK_ANCHOR),
         "consultation queue",
       ),
-    select: withSignedStatus,
+    select: (queue) => withStartedStatus(withSignedStatus(queue)),
     refetchInterval: 60_000,
   });
 };

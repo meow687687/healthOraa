@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { PERSONAS } from "./support/config";
+import { PERSONAS, PUBLISHABLE_KEY, SUPABASE_URL } from "./support/config";
 import { lit, psql, script } from "./support/db";
 import { accessToken, api } from "./support/api";
 import { sendPaymentCaptured } from "./support/webhook";
@@ -211,6 +211,31 @@ test.describe.serial("review fixes", () => {
               (select slot_duration_minutes from practitioner_details where id = '${DOCTOR}')`,
     );
     expect(after).toBe(before);
+  });
+
+  test("the practitioner listing returns only the public fields, never contact details", async () => {
+    const patientToken = await accessToken("patient");
+    const listing = await api(patientToken, "GET", "/rpc/get_verified_practitioners");
+    expect(listing.status).toBe(200);
+    const rows = listing.body as Array<Record<string, unknown>>;
+    expect(rows.length).toBeGreaterThan(0);
+    expect(Object.keys(rows[0]).sort()).toEqual([
+      "avatar_url",
+      "bio",
+      "consultation_fee_inr",
+      "full_name",
+      "id",
+      "languages_spoken",
+      "qualification",
+      "slot_duration_minutes",
+      "specialization",
+      "years_of_experience",
+    ]);
+    // Without a signed-in session the listing is refused.
+    const anonymous = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_verified_practitioners`, {
+      headers: { apikey: PUBLISHABLE_KEY },
+    });
+    expect(anonymous.status).toBeGreaterThanOrEqual(400);
   });
 
   test("the lookup indexes exist", async () => {

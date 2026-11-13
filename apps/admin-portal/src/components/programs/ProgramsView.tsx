@@ -1,3 +1,4 @@
+import { EmptyState } from "@healthoraa/ui";
 import { useState } from "react";
 import { Apple, Plus, Power, Pencil, Trash2, Loader2 } from "lucide-react";
 import type { NutritionProgram } from "@healthoraa/types";
@@ -48,10 +49,13 @@ export default function ProgramsView() {
         {isError && <div className={cn(ERROR_BOX, "m-6")}>Could not load programs: {error.message}</div>}
 
         {!isLoading && !isError && programs?.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <p className="text-sm font-semibold text-text-primary">No programs yet</p>
-            <p className="text-xs text-text-muted">Create the first program to publish it to the catalog.</p>
-          </div>
+          <EmptyState
+            icon={Apple}
+            title="No programs yet"
+            description="Create the first program to publish it to the catalog."
+            action={{ label: "Create Program", onClick: () => setIsDrawerOpen(true) }}
+            className="border-0 bg-transparent shadow-none"
+          />
         )}
 
         {!isLoading && !isError && programs && programs.length > 0 && (

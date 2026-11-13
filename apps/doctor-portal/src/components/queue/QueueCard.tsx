@@ -1,10 +1,12 @@
-import { Badge, PANEL, cn } from "@healthoraa/ui";
+import { BTN_PRIMARY, Badge, PANEL, cn } from "@healthoraa/ui";
 import type { QueueConsultation } from "../../types/queue";
 import { CONSULTATION_STATUS_META, formatTime } from "./consultationMeta";
 
 interface QueueCardProps {
   consultation: QueueConsultation;
   isActiveRoom: boolean;
+  isStarting: boolean;
+  onStart: (consultation: QueueConsultation) => void;
   onOpenEncounter: (consultation: QueueConsultation) => void;
   onOpenChat: (consultation: QueueConsultation) => void;
 }
@@ -13,7 +15,8 @@ const SECONDARY_PILL =
   "inline-flex items-center gap-2 bg-aura-s2 hover:bg-aura-s3 border border-aura-line text-text-secondary font-medium px-4 py-2 rounded-full transition-colors";
 
 // Every actionable state opens the encounter drawer: intake preview, Rx composer, or notes.
-function QueueAction({ consultation, isActiveRoom, onOpenEncounter, onOpenChat }: QueueCardProps) {
+// Starting a scheduled consultation moves it to in_progress first, then opens the same drawer.
+function QueueAction({ consultation, isActiveRoom, isStarting, onStart, onOpenEncounter, onOpenChat }: QueueCardProps) {
   switch (consultation.status) {
     case "in_progress":
       return (
@@ -28,9 +31,20 @@ function QueueAction({ consultation, isActiveRoom, onOpenEncounter, onOpenChat }
       );
     case "scheduled":
       return (
-        <button type="button" onClick={() => onOpenEncounter(consultation)} className={SECONDARY_PILL}>
-          Review Intake Form
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => onStart(consultation)}
+            disabled={isStarting}
+            aria-busy={isStarting}
+            className={cn(BTN_PRIMARY, "px-4 py-2")}
+          >
+            {isStarting ? "Starting..." : "Start Consultation"}
+          </button>
+          <button type="button" onClick={() => onOpenEncounter(consultation)} className={SECONDARY_PILL}>
+            Review Intake Form
+          </button>
+        </>
       );
     case "completed":
       return (

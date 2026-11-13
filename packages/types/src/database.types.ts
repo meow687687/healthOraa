@@ -648,6 +648,11 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"get_verified_practitioners":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "avatar_url": string | null,"bio": string | null,"consultation_fee_inr": number,"full_name": string,"id": string,"languages_spoken": (string)[] | null,"qualification": string,"slot_duration_minutes": number,"specialization": string | null,"years_of_experience": number | null
+            }[]
+                           },
 "initiate_consultation_booking":
 { Args: { "p_chief_complaint": string,"p_patient_id": string,"p_slot_id": string }; Returns: {
               "consultation_row": Database["public"]['Tables']["consultations"]['Row'],"fee_paise": number,"gst_paise": number,"order_id": string,"total_paise": number

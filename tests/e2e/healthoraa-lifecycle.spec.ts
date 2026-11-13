@@ -95,9 +95,10 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
 
     await doctor.getByRole("button", { name: "Schedule", exact: true }).click();
     await doctor.getByRole("button", { name: "Publish Slots for Upcoming Week", exact: true }).click();
-    const notice = doctor.getByText(/Published \d+ slots for the upcoming week/);
+    // The confirmation is a toast, which leaves the screen after 3.5 seconds, so read it right away.
+    const notice = doctor.getByRole("status").filter({ hasText: /Slots published: \d+ for the upcoming week/ });
     await expect(notice).toBeVisible({ timeout: 30_000 });
-    state.slotsPublished = Number((await notice.textContent())?.match(/Published (\d+) slots/)?.[1] ?? 0);
+    state.slotsPublished = Number((await notice.textContent())?.match(/Slots published: (\d+)/)?.[1] ?? 0);
     expect(state.slotsPublished).toBeGreaterThan(0);
 
     const generated = Number(
@@ -170,7 +171,11 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     const card = doctor.getByRole("article").filter({ hasText: "Priya Mehta" });
     await expect(card).toBeVisible({ timeout: 15_000 });
 
-    await card.getByRole("button", { name: "Review Intake Form", exact: true }).click();
+    await card.getByRole("button", { name: "Start Consultation", exact: true }).click();
+    // Starting moves the consultation to in_progress in the database before the composer opens.
+    await expect.poll(() => psql(`select status from consultations where id = '${state.consultationId}'`)).toBe(
+      "in_progress",
+    );
     const composer = doctor.getByRole("dialog");
     await composer.locator("#rx-diagnosis").fill("E2E: PCOD with hormonal acne");
     await composer.getByLabel("Drug name").first().fill("Metformin 500mg");

@@ -1,3 +1,4 @@
+import { EmptyState } from "@healthoraa/ui";
 import { useMemo, useState } from "react";
 import { Copy, Eye, Loader2, Receipt } from "lucide-react";
 import type { PaymentStatus } from "@healthoraa/types";
@@ -112,7 +113,7 @@ function DetailDrawer({ payment, onClose }: { payment: PaymentWithCustomer | nul
 export default function PaymentsAuditView() {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [selected, setSelected] = useState<PaymentWithCustomer | null>(null);
-  const { data: payments, isLoading, isError, error } = usePayments();
+  const { data: payments, isLoading, isError, error, refetch } = usePayments();
 
   const counts = useMemo<Record<FilterValue, number>>(() => {
     const base: Record<FilterValue, number> = {
@@ -164,10 +165,13 @@ export default function PaymentsAuditView() {
         {isError && <div className={ERROR_BOX}>Could not load transactions: {error.message}</div>}
 
         {!isLoading && !isError && payments?.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <p className="text-sm font-semibold text-text-primary">No transactions yet</p>
-            <p className="text-xs text-text-muted">Razorpay payments will be reconciled here as they are captured.</p>
-          </div>
+          <EmptyState
+            icon={Receipt}
+            title="No transactions yet"
+            description="Razorpay payments will be reconciled here as they are captured."
+            action={{ label: "Refresh transactions", onClick: () => void refetch() }}
+            className="border-0 bg-transparent shadow-none"
+          />
         )}
 
         {!isLoading && !isError && payments && payments.length > 0 && visible.length === 0 && (

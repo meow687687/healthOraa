@@ -43,7 +43,7 @@ export function UpcomingCard({ item }: { item: ConsultationItem }) {
           <h2 id="upcoming-title" className="text-xl font-bold tracking-tight text-white">
             {item.doctorName}
           </h2>
-          <p className="font-mono text-xs text-text-secondary">{formatIstDateTime(item.startsAt)} IST · {item.reference}</p>
+          <p className="font-mono text-xs tabular-nums text-text-secondary">{formatIstDateTime(item.startsAt)} IST · {item.reference}</p>
         </div>
         <Badge tone={badge.tone}>{badge.label}</Badge>
       </div>

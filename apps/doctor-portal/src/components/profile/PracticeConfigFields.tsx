@@ -53,7 +53,7 @@ export function PracticeConfigFields({ form }: { form: UseFormReturn<UpdatePract
 
         <Field id="profile-fee" label="Consultation fee (INR)" error={errors.consultation_fee_inr?.message}>
           <div className="relative">
-            <span aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-mono text-sm text-text-muted">
+            <span aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-mono text-sm tabular-nums text-text-muted">
               ₹
             </span>
             <input

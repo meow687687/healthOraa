@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { checkoutOrderSchema } from "@healthoraa/validation";
 import type { CheckoutOrderInput } from "@healthoraa/validation";
 import { BTN_PRIMARY, Drawer, DrawerHeader, ERROR_BOX, LABEL } from "@healthoraa/ui";
+import { useToast } from "@healthoraa/ui";
 import { usePlaceOrder } from "../../hooks/usePatientShop";
 import type { CartSummary } from "../../lib/cartMath";
 import type { CartEntry, OrderConfirmation, ShopProduct } from "../../types/shop";
@@ -30,6 +31,7 @@ export function CartDrawer({
   onClose: () => void;
 }) {
   const placeOrder = usePlaceOrder();
+  const toast = useToast();
   const [confirmation, setConfirmation] = useState<OrderConfirmation | null>(null);
   const form = useForm<CheckoutOrderInput>({
     resolver: zodResolver(checkoutOrderSchema),
@@ -39,7 +41,9 @@ export function CartDrawer({
 
   const onSubmit = async (values: CheckoutOrderInput) => {
     try {
-      setConfirmation(await placeOrder.mutateAsync({ entries, checkout: values }));
+      const order = await placeOrder.mutateAsync({ entries, checkout: values });
+      setConfirmation(order);
+      toast.success("Order placed");
     } catch {
       // Shown above the button; the address stays filled in for a retry.
     }

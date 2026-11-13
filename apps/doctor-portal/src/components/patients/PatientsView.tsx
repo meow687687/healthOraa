@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
-import { Badge, ERROR_BOX, INPUT, PANEL, TABLE_HEAD, cn } from "@healthoraa/ui";
+import { Search, Users } from "lucide-react";
+import { Badge, ERROR_BOX, EmptyState, INPUT, PANEL, SkeletonBlock, TABLE_HEAD, cn } from "@healthoraa/ui";
 import { useDoctorPatients } from "../../hooks/useDoctorPatients";
 import { formatDate } from "../../lib/prescriptionOptions";
 import type { PatientRecord } from "../../types/patients";
@@ -60,9 +60,27 @@ export default function PatientsView() {
 
       <div className={cn(PANEL, "overflow-hidden")}>
         {query.isPending ? (
-          <p className="py-16 text-center text-sm text-text-secondary">Loading patients...</p>
+          <div className="space-y-3 p-2" aria-busy="true" aria-label="Loading patients">
+            {[0, 1, 2, 3].map((row) => (
+              <SkeletonBlock key={row} className="h-14" />
+            ))}
+          </div>
+        ) : filtered.length === 0 && search.trim() === "" ? (
+          <EmptyState
+            icon={Users}
+            title="No patients yet"
+            description="Patients appear here once they have had a consultation with you."
+            action={{ label: "Refresh patients", onClick: () => void query.refetch() }}
+            className="border-0 bg-transparent shadow-none"
+          />
         ) : filtered.length === 0 ? (
-          <p className="py-16 text-center text-sm text-text-muted">No patients match “{search.trim()}”.</p>
+          <EmptyState
+            icon={Search}
+            title={`No patients match “${search.trim()}”`}
+            description="Try another name, condition or diagnosis."
+            action={{ label: "Clear search", onClick: () => setSearch("") }}
+            className="border-0 bg-transparent shadow-none"
+          />
         ) : (
           <div className="table-scroll -mx-6 overflow-x-auto">
             <table className="w-full text-left text-sm">

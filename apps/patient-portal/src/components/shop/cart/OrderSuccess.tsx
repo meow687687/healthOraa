@@ -28,7 +28,7 @@ export function OrderSuccess({ confirmation, onDone }: { confirmation: OrderConf
           </div>
           <div>
             <p className={LABEL}>Total incl. GST</p>
-            <p className="font-mono text-sm text-text-primary">{formatPaise(confirmation.totalPaise)}</p>
+            <p className="font-mono text-sm tabular-nums text-text-primary">{formatPaise(confirmation.totalPaise)}</p>
           </div>
         </div>
       </section>

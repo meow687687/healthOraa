@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ERROR_BOX, LABEL } from "@healthoraa/ui";
+import { ShoppingBag } from "lucide-react";
+import { ERROR_BOX, EmptyState, LABEL } from "@healthoraa/ui";
 import { useAddToCart, useCart, useRemoveCartItem, useUpdateCartQuantity } from "../../hooks/usePatientShop";
 import type { ShopProduct } from "../../types/shop";
 import { ProductCard } from "./ProductCard";
@@ -45,7 +46,12 @@ export default function PatientShopView() {
       {notice && <div className={ERROR_BOX}>{notice}</div>}
 
       {products.length === 0 ? (
-        <p className="py-16 text-center text-sm text-text-muted">No products are available right now.</p>
+        <EmptyState
+          icon={ShoppingBag}
+          title="No products are available right now"
+          description="New wellness products appear here as they are added."
+          action={{ label: "Refresh shop", onClick: () => void cart.products.refetch() }}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {products.map((product) => (

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Eye, Save, Send } from "lucide-react";
 import { availabilityWindowSchema, SLOT_DURATION_OPTIONS } from "@healthoraa/validation";
-import { Badge, ERROR_BOX, PANEL, cn } from "@healthoraa/ui";
+import { Badge, ERROR_BOX, PANEL, cn, useToast } from "@healthoraa/ui";
 import { DAY_ORDER, conflictingRuleIds, snapshotsEqual } from "../../lib/scheduleGenerator";
 import { formatDate } from "../../lib/prescriptionOptions";
 import { useSaveScheduleDraft, usePublishSlots } from "../../hooks/useDoctorSchedule";
@@ -19,7 +19,7 @@ export function ScheduleEditor({ view }: { view: ScheduleView }) {
   const [rules, setRules] = useState<WindowDraft[]>(() => view.draft.rules);
   const [durationMinutes, setDurationMinutes] = useState(view.draft.durationMinutes);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const toast = useToast();
   const save = useSaveScheduleDraft();
   const publish = usePublishSlots();
 
@@ -59,17 +59,15 @@ export function ScheduleEditor({ view }: { view: ScheduleView }) {
   const removeWindow = (id: string) => setRules((prev) => prev.filter((rule) => rule.id !== id));
 
   const onSaveDraft = () => {
-    setNotice(null);
-    save.mutate(snapshot, { onSuccess: () => setNotice("Draft saved.") });
+    save.mutate(snapshot, { onSuccess: () => toast.success("Draft saved.") });
   };
 
   const onPublish = () => {
-    setNotice(null);
     publish.mutate(
       { snapshot },
       {
         onSuccess: (count) =>
-          setNotice(`Published ${count} slots for the upcoming week. Booked slots stay booked.`),
+          toast.success(`Slots published: ${count} for the upcoming week. Booked slots stay booked.`),
       },
     );
   };
@@ -124,11 +122,6 @@ export function ScheduleEditor({ view }: { view: ScheduleView }) {
         </div>
 
         {hasErrors && <p className="text-xs text-accent-amber">Fix the highlighted windows before saving or publishing.</p>}
-        {notice && (
-          <div role="status" className="flex flex-wrap items-center gap-2 rounded-2xl border border-accent-emerald/30 bg-accent-emerald/10 px-4 py-3 text-sm text-accent-emerald">
-            {notice}
-          </div>
-        )}
         {actionError && <div className={ERROR_BOX}>{actionError}</div>}
         {!hasErrors && unsaved && <Badge tone="amber">Unsaved changes</Badge>}
       </section>

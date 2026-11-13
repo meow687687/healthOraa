@@ -1,4 +1,5 @@
-import { Badge } from "@healthoraa/ui";
+import { History } from "lucide-react";
+import { Badge, EmptyState } from "@healthoraa/ui";
 import type { PatientPrescription, PatientVisit } from "../../types/patients";
 import { CONSULTATION_STATUS_META, formatTime } from "../queue/consultationMeta";
 import { formatDate } from "../../lib/prescriptionOptions";
@@ -7,12 +8,22 @@ import { formatDate } from "../../lib/prescriptionOptions";
 export function ClinicalTimeline({
   visits,
   prescriptions,
+  onClose,
 }: {
   visits: PatientVisit[];
   prescriptions: PatientPrescription[];
+  onClose: () => void;
 }) {
   if (visits.length === 0) {
-    return <p className="text-xs text-text-muted">No consultations on record.</p>;
+    return (
+      <EmptyState
+        icon={History}
+        title="No consultations on record"
+        description="Visits and signed prescriptions for this patient will show here."
+        action={{ label: "Back to patients", onClick: onClose }}
+        className="py-8"
+      />
+    );
   }
 
   return (

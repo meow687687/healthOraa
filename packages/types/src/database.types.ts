@@ -649,8 +649,8 @@ isOneToOne: false
         isSetofReturn: true
       } },
 "initiate_consultation_booking":
-{ Args: { "p_chief_complaint": string,"p_fee": number,"p_patient_id": string,"p_slot_id": string }; Returns: {
-              "consultation_row": Database["public"]['Tables']["consultations"]['Row'],"order_id": string
+{ Args: { "p_chief_complaint": string,"p_patient_id": string,"p_slot_id": string }; Returns: {
+              "consultation_row": Database["public"]['Tables']["consultations"]['Row'],"order_id": string,"total_paise": number
             }[]
                            },
 "issue_prescription":
@@ -672,6 +672,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"publish_schedule":
+{ Args: { "p_days"?: number,"p_duration_minutes": number,"p_rules": Json }; Returns: number
+                           },
 "resolve_erasure_request":
 { Args: { "p_request_id": string }; Returns: {
               "created_at": string,

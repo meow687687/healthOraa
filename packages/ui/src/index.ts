@@ -7,3 +7,4 @@ export { withFallback, withSingleFallback } from "./fallback";
 export { Modal } from "./Modal";
 export * from "./auth";
 export * from "./realtime";
+export * from "./chat";

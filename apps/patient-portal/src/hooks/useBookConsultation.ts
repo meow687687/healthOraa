@@ -15,21 +15,16 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(
 const newReference = (): string => `HLX-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
 type ServerOutcome =
-  | { ok: true; reference: string; notice: string | null }
+  | { ok: true; reference: string; notice: string | null; totalPaise: number }
   | { ok: false; reason: string };
 
-// Calls initiate_consultation_booking, which requires a signed-in patient. Anonymous calls are refused.
-const bookOnServer = async (
-  patientId: string,
-  slotId: string,
-  intake: PatientIntakeInput,
-  totalRupees: number,
-): Promise<ServerOutcome> => {
+// Calls initiate_consultation_booking, which requires a signed-in patient. The server reads the
+// fee from the practitioner's profile and returns the total (fee plus GST), so the client never sets it.
+const bookOnServer = async (patientId: string, slotId: string, intake: PatientIntakeInput): Promise<ServerOutcome> => {
   const { data, error } = await supabase.rpc("initiate_consultation_booking", {
     p_slot_id: slotId,
     p_patient_id: patientId,
     p_chief_complaint: intake.chief_complaint,
-    p_fee: totalRupees,
   });
   if (error) return { ok: false, reason: error.message };
 
@@ -51,6 +46,7 @@ const bookOnServer = async (
     ok: true,
     reference: row.order_id,
     notice: intakeError ? `The intake form did not reach the clinic: ${intakeError.message}` : null,
+    totalPaise: row.total_paise,
   };
 };
 
@@ -86,9 +82,17 @@ export const useBookConsultation = () => {
 
       let reason: string | null = null;
       if (slot.source === "live") {
-        const outcome = await bookOnServer(patient.id, slot.id, intake, totalPaise / 100);
+        const outcome = await bookOnServer(patient.id, slot.id, intake);
         if (outcome.ok) {
-          return { ...common, reference: outcome.reference, state: "awaiting_payment", notice: outcome.notice };
+          const serverTotal = outcome.totalPaise;
+          return {
+            ...common,
+            gstPaise: serverTotal - feePaise,
+            totalPaise: serverTotal,
+            reference: outcome.reference,
+            state: "awaiting_payment",
+            notice: outcome.notice,
+          };
         }
         reason = outcome.reason;
       }

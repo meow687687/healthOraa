@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { watchTables } from "@healthoraa/ui";
+import { appendByTime, watchTables } from "@healthoraa/ui";
 import { consultationMessageSchema } from "@healthoraa/validation";
 import { supabase } from "../lib/supabase";
 import { usePatient } from "../context/PatientContext";
@@ -28,12 +28,6 @@ const toMessage = (row: MessageRow): ChatMessage => ({
   createdAt: row.created_at,
 });
 
-// Adds a message to a thread in time order, unless it is already there.
-const appendMessage = (thread: ChatMessage[], message: ChatMessage): ChatMessage[] =>
-  thread.some((m) => m.id === message.id)
-    ? thread
-    : [...thread, message].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
-
 // Follow-up thread for one consultation. Realtime appends each new message to the cache,
 // so the thread updates while the drawer is open.
 export const useConsultationChat = (consultationId: string) => {
@@ -48,7 +42,7 @@ export const useConsultationChat = (consultationId: string) => {
         (row) => {
           const message = toMessage(row);
           queryClient.setQueryData<ChatMessage[]>(consultationChatKey(consultationId), (thread) =>
-            thread ? appendMessage(thread, message) : thread,
+            thread ? appendByTime(thread, message) : thread,
           );
         },
       ),

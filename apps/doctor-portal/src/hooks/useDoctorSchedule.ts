@@ -84,13 +84,6 @@ const composeView = (base: ScheduleBase): ScheduleView => {
   };
 };
 
-// Date key (YYYY-MM-DD) in Asia/Kolkata for the day `offset` days from today. Slot generation
-// works on IST calendar dates, so the browser's own timezone must not decide the day.
-const istDayKey = (offset: number): string =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(
-    new Date(Date.now() + offset * 86_400_000),
-  );
-
 export const useDoctorSchedule = () => {
   const { doctor } = useDoctor();
   return useQuery<ScheduleBase, Error, ScheduleView>({
@@ -119,63 +112,29 @@ export interface PublishInput {
   snapshot: ScheduleSnapshot;
 }
 
-// Saves the weekly rules and slot length, clears open slots for the upcoming week, then has the
-// database generate the new ones. Booked slots are never touched. Patients see the result at once.
+// Saves the weekly rules and slot length, then generates the upcoming week's slots. One database
+// call does all of it in a single transaction, so a failure leaves the previous schedule in place.
+// Booked slots are never touched.
 export const usePublishSlots = () => {
   const { doctor } = useDoctor();
   const queryClient = useQueryClient();
   return useMutation<number, Error, PublishInput>({
     mutationFn: async ({ snapshot }) => {
       validateSnapshot(snapshot);
-      const practitionerId = doctor.id;
-
-      const { error: clearRulesError } = await supabase
-        .from("practitioner_availability_rules")
-        .delete()
-        .eq("practitioner_id", practitionerId);
-      if (clearRulesError) throw new Error(`Could not save the weekly rules: ${clearRulesError.message}`);
-      if (snapshot.rules.length > 0) {
-        const { error: rulesError } = await supabase.from("practitioner_availability_rules").insert(
-          snapshot.rules.map((rule) => ({
-            practitioner_id: practitionerId,
-            day_of_week: rule.day_of_week,
-            start_time: rule.start_time,
-            end_time: rule.end_time,
-            is_active: rule.is_active,
-          })),
-        );
-        if (rulesError) throw new Error(`Could not save the weekly rules: ${rulesError.message}`);
-      }
-
-      const { error: durationError } = await supabase
-        .from("practitioner_details")
-        .update({ slot_duration_minutes: snapshot.durationMinutes })
-        .eq("id", practitionerId);
-      if (durationError) throw new Error(`Could not save the slot length: ${durationError.message}`);
-
-      const from = new Date();
-      const to = new Date(from.getTime() + UPCOMING_DAYS * 86_400_000);
-      const { error: clearSlotsError } = await supabase
-        .from("consultation_slots")
-        .delete()
-        .eq("practitioner_id", practitionerId)
-        .eq("is_booked", false)
-        .gte("start_time", from.toISOString())
-        .lt("start_time", to.toISOString());
-      if (clearSlotsError) throw new Error(`Could not clear open slots: ${clearSlotsError.message}`);
-
-      let created = 0;
-      for (let offset = 0; offset < UPCOMING_DAYS; offset += 1) {
-        const { data, error } = await supabase.rpc("generate_consultation_slots", {
-          p_practitioner_id: practitionerId,
-          p_date: istDayKey(offset),
-        });
-        if (error) throw new Error(`Could not generate slots: ${error.message}`);
-        created += data ?? 0;
-      }
+      const { data, error } = await supabase.rpc("publish_schedule", {
+        p_duration_minutes: snapshot.durationMinutes,
+        p_rules: snapshot.rules.map((rule) => ({
+          day_of_week: rule.day_of_week,
+          start_time: rule.start_time,
+          end_time: rule.end_time,
+          is_active: rule.is_active,
+        })),
+        p_days: UPCOMING_DAYS,
+      });
+      if (error) throw new Error(`The schedule was not published: ${error.message}`);
 
       writeScheduleStore({ draft: snapshot, published: snapshot, publishedAt: new Date().toISOString() });
-      return created;
+      return data ?? 0;
     },
     onSuccess: () => touchSchedule(queryClient, doctor.id),
   });

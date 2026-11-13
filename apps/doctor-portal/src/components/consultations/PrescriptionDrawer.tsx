@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Drawer, DrawerHeader } from "@healthoraa/ui";
+import { Drawer, DrawerHeader, ERROR_BOX } from "@healthoraa/ui";
 import type { QueueConsultation } from "../../types/queue";
 import { getStoredPrescription } from "../../lib/prescriptionStore";
 import { toFormValues } from "../../lib/prescriptionOptions";
 import { useIntakePreview } from "../../hooks/useIntakePreview";
+import { useLatestPrescription } from "../../hooks/useLatestPrescription";
+import { isMockConsultation } from "../../lib/chatFallback";
 import { PatientBanner } from "./PatientBanner";
 import { PrescriptionForm } from "./PrescriptionForm";
 
@@ -44,17 +46,44 @@ function EncounterBody({
   onSigned: () => void;
 }) {
   const intake = useIntakePreview(consultation.id);
-  // Read once per open: a re-signed prescription updates the stored copy, not this form.
-  const [initialValues] = useState(() => toFormValues(getStoredPrescription(consultation.id)));
+  const live = !isMockConsultation(consultation.id);
+  const saved = useLatestPrescription(consultation.id);
+
+  // Live consultations start from the saved prescription; demo ones from this device's copy.
+  // The form mounts once, so it waits for the saved version rather than starting blank.
+  const header = (
+    <DrawerHeader
+      eyebrow="Telemedicine encounter"
+      title="Prescription Composer"
+      titleId="rx-drawer-title"
+      onClose={onClose}
+    />
+  );
+  if (live && saved.isPending) {
+    return (
+      <>
+        {header}
+        <p className="py-10 text-center text-sm text-text-secondary">Loading the saved prescription...</p>
+      </>
+    );
+  }
+  if (live && saved.isError) {
+    return (
+      <>
+        {header}
+        <div className={ERROR_BOX}>
+          Could not load the saved prescription. Close and try again, so an empty form does not replace it.
+        </div>
+      </>
+    );
+  }
+  const initialValues = live
+    ? (saved.data ?? toFormValues(undefined))
+    : toFormValues(getStoredPrescription(consultation.id));
 
   return (
     <>
-      <DrawerHeader
-        eyebrow="Telemedicine encounter"
-        title="Prescription Composer"
-        titleId="rx-drawer-title"
-        onClose={onClose}
-      />
+      {header}
       <PatientBanner consultation={consultation} intake={intake.data} />
       <PrescriptionForm
         consultation={consultation}

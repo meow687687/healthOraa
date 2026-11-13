@@ -1,6 +1,7 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 
-const REPO_ROOT = new URL("../..", import.meta.url).pathname;
+const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 // The three Vite dev servers are reused when already running. Otherwise Playwright starts them.
 const devServer = (app: string, port: number) => ({
@@ -13,8 +14,9 @@ const devServer = (app: string, port: number) => ({
 
 export default defineConfig({
   testDir: ".",
-  testMatch: "healthoraa-lifecycle.spec.ts",
+  testMatch: ["healthoraa-lifecycle.spec.ts", "regressions.spec.ts"],
   globalSetup: "./global-setup.ts",
+  globalTeardown: "./global-teardown.ts",
   // One browser context per portal, shared across serial steps. Parallel runs would race on the same rows.
   workers: 1,
   fullyParallel: false,

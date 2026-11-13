@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySignature } from "../_shared/razorpay.ts";
+import { mockWebhookAllowed } from "../_shared/webhook-mode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,16 +29,11 @@ Deno.serve(async (request) => {
 
   const secret = Deno.env.get("RAZORPAY_WEBHOOK_SECRET");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const localHosts = new Set([
-    "localhost",
-    "127.0.0.1",
-    "::1",
-    "kong",
-    "host.docker.internal",
-  ]);
-  const mockAllowed = Deno.env.get("ALLOW_MOCK_WEBHOOK") === "true" &&
-    Boolean(supabaseUrl) &&
-    localHosts.has(new URL(supabaseUrl!).hostname);
+  const mockAllowed = mockWebhookAllowed({
+    secret,
+    allowMock: Deno.env.get("ALLOW_MOCK_WEBHOOK"),
+    supabaseUrl,
+  });
   if (!secret && !mockAllowed) {
     return jsonResponse({ error: "Webhook is not configured" }, 500);
   }
@@ -164,17 +160,34 @@ Deno.serve(async (request) => {
   }
 
   if (orderLog.entity_type === "consultation") {
-    const { error } = await supabase.from("consultations").update({
-      booking_status: "confirmed",
-    })
-      .eq("id", orderLog.entity_id).eq("patient_id", orderLog.user_id).eq(
-        "payment_order_id",
-        orderId,
-      );
+    const { data: confirmed, error } = await supabase
+      .from("consultations")
+      .update({ booking_status: "confirmed" })
+      .eq("id", orderLog.entity_id)
+      .eq("patient_id", orderLog.user_id)
+      .eq("payment_order_id", orderId)
+      .eq("booking_status", "pending_payment")
+      .select("id");
     if (error) {
       return jsonResponse({
         error: "Payment saved, but consultation confirmation failed",
       }, 500);
+    }
+    if (!confirmed?.length) {
+      // An earlier delivery already confirmed it, or the booking was cancelled. A cancelled
+      // booking is never confirmed here; its payment stays in the audit for a refund.
+      const { data: booking } = await supabase
+        .from("consultations")
+        .select("booking_status")
+        .eq("id", orderLog.entity_id)
+        .maybeSingle();
+      return jsonResponse({
+        received: true,
+        status,
+        entity_type: orderLog.entity_type,
+        booking_status: booking?.booking_status ?? null,
+        refund_review: booking?.booking_status === "cancelled",
+      });
     }
   } else if (orderLog.entity_type === "shop_order") {
     const { error } = await supabase.from("orders").update({ status: "paid" })
@@ -219,7 +232,8 @@ Deno.serve(async (request) => {
           .toISOString(),
         status: "active",
       });
-      if (error) {
+      // 23505: a concurrent delivery created the active enrolment first. That is success.
+      if (error && error.code !== "23505") {
         return jsonResponse({
           error: "Payment saved, but enrolment creation failed",
         }, 500);

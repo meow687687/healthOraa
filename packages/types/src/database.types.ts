@@ -650,7 +650,7 @@ isOneToOne: false
       } },
 "get_verified_practitioners":
 { Args: Record<PropertyKey, never>; Returns: {
-              "avatar_url": string,"bio": string,"consultation_fee_inr": number,"full_name": string,"id": string,"languages_spoken": (string)[],"qualification": string,"slot_duration_minutes": number,"specialization": string,"years_of_experience": number
+              "avatar_url": string | null,"bio": string | null,"consultation_fee_inr": number,"full_name": string,"id": string,"languages_spoken": (string)[] | null,"qualification": string,"slot_duration_minutes": number,"specialization": string | null,"years_of_experience": number | null
             }[]
                            },
 "initiate_consultation_booking":

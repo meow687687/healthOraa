@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { Badge, EmptyState, PANEL, SkeletonBlock, cn, useToast } from "@healthoraa/ui";
 import { useConsultationQueue } from "../../hooks/useConsultationQueue";
@@ -26,15 +26,21 @@ export default function ConsultationQueueView() {
   const scheduled = queue.filter((c) => c.status === "scheduled").length;
   const startingId = startConsultation.isPending ? (startConsultation.variables?.id ?? null) : null;
 
+  // Counts every selection. A start that finishes after the doctor picked another visit must not open its own drawer.
+  const selectionSeq = useRef(0);
+
   const openEncounter = (consultation: QueueConsultation) => {
+    selectionSeq.current += 1;
     setActiveConsultationId(consultation.id);
     setEncounter(consultation);
     setEncounterSession((n) => n + 1);
   };
 
   const startAndOpen = async (consultation: QueueConsultation) => {
+    const seqAtStart = selectionSeq.current;
     try {
       await startConsultation.mutateAsync(consultation);
+      if (selectionSeq.current !== seqAtStart) return;
       openEncounter({ ...consultation, status: "in_progress" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not start this consultation.");

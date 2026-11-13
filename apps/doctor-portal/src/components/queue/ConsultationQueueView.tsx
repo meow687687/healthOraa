@@ -4,11 +4,12 @@ import { Badge, EmptyState, PANEL, SkeletonBlock, cn, useToast } from "@healthor
 import { useConsultationQueue } from "../../hooks/useConsultationQueue";
 import { useStartConsultation } from "../../hooks/useStartConsultation";
 import { useDoctor } from "../../context/DoctorContext";
-import type { QueueConsultation } from "../../types/queue";
-import PrescriptionDrawer from "../consultations/PrescriptionDrawer";
-import ConsultationChatDrawer from "../chat/ConsultationChatDrawer";
+import type { QueueConsultation, RoomPane } from "../../types/queue";
+import { ConsultationRoom } from "../room/ConsultationRoom";
 import { QueueCard } from "./QueueCard";
 import { UpNextCard } from "./UpNextCard";
+
+const LOADING_ROWS = [0, 1, 2];
 
 // Re-renders every 30 seconds so the countdowns stay current.
 const useNow = (): number => {
@@ -20,41 +21,65 @@ const useNow = (): number => {
   return now;
 };
 
-const LOADING_ROWS = [0, 1, 2];
+interface OpenRoom {
+  consultation: QueueConsultation;
+  pane: RoomPane;
+  // Bumped on every open, so the room starts from fresh form state.
+  session: number;
+}
 
 export default function ConsultationQueueView() {
   const { data, isLoading, refetch } = useConsultationQueue();
   const { activeConsultationId, setActiveConsultationId } = useDoctor();
   const startConsultation = useStartConsultation();
   const toast = useToast();
-  const [encounter, setEncounter] = useState<QueueConsultation | null>(null);
-  // Bumped on every open so the drawer's form starts from fresh values.
-  const [encounterSession, setEncounterSession] = useState(0);
-  const [chatConsultation, setChatConsultation] = useState<QueueConsultation | null>(null);
+  const now = useNow();
+  const [room, setRoom] = useState<OpenRoom | null>(null);
 
   const queue = data ?? [];
   const inProgress = queue.filter((c) => c.status === "in_progress").length;
   const scheduled = queue.filter((c) => c.status === "scheduled").length;
-  const now = useNow();
   // The next patient is the one in the room, else the earliest scheduled.
   const upNext = queue.find((c) => c.status === "in_progress") ?? queue.find((c) => c.status === "scheduled") ?? null;
   const later = queue.filter((c) => c !== upNext && (c.status === "scheduled" || c.status === "in_progress"));
   const done = queue.filter((c) => c.status === "completed" || c.status === "cancelled");
   const startingId = startConsultation.isPending ? (startConsultation.variables?.id ?? null) : null;
 
-  const openEncounter = (consultation: QueueConsultation) => {
+  const openRoom = (consultation: QueueConsultation, pane: RoomPane) => {
     setActiveConsultationId(consultation.id);
-    setEncounter(consultation);
-    setEncounterSession((n) => n + 1);
+    setRoom((current) => ({ consultation, pane, session: (current?.session ?? 0) + 1 }));
   };
 
   const startAndOpen = async (consultation: QueueConsultation) => {
     try {
       await startConsultation.mutateAsync(consultation);
-      openEncounter({ ...consultation, status: "in_progress" });
+      openRoom({ ...consultation, status: "in_progress" }, "rx");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not start this consultation.");
     }
+  };
+
+  if (room) {
+    return (
+      <ConsultationRoom
+        key={`${room.consultation.id}-${room.session}`}
+        consultation={room.consultation}
+        initialPane={room.pane}
+        now={now}
+        onExit={() => setRoom(null)}
+        onSigned={() => {
+          setRoom(null);
+          toast.success("Prescription signed and issued to patient portal");
+        }}
+      />
+    );
+  }
+
+  const cardProps = {
+    isStarting: (id: string) => startingId === id,
+    isActiveRoom: (id: string) => activeConsultationId === id,
+    onStart: startAndOpen,
+    onOpenRoom: openRoom,
   };
 
   return (
@@ -95,11 +120,10 @@ export default function ConsultationQueueView() {
         <UpNextCard
           now={now}
           consultation={upNext}
-          isActiveRoom={activeConsultationId === upNext.id}
-          isStarting={startingId === upNext.id}
-          onStart={startAndOpen}
-          onOpenEncounter={openEncounter}
-          onOpenChat={setChatConsultation}
+          isActiveRoom={cardProps.isActiveRoom(upNext.id)}
+          isStarting={cardProps.isStarting(upNext.id)}
+          onStart={cardProps.onStart}
+          onOpenRoom={cardProps.onOpenRoom}
         />
       )}
 
@@ -111,11 +135,10 @@ export default function ConsultationQueueView() {
               <li key={consultation.id}>
                 <QueueCard
                   consultation={consultation}
-                  isActiveRoom={activeConsultationId === consultation.id}
-                  isStarting={startingId === consultation.id}
-                  onStart={startAndOpen}
-                  onOpenEncounter={openEncounter}
-                  onOpenChat={setChatConsultation}
+                  isActiveRoom={cardProps.isActiveRoom(consultation.id)}
+                  isStarting={cardProps.isStarting(consultation.id)}
+                  onStart={cardProps.onStart}
+                  onOpenRoom={cardProps.onOpenRoom}
                 />
               </li>
             ))}
@@ -132,29 +155,16 @@ export default function ConsultationQueueView() {
                 <QueueCard
                   compact
                   consultation={consultation}
-                  isActiveRoom={activeConsultationId === consultation.id}
-                  isStarting={startingId === consultation.id}
-                  onStart={startAndOpen}
-                  onOpenEncounter={openEncounter}
-                  onOpenChat={setChatConsultation}
+                  isActiveRoom={cardProps.isActiveRoom(consultation.id)}
+                  isStarting={cardProps.isStarting(consultation.id)}
+                  onStart={cardProps.onStart}
+                  onOpenRoom={cardProps.onOpenRoom}
                 />
               </li>
             ))}
           </ul>
         </section>
       )}
-
-      <ConsultationChatDrawer consultation={chatConsultation} onClose={() => setChatConsultation(null)} />
-
-      <PrescriptionDrawer
-        consultation={encounter}
-        sessionKey={encounterSession}
-        onClose={() => setEncounter(null)}
-        onSigned={() => {
-          setEncounter(null);
-          toast.success("Prescription signed and issued to patient portal");
-        }}
-      />
     </div>
   );
 }

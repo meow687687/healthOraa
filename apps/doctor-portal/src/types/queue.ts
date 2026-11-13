@@ -22,3 +22,6 @@ export interface QueueConsultation {
   allergies?: string[];
   medications?: string[];
 }
+
+// Which part of the consultation room opens first. Desktop shows all three.
+export type RoomPane = "intake" | "rx" | "chat";

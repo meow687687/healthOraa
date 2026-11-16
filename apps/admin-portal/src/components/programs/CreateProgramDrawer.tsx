@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import type { InsertTables, ProgramCategory } from "@healthoraa/types";
+import type { InsertTables, NutritionProgram, ProgramCategory, UpdateTables } from "@healthoraa/types";
 import { createProgramSchema } from "@healthoraa/validation";
 import type { CreateProgramInput } from "@healthoraa/validation";
-import { useCreateProgram } from "../../hooks/usePrograms";
+import { useCreateProgram, useUpdateProgram } from "../../hooks/usePrograms";
 import { CATEGORY_META, PROGRAM_CATEGORIES } from "./programMeta";
 import { Drawer, DrawerHeader } from "../ui/Drawer";
 import { cn } from "../../lib/cn";
@@ -20,6 +20,7 @@ import {
 interface CreateProgramDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  program?: NutritionProgram | null;
 }
 
 interface ProgramFormState {
@@ -48,7 +49,7 @@ const FORM_FIELD_BY_SCHEMA_KEY: Record<keyof CreateProgramInput, keyof ProgramFo
   description: "description",
 };
 
-const toSchemaInput = (form: ProgramFormState): Record<keyof CreateProgramInput, unknown> => ({
+const toSchemaInput = (form: ProgramFormState) => ({
   title: form.title,
   category: form.category,
   duration_days: form.durationDays.trim() === "" ? undefined : Number(form.durationDays),
@@ -72,10 +73,24 @@ const validateForm = (
   return { errors };
 };
 
-export default function CreateProgramDrawer({ isOpen, onClose }: CreateProgramDrawerProps) {
-  const [form, setForm] = useState<ProgramFormState>(INITIAL_FORM);
+const toFormState = (program: NutritionProgram | null | undefined): ProgramFormState =>
+  program
+    ? {
+        title: program.title,
+        category: program.category,
+        durationDays: String(program.duration_days),
+        priceInr: String(program.price_inr),
+        description: program.description ?? "",
+      }
+    : INITIAL_FORM;
+
+export default function CreateProgramDrawer({ isOpen, onClose, program }: CreateProgramDrawerProps) {
+  const [form, setForm] = useState<ProgramFormState>(() => toFormState(program));
   const [errors, setErrors] = useState<ProgramFormErrors>({});
   const createProgram = useCreateProgram();
+  const updateProgram = useUpdateProgram();
+  const isSaving = createProgram.isPending || updateProgram.isPending;
+  const mutationError = program ? updateProgram.error : createProgram.error;
 
   const update = <K extends keyof ProgramFormState>(key: K, value: ProgramFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -84,6 +99,7 @@ export default function CreateProgramDrawer({ isOpen, onClose }: CreateProgramDr
     setForm(INITIAL_FORM);
     setErrors({});
     createProgram.reset();
+    updateProgram.reset();
     onClose();
   };
 
@@ -105,18 +121,25 @@ export default function CreateProgramDrawer({ isOpen, onClose }: CreateProgramDr
       description: input.description || null,
     };
 
-    createProgram.mutate(payload, { onSuccess: handleClose });
+    if (program) {
+      const changes: UpdateTables<"programs"> = payload;
+      updateProgram.mutate({ id: program.id, changes }, { onSuccess: handleClose });
+    } else {
+      createProgram.mutate(payload, { onSuccess: handleClose });
+    }
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={handleClose} labelledBy="create-program-title">
+    <Drawer isOpen={isOpen} onClose={handleClose} labelledBy="program-form-title">
       <DrawerHeader
         eyebrow="Catalog"
-        title="Create Program"
-        titleId="create-program-title"
+        title={program ? "Edit Program" : "Create Program"}
+        titleId="program-form-title"
         onClose={handleClose}
       >
-        <p className="text-xs text-text-secondary">Publish a new nutrition program to the mobile catalog.</p>
+        <p className="text-xs text-text-secondary">
+          {program ? "Update the details shown in the customer catalog." : "Publish a new nutrition program to the customer catalog."}
+        </p>
       </DrawerHeader>
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-1 flex-col">
@@ -213,12 +236,12 @@ export default function CreateProgramDrawer({ isOpen, onClose }: CreateProgramDr
             />
           </div>
 
-          {createProgram.isError && <div className={ERROR_BOX}>{createProgram.error.message}</div>}
+          {mutationError && <div role="alert" className={ERROR_BOX}>{mutationError.message}</div>}
         </div>
 
         <div className="flex flex-col gap-3 pt-6 border-t border-aura-line">
-          <button type="submit" disabled={createProgram.isPending} className={BTN_PRIMARY_BLOCK}>
-            {createProgram.isPending ? "Creating..." : "Create Program"}
+          <button type="submit" disabled={isSaving} className={BTN_PRIMARY_BLOCK}>
+            {isSaving ? "Saving..." : program ? "Save Changes" : "Create Program"}
           </button>
           <button type="button" onClick={handleClose} className={BTN_SECONDARY_BLOCK}>
             Cancel

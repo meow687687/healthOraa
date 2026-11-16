@@ -44,6 +44,48 @@ export const useCreateProgram = () => {
   });
 };
 
+export const useUpdateProgram = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    NutritionProgram,
+    Error,
+    { id: string; changes: UpdateTables<"programs"> }
+  >({
+    mutationFn: async ({ id, changes }): Promise<NutritionProgram> => {
+      const { data, error } = await supabase
+        .from("programs")
+        .update(changes)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: programKeys.all }),
+  });
+};
+
+export const useDeleteProgram = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (id: string): Promise<void> => {
+      const { error } = await supabase.from("programs").delete().eq("id", id);
+      if (error) {
+        if (error.code === "23503") {
+          throw new Error(
+            "This program has enrolment history and cannot be deleted. Deactivate it to keep customer records intact.",
+          );
+        }
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: programKeys.all }),
+  });
+};
+
 export const useToggleProgramActive = () => {
   const queryClient = useQueryClient();
 

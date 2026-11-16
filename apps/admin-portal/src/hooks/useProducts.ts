@@ -5,7 +5,6 @@ import type {
   UpdateTables,
 } from "@healthoraa/types";
 import { supabase } from "../lib/supabase";
-import { FALLBACK_PRODUCTS, withFallback } from "../lib/fallbackData";
 
 export const productKeys = {
   all: ["products"] as const,
@@ -15,19 +14,14 @@ export const productKeys = {
 export const useProducts = () => {
   return useQuery<Product[], Error>({
     queryKey: productKeys.list(),
-    queryFn: (): Promise<Product[]> =>
-      withFallback(
-        async () => {
-          const { data, error } = await supabase
-            .from("products")
-            .select("*")
-            .order("created_at", { ascending: false });
-          if (error) throw new Error(error.message);
-          return data ?? [];
-        },
-        FALLBACK_PRODUCTS,
-        "products",
-      ),
+    queryFn: async (): Promise<Product[]> => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
 };
 
@@ -47,6 +41,48 @@ export const useCreateProduct = () => {
     },
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: productKeys.all }),
+  });
+};
+
+export const useUpdateProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Product,
+    Error,
+    { id: string; changes: UpdateTables<"products"> }
+  >({
+    mutationFn: async ({ id, changes }): Promise<Product> => {
+      const { data, error } = await supabase
+        .from("products")
+        .update(changes)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: productKeys.all }),
+  });
+};
+
+export const useDeleteProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (id: string): Promise<void> => {
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) {
+        if (error.code === "23503") {
+          throw new Error(
+            "This product is in a customer cart or order and cannot be deleted. Deactivate it to preserve customer records.",
+          );
+        }
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: productKeys.all }),
   });
 };
 

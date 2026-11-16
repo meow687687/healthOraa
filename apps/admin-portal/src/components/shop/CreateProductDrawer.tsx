@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import type { InsertTables, ProductCategory } from "@healthoraa/types";
+import type { InsertTables, Product, ProductCategory, UpdateTables } from "@healthoraa/types";
 import { createProductSchema, PRODUCT_CATEGORY_VALUES } from "@healthoraa/validation";
 import type { CreateProductInput } from "@healthoraa/validation";
-import { useCreateProduct } from "../../hooks/useProducts";
+import { useCreateProduct, useUpdateProduct } from "../../hooks/useProducts";
 import { PRODUCT_CATEGORY_META } from "./productMeta";
 import { Drawer, DrawerHeader } from "../ui/Drawer";
 import { cn } from "../../lib/cn";
@@ -19,6 +19,7 @@ import {
 interface CreateProductDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  product?: Product | null;
 }
 
 interface ProductFormState {
@@ -50,7 +51,7 @@ const FORM_FIELD_BY_SCHEMA_KEY: Record<keyof CreateProductInput, keyof ProductFo
   description: "description",
 };
 
-const toSchemaInput = (form: ProductFormState): Record<keyof CreateProductInput, unknown> => ({
+const toSchemaInput = (form: ProductFormState) => ({
   sku: form.sku,
   title: form.title,
   category: form.category,
@@ -75,10 +76,25 @@ const validateForm = (
   return { errors };
 };
 
-export default function CreateProductDrawer({ isOpen, onClose }: CreateProductDrawerProps) {
-  const [form, setForm] = useState<ProductFormState>(INITIAL_FORM);
+const toFormState = (product: Product | null | undefined): ProductFormState =>
+  product
+    ? {
+        sku: product.sku,
+        title: product.title,
+        category: product.category,
+        priceInr: String(product.price_inr),
+        stockCount: String(product.stock_count),
+        description: product.description ?? "",
+      }
+    : INITIAL_FORM;
+
+export default function CreateProductDrawer({ isOpen, onClose, product }: CreateProductDrawerProps) {
+  const [form, setForm] = useState<ProductFormState>(() => toFormState(product));
   const [errors, setErrors] = useState<ProductFormErrors>({});
   const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const isSaving = createProduct.isPending || updateProduct.isPending;
+  const mutationError = product ? updateProduct.error : createProduct.error;
 
   const update = <K extends keyof ProductFormState>(key: K, value: ProductFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -87,6 +103,7 @@ export default function CreateProductDrawer({ isOpen, onClose }: CreateProductDr
     setForm(INITIAL_FORM);
     setErrors({});
     createProduct.reset();
+    updateProduct.reset();
     onClose();
   };
 
@@ -109,13 +126,20 @@ export default function CreateProductDrawer({ isOpen, onClose }: CreateProductDr
       description: input.description || null,
     };
 
-    createProduct.mutate(payload, { onSuccess: handleClose });
+    if (product) {
+      const changes: UpdateTables<"products"> = payload;
+      updateProduct.mutate({ id: product.id, changes }, { onSuccess: handleClose });
+    } else {
+      createProduct.mutate(payload, { onSuccess: handleClose });
+    }
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={handleClose} labelledBy="create-product-title">
-      <DrawerHeader eyebrow="Wellness Store" title="Create Product" titleId="create-product-title" onClose={handleClose}>
-        <p className="text-xs text-text-secondary">Add a SKU to the wellness store catalog.</p>
+    <Drawer isOpen={isOpen} onClose={handleClose} labelledBy="product-form-title">
+      <DrawerHeader eyebrow="Wellness Store" title={product ? "Edit Product" : "Create Product"} titleId="product-form-title" onClose={handleClose}>
+        <p className="text-xs text-text-secondary">
+          {product ? "Update the product details and inventory." : "Add a SKU to the wellness store catalog."}
+        </p>
       </DrawerHeader>
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-1 flex-col">
@@ -220,12 +244,12 @@ export default function CreateProductDrawer({ isOpen, onClose }: CreateProductDr
             />
           </div>
 
-          {createProduct.isError && <div className={ERROR_BOX}>{createProduct.error.message}</div>}
+          {mutationError && <div role="alert" className={ERROR_BOX}>{mutationError.message}</div>}
         </div>
 
         <div className="flex flex-col gap-3 pt-6 border-t border-aura-line">
-          <button type="submit" disabled={createProduct.isPending} className={BTN_PRIMARY_BLOCK}>
-            {createProduct.isPending ? "Creating..." : "Create Product"}
+          <button type="submit" disabled={isSaving} className={BTN_PRIMARY_BLOCK}>
+            {isSaving ? "Saving..." : product ? "Save Changes" : "Create Product"}
           </button>
           <button type="button" onClick={handleClose} className={BTN_SECONDARY_BLOCK}>
             Cancel

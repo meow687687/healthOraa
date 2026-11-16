@@ -115,6 +115,7 @@ export function WeekGrid({
                 const start = toMinutes(rule.start_time);
                 const end = toMinutes(rule.end_time);
                 const visibleDuration = Math.min(end, LAST_MINUTE) - Math.max(start, FIRST_MINUTE);
+                if (visibleDuration <= 0) return null;
 
                 return (
                   <div

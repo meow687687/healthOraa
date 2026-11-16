@@ -61,7 +61,7 @@ export default function App() {
         />
 
         <main aria-busy={isPending} className={cn("flex-1 p-4 pb-24 md:p-6 md:pb-8 lg:p-8")}>
-          <div className="mx-auto w-full max-w-7xl">
+          <div key={activeTab} className="portal-view-enter mx-auto w-full max-w-7xl">
             {activeTab === "overview" ? (
               <OverviewView onNavigate={select} />
             ) : (

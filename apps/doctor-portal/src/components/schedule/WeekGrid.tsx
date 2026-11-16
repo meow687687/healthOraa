@@ -1,4 +1,4 @@
-import { DAY_NAMES, DAY_ORDER } from "../../lib/scheduleGenerator";
+import { DAY_NAMES, DAY_ORDER, slotsForDay } from "../../lib/scheduleGenerator";
 import type { WindowDraft } from "../../types/schedule";
 import { PANEL, cn } from "@healthoraa/ui";
 
@@ -7,6 +7,7 @@ const FIRST_MINUTE = 6 * 60;
 const LAST_MINUTE = 22 * 60;
 const HOURS = Array.from({ length: (LAST_MINUTE - FIRST_MINUTE) / 60 + 1 }, (_, index) => FIRST_MINUTE / 60 + index);
 const SPAN = LAST_MINUTE - FIRST_MINUTE;
+const HALF_HOURS = Array.from({ length: SPAN / 30 + 1 }, (_, index) => FIRST_MINUTE + index * 30);
 
 const toMinutes = (hhmm: string): number => {
   const [hours, minutes] = hhmm.split(":").map(Number);
@@ -14,12 +15,6 @@ const toMinutes = (hhmm: string): number => {
 };
 const clamp = (minute: number): number => Math.min(Math.max(minute, FIRST_MINUTE), LAST_MINUTE);
 const percent = (minute: number): string => `${((clamp(minute) - FIRST_MINUTE) / SPAN) * 100}%`;
-
-// Bookable slots a day would produce: each active window, cut into whole slots.
-export const slotsForDay = (rules: WindowDraft[], dayOfWeek: number, durationMinutes: number): number =>
-  rules
-    .filter((rule) => rule.day_of_week === dayOfWeek && rule.is_active)
-    .reduce((sum, rule) => sum + Math.max(0, Math.floor((toMinutes(rule.end_time) - toMinutes(rule.start_time)) / durationMinutes)), 0);
 
 export function WeekGrid({
   rules,
@@ -35,12 +30,23 @@ export function WeekGrid({
   // Days with a window that cannot be saved. Marked here, so an error stays visible when another day is open.
   invalidDays: Set<number>;
 }) {
-  // Seven equal columns on phones. The time-label column joins them from the medium breakpoint.
-  const columns = "grid-cols-7 md:grid-cols-[44px_repeat(7,minmax(0,1fr))]";
+  // Keep enough width for legible time labels while letting the day columns share remaining space.
+  const columns = "grid-cols-7 md:grid-cols-[36px_repeat(7,minmax(68px,1fr))]";
 
   return (
     <section aria-label="Week overview" className={cn(PANEL, "p-4 md:p-5")}>
-      <div className={cn("grid gap-2", columns)} role="group" aria-label="Choose a day to edit">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-aura-line pb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-text-primary">Weekly availability</h3>
+          <p className="mt-0.5 text-xs text-text-muted">Select a day to edit its time windows.</p>
+        </div>
+        <span className="inline-flex items-center gap-2 text-xs text-text-secondary">
+          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm border border-accent-emerald/50 bg-accent-emerald/25" />
+          Available
+        </span>
+      </header>
+
+      <div className={cn("grid gap-1.5", columns)} role="group" aria-label="Choose a day to edit">
         <span aria-hidden="true" className="hidden md:block" />
         {DAY_ORDER.map((day) => {
           const count = slotsForDay(rules, day, durationMinutes);
@@ -53,22 +59,26 @@ export function WeekGrid({
               aria-pressed={selected}
               onClick={() => onSelect(day)}
               className={cn(
-                "min-h-[52px] min-w-0 rounded-2xl border px-1 py-2 text-center transition-colors cursor-pointer",
-                selected ? "border-accent-blue/50 bg-aura-s3 text-text-primary" : "border-aura-line bg-aura-s2 text-text-secondary hover:text-text-primary",
+                "min-h-[58px] min-w-0 rounded-2xl border px-1 py-2 text-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue/70",
+                selected
+                  ? "border-accent-blue/60 bg-accent-blue/10 text-text-primary shadow-aura-elevated"
+                  : "border-aura-line bg-aura-s2 text-text-secondary hover:border-aura-line2 hover:text-text-primary",
               )}
             >
               {invalid && <span className="sr-only">, has an error</span>}
               {invalid && <span aria-hidden="true" className="mx-auto mb-0.5 block h-1.5 w-1.5 rounded-full bg-accent-amber" />}
               <span className="block truncate text-[13px] font-semibold md:hidden">{DAY_NAMES[day].slice(0, 2)}</span>
               <span className="hidden truncate text-[13px] font-semibold md:block">{DAY_NAMES[day].slice(0, 3)}</span>
-              <span className="block truncate font-mono text-[11px] tabular-nums text-text-muted md:hidden">{count}</span>
-              <span className="hidden truncate font-mono text-[11px] tabular-nums text-text-muted md:block">{count} slots</span>
+              <span className="block truncate font-mono text-[11px] tabular-nums text-text-secondary md:hidden">{count}</span>
+              <span className="hidden truncate font-mono text-[10px] tabular-nums text-text-secondary md:block">
+                {count === 0 ? "No slots" : `${count} slots`}
+              </span>
             </button>
           );
         })}
       </div>
 
-      <div className={cn("mt-3 hidden gap-2 md:grid", columns)}>
+      <div className={cn("mt-3 hidden gap-1.5 md:grid", columns)}>
         <div className="relative h-[22rem]">
           {HOURS.map((hour) => (
             <span
@@ -84,27 +94,55 @@ export function WeekGrid({
           <div
             key={day}
             className={cn(
-              "relative h-[22rem] overflow-hidden rounded-xl border bg-aura-s2/40",
-              selectedDay === day ? "border-accent-blue/40" : "border-aura-line",
+              "relative h-[22rem] overflow-hidden rounded-xl border",
+              selectedDay === day ? "border-accent-blue/50 bg-accent-blue/[0.035]" : "border-aura-line bg-aura-s2/40",
             )}
           >
-            {HOURS.map((hour) => (
-              <div key={hour} className="absolute inset-x-0 border-t border-aura-line/60" style={{ top: percent(hour * 60) }} />
+            {HALF_HOURS.map((minute) => (
+              <div
+                key={minute}
+                aria-hidden="true"
+                className={cn(
+                  "absolute inset-x-0 border-t",
+                  minute % 60 === 0 ? "border-aura-line/70" : "border-aura-line/30 border-dashed",
+                )}
+                style={{ top: percent(minute) }}
+              />
             ))}
             {rules
               .filter((rule) => rule.day_of_week === day && rule.is_active)
-              .map((rule) => (
-                <div
-                  key={rule.id}
-                  className="absolute inset-x-1 overflow-hidden rounded-lg border border-accent-blue/40 bg-accent-blue/25 px-1.5 py-1 font-mono text-[11px] tabular-nums text-text-primary"
-                  style={{
-                    top: percent(toMinutes(rule.start_time)),
-                    height: `${((Math.min(toMinutes(rule.end_time), LAST_MINUTE) - Math.max(toMinutes(rule.start_time), FIRST_MINUTE)) / SPAN) * 100}%`,
-                  }}
-                >
-                  {rule.start_time}–{rule.end_time}
-                </div>
-              ))}
+              .map((rule) => {
+                const start = toMinutes(rule.start_time);
+                const end = toMinutes(rule.end_time);
+                const visibleDuration = Math.min(end, LAST_MINUTE) - Math.max(start, FIRST_MINUTE);
+                if (visibleDuration <= 0) return null;
+
+                return (
+                  <div
+                    key={rule.id}
+                    title={`Available ${rule.start_time} to ${rule.end_time}`}
+                    className="absolute inset-x-1 overflow-hidden rounded-xl border border-accent-emerald/35 border-l-2 border-l-accent-emerald bg-gradient-to-br from-accent-emerald/20 via-accent-emerald/10 to-accent-blue/10 px-1 py-1 font-mono text-[10px] leading-tight tabular-nums text-text-primary shadow-sm"
+                    style={{
+                      top: percent(start),
+                      height: `${(visibleDuration / SPAN) * 100}%`,
+                    }}
+                  >
+                    <span className="sr-only">Available {rule.start_time} to {rule.end_time}</span>
+                    {visibleDuration >= 120 && (
+                      <span aria-hidden="true" className="mb-0.5 flex items-center gap-1 text-[8px] font-semibold uppercase leading-none tracking-wider text-accent-emerald">
+                        <span className="h-1 w-1 rounded-full bg-accent-emerald" />
+                        Open
+                      </span>
+                    )}
+                    <span aria-hidden="true" className="block whitespace-nowrap leading-none">{visibleDuration >= 60 ? rule.start_time : ""}</span>
+                    {visibleDuration >= 120 && (
+                      <span aria-hidden="true" className="mt-0.5 block whitespace-nowrap text-[9px] leading-none text-accent-emerald">
+                        ↓ {rule.end_time}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         ))}
       </div>

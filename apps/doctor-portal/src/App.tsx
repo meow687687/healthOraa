@@ -50,10 +50,12 @@ export default function App() {
               </div>
             }
           >
-            {view === "queue" && <ConsultationQueueView />}
-            {view === "schedule" && <ScheduleView />}
-            {view === "patients" && <PatientsView />}
-            {view === "profile" && <PractitionerProfileView />}
+            <div key={view} className="portal-view-enter">
+              {view === "queue" && <ConsultationQueueView />}
+              {view === "schedule" && <ScheduleView />}
+              {view === "patients" && <PatientsView />}
+              {view === "profile" && <PractitionerProfileView />}
+            </div>
           </Suspense>
         </main>
       </div>

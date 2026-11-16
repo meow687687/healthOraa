@@ -22,6 +22,16 @@ export const FALLBACK_RULES: WindowDraft[] = [1, 2, 3, 4, 5].flatMap((day) => [
   { id: `fb-rule-${day}-evening`, day_of_week: day, start_time: "16:00", end_time: "19:00", is_active: true },
 ]);
 
+// Bookable slots a day would produce: each active window, cut into whole slots.
+export const slotsForDay = (rules: WindowDraft[], dayOfWeek: number, durationMinutes: number): number =>
+  rules
+    .filter((rule) => rule.day_of_week === dayOfWeek && rule.is_active)
+    .reduce(
+      (sum, rule) =>
+        sum + Math.max(0, Math.floor((timeToMinutes(rule.end_time) - timeToMinutes(rule.start_time)) / durationMinutes)),
+      0,
+    );
+
 // Slots for `days` consecutive days from `from`, starting at local midnight. Only active windows count.
 export const generateSlots = (
   rules: WindowDraft[],

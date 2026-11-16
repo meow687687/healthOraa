@@ -2,7 +2,7 @@ import { EmptyState } from "@healthoraa/ui";
 import { useState } from "react";
 import { Apple, Plus, Power, Pencil, Trash2, Loader2 } from "lucide-react";
 import type { NutritionProgram } from "@healthoraa/types";
-import { useToggleProgramActive, usePrograms } from "../../hooks/usePrograms";
+import { useDeleteProgram, useToggleProgramActive, usePrograms } from "../../hooks/usePrograms";
 import CreateProgramDrawer from "./CreateProgramDrawer";
 import { CATEGORY_META, formatInr } from "./programMeta";
 import { Badge } from "../ui/Badge";
@@ -15,10 +15,16 @@ import { cn } from "../../lib/cn";
 export default function ProgramsView() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingProgram, setEditingProgram] = useState<NutritionProgram | null>(null);
   const { data: programs, isLoading, isError, error } = usePrograms();
   const toggleActive = useToggleProgramActive();
+  const deleteProgram = useDeleteProgram();
 
-  const busyId = toggleActive.isPending ? toggleActive.variables?.id : undefined;
+  const busyId = toggleActive.isPending
+    ? toggleActive.variables?.id
+    : deleteProgram.isPending
+      ? deleteProgram.variables
+      : undefined;
 
   return (
     <div className="space-y-6">
@@ -32,7 +38,14 @@ export default function ProgramsView() {
             : "Loading catalog..."
         }
         action={
-          <button type="button" onClick={() => setIsDrawerOpen(true)} className={BTN_PRIMARY}>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingProgram(null);
+              setIsDrawerOpen(true);
+            }}
+            className={BTN_PRIMARY}
+          >
             <Plus className="w-4 h-4" />
             Create Program
           </button>
@@ -118,18 +131,28 @@ export default function ProgramsView() {
                           </button>
                           <button
                             type="button"
-                            disabled
-                            title="Edit (coming soon)"
-                            aria-label="Edit program"
+                            title="Edit program"
+                            aria-label={`Edit ${program.title}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setEditingProgram(program);
+                              setIsDrawerOpen(true);
+                            }}
                             className={ROW_MICRO}
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
-                            disabled
-                            title="Delete (coming soon)"
-                            aria-label="Delete program"
+                            disabled={busy}
+                            title="Delete program"
+                            aria-label={`Delete ${program.title}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (window.confirm(`Delete ${program.title}? Programs with enrolment history will be protected.`)) {
+                                deleteProgram.mutate(program.id);
+                              }
+                            }}
                             className={ROW_MICRO}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -141,16 +164,26 @@ export default function ProgramsView() {
                 })}
               </tbody>
             </table>
-            {toggleActive.isError && (
+            {(toggleActive.isError || deleteProgram.isError) && (
               <p className="px-6 py-3 text-xs text-accent-red border-t border-aura-line">
-                Could not update status: {toggleActive.error.message}
+                {deleteProgram.isError
+                  ? deleteProgram.error.message
+                  : `Could not update status: ${toggleActive.error?.message ?? "Try again."}`}
               </p>
             )}
           </div>
         )}
       </div>
 
-      <CreateProgramDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+      <CreateProgramDrawer
+        key={editingProgram?.id ?? "new-program"}
+        isOpen={isDrawerOpen}
+        program={editingProgram}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setEditingProgram(null);
+        }}
+      />
     </div>
   );
 }

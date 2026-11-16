@@ -35,10 +35,12 @@ export default function App() {
             </div>
           }
         >
-          {view === "today" && <ActiveProgramView onOpenConsultations={() => selectView("consultations")} />}
-          {view === "consultations" && <ConsultationsView />}
-          {view === "shop" && <PatientShopView />}
-          {view === "locker" && <HealthLockerView />}
+          <div key={view} className="portal-view-enter">
+            {view === "today" && <ActiveProgramView onOpenConsultations={() => selectView("consultations")} />}
+            {view === "consultations" && <ConsultationsView />}
+            {view === "shop" && <PatientShopView />}
+            {view === "locker" && <HealthLockerView />}
+          </div>
         </Suspense>
       </main>
 

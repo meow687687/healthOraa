@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Eye, Save, Send } from "lucide-react";
 import { availabilityWindowSchema, SLOT_DURATION_OPTIONS } from "@healthoraa/validation";
 import { Badge, ERROR_BOX, PANEL, cn, useToast } from "@healthoraa/ui";
-import { conflictingRuleIds, snapshotsEqual } from "../../lib/scheduleGenerator";
+import { conflictingRuleIds, slotsForDay, snapshotsEqual } from "../../lib/scheduleGenerator";
 import { formatDate } from "../../lib/prescriptionOptions";
 import { useSaveScheduleDraft, usePublishSlots } from "../../hooks/useDoctorSchedule";
 import type { ScheduleSnapshot, ScheduleView, WindowDraft } from "../../types/schedule";
 import { DayCard } from "./DayCard";
-import { WeekGrid, slotsForDay } from "./WeekGrid";
+import { WeekGrid } from "./WeekGrid";
 import { SlotPreviewDrawer } from "./SlotPreviewDrawer";
 
 const PILL_OUTLINE =

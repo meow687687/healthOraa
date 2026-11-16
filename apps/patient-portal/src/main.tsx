@@ -5,6 +5,7 @@ import App from "./App.tsx";
 import { AuthProvider } from "./context/AuthContext";
 import { PatientProvider } from "./context/PatientContext";
 import { ToastProvider } from "@healthoraa/ui";
+import "@healthoraa/ui/portal-motion.css";
 import "./index.css";
 
 const queryClient = new QueryClient({

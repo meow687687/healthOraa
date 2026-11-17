@@ -1,56 +1,53 @@
-import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
+import { PushRegistration } from '../src/auth/PushRegistration';
+import { COLORS } from '../constants/theme';
 
-import { useColorScheme } from '@/components/useColorScheme';
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  anchor: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
+});
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <StatusBar style="light" />
+        <PushRegistration />
+        <AuthGate />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
+
+// Tabs exist only for a signed-in patient. The sign-in screen exists only while signed out.
+function AuthGate() {
+  const { status } = useAuth();
+
+  if (status === 'loading') {
+    return (
+      <View style={styles.splash}>
+        <ActivityIndicator color={COLORS.accentBlue} />
+      </View>
+    );
+  }
+
+  const signedIn = status === 'signed-in';
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.canvas } }}>
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!signedIn}>
+        <Stack.Screen name="sign-in" />
+      </Stack.Protected>
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
+}
+
+const styles = StyleSheet.create({
+  splash: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.canvas },
+});

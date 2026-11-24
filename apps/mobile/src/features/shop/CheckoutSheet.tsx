@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { checkoutOrderSchema, type CheckoutOrderInput } from '@healthoraa/validation';
@@ -9,6 +9,8 @@ import { Sheet } from '../../components/Sheet';
 import { TextField } from '../../components/TextField';
 import { formatPaise } from '../../lib/money';
 import { startCheckout } from '../../lib/payments';
+import { secureStorage } from '../../lib/secureStorage';
+import { useAuth } from '../../auth/AuthProvider';
 import { useCartStore } from './cartStore';
 import type { CartLine } from './cartMath';
 import { usePlaceOrder } from './queries';
@@ -71,6 +73,9 @@ function ShippingForm({
   onPlaced: (orderId: string) => void;
 }) {
   const place = usePlaceOrder();
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const checkoutAttempt = useRef<{ signature: string; key: string } | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const form = useForm<CheckoutOrderInput>({
     resolver: zodResolver(checkoutOrderSchema),
@@ -88,10 +93,31 @@ function ShippingForm({
       return;
     }
     try {
+      if (!userId) throw new Error('Sign in to place your order.');
+      const items = lines.map((line) => ({ productId: line.product.id, quantity: line.quantity }));
+      const signature = hashRequest(JSON.stringify({ items, checkout: values }));
+      if (checkoutAttempt.current?.signature !== signature) {
+        const storageKey = `healthoraa.shop.checkout.${userId}`;
+        const saved = await secureStorage.getItem(storageKey);
+        let savedAttempt: { signature?: string; key?: string } | null = null;
+        try {
+          savedAttempt = saved ? JSON.parse(saved) as { signature?: string; key?: string } : null;
+        } catch {
+          savedAttempt = null;
+        }
+        const key = savedAttempt?.signature === signature && typeof savedAttempt.key === 'string'
+          ? savedAttempt.key
+          : createIdempotencyKey();
+        checkoutAttempt.current = { signature, key };
+        await secureStorage.setItem(storageKey, JSON.stringify(checkoutAttempt.current));
+      }
       const orderId = await place.mutateAsync({
-        items: lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })),
+        items,
         checkout: values,
+        idempotencyKey: checkoutAttempt.current.key,
       });
+      checkoutAttempt.current = null;
+      await secureStorage.removeItem(`healthoraa.shop.checkout.${userId}`);
       onPlaced(orderId);
     } catch (error) {
       setFailure(error instanceof Error ? error.message : 'The order could not be placed. Try again.');
@@ -155,6 +181,22 @@ function ShippingForm({
       <Button label="Place order" busy={isSubmitting || place.isPending} onPress={() => void form.handleSubmit(onSubmit)()} />
     </>
   );
+}
+
+function createIdempotencyKey(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    return (character === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+  });
+}
+
+function hashRequest(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
 }
 
 function PlacedOrder({ orderId, totalPaise, onDone }: { orderId: string; totalPaise: number; onDone: () => void }) {

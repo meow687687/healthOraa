@@ -39,7 +39,7 @@ Deno.serve(async (request) => {
 
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("role")
+    .select("role, deleted_at")
     .eq("id", userId)
     .maybeSingle();
   if (profileError || !profile) return json({ error: "We could not load your account. Try again." }, 500);
@@ -50,11 +50,17 @@ Deno.serve(async (request) => {
 
   // First write: the account is blocked from this moment. current_user_role() returns no role for a deleted
   // profile, so every role-based policy refuses the account on its next request, even before the token expires.
-  const { error: blockError } = await admin
-    .from("profiles")
-    .update({ deleted_at: new Date().toISOString(), expo_push_token: null })
-    .eq("id", userId);
-  if (blockError) return json({ error: "Your account was not deleted. Try again." }, 500);
+  if (profile.deleted_at === null) {
+    const { error: blockError } = await admin
+      .from("profiles")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", userId)
+      .is("deleted_at", null);
+    if (blockError) return json({ error: "Your account was not deleted. Try again." }, 500);
+  }
+
+  const { error: tokenError } = await admin.from("patient_push_tokens").delete().eq("user_id", userId);
+  if (tokenError) return json({ error: "Your account was not fully deleted. Try again." }, 500);
 
   const { data: documents, error: documentsError } = await admin
     .from("patient_documents")
@@ -62,7 +68,14 @@ Deno.serve(async (request) => {
     .eq("patient_id", userId);
   if (documentsError) return json({ error: "Your account was not deleted. Try again." }, 500);
 
-  const paths = (documents ?? []).map((row) => row.file_path).filter((path): path is string => Boolean(path));
+  // A document row is client-writable metadata. Only delete objects in this patient's exact storage prefix.
+  const ownerPrefix = `${userId}/`;
+  const paths = (documents ?? [])
+    .map((row) => row.file_path)
+    .filter((path): path is string => {
+      if (typeof path !== "string" || !path.startsWith(ownerPrefix)) return false;
+      return path.split("/").every((part) => part !== "." && part !== "..");
+    });
   if (paths.length > 0) {
     const { error: storageError } = await admin.storage.from(RECORD_BUCKET).remove(paths);
     if (storageError) return json({ error: "Your files could not be removed. Your account was not deleted." }, 500);
@@ -81,7 +94,7 @@ Deno.serve(async (request) => {
   // Clinical and order rows keep the profile id, so the profile row stays and only its identity fields are cleared.
   const { error: anonymiseError } = await admin
     .from("profiles")
-    .update({ full_name: "Deleted patient", phone: null, avatar_url: null, expo_push_token: null })
+    .update({ full_name: "Deleted patient", phone: null, avatar_url: null })
     .eq("id", userId);
   if (anonymiseError) return json({ error: "Your account was not fully deleted. Try again." }, 500);
 

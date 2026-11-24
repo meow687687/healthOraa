@@ -137,14 +137,14 @@ isOneToOne: false
                   ]
                 },"consultations": {
                   Row: {
-                    "amount_inr": number,"booking_status": Database["public"]['Enums']["booking_status"],"chief_complaint": string | null,"created_at": string,"doctor_id": string,"followup_expires_at": string | null,"id": string,"intake_id": string | null,"patient_id": string,"payment_order_id": string | null,"slot_end": string,"slot_id": string | null,"slot_start": string,"status": Database["public"]['Enums']["consultation_status"]
+                    "amount_inr": number,"booking_status": Database["public"]['Enums']["booking_status"],"chief_complaint": string | null,"created_at": string,"doctor_id": string,"followup_expires_at": string | null,"id": string,"intake_id": string | null,"patient_id": string,"payment_expires_at": string | null,"payment_order_id": string | null,"slot_end": string,"slot_id": string | null,"slot_start": string,"status": Database["public"]['Enums']["consultation_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_inr"?: number,"booking_status"?: Database["public"]['Enums']["booking_status"],"chief_complaint"?: string | null,"created_at"?: string,"doctor_id": string,"followup_expires_at"?: string | null,"id"?: string,"intake_id"?: string | null,"patient_id": string,"payment_order_id"?: string | null,"slot_end": string,"slot_id"?: string | null,"slot_start": string,"status"?: Database["public"]['Enums']["consultation_status"]
+                    "amount_inr"?: number,"booking_status"?: Database["public"]['Enums']["booking_status"],"chief_complaint"?: string | null,"created_at"?: string,"doctor_id": string,"followup_expires_at"?: string | null,"id"?: string,"intake_id"?: string | null,"patient_id": string,"payment_expires_at"?: string | null,"payment_order_id"?: string | null,"slot_end": string,"slot_id"?: string | null,"slot_start": string,"status"?: Database["public"]['Enums']["consultation_status"]
                   }
                   Update: {
-                    "amount_inr"?: number,"booking_status"?: Database["public"]['Enums']["booking_status"],"chief_complaint"?: string | null,"created_at"?: string,"doctor_id"?: string,"followup_expires_at"?: string | null,"id"?: string,"intake_id"?: string | null,"patient_id"?: string,"payment_order_id"?: string | null,"slot_end"?: string,"slot_id"?: string | null,"slot_start"?: string,"status"?: Database["public"]['Enums']["consultation_status"]
+                    "amount_inr"?: number,"booking_status"?: Database["public"]['Enums']["booking_status"],"chief_complaint"?: string | null,"created_at"?: string,"doctor_id"?: string,"followup_expires_at"?: string | null,"id"?: string,"intake_id"?: string | null,"patient_id"?: string,"payment_expires_at"?: string | null,"payment_order_id"?: string | null,"slot_end"?: string,"slot_id"?: string | null,"slot_start"?: string,"status"?: Database["public"]['Enums']["consultation_status"]
                   }
                   Relationships: [
                     {
@@ -227,14 +227,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "created_at": string,"customer_id": string,"id": string,"shipping_address": string,"status": Database["public"]['Enums']["order_status"],"total_amount_inr": number,"tracking_number": string | null
+                    "checkout_fingerprint": string | null,"checkout_idempotency_key": string | null,"created_at": string,"customer_id": string,"id": string,"reservation_expires_at": string | null,"shipping_address": string,"status": Database["public"]['Enums']["order_status"],"stock_released_at": string | null,"total_amount_inr": number,"tracking_number": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"customer_id": string,"id"?: string,"shipping_address": string,"status"?: Database["public"]['Enums']["order_status"],"total_amount_inr": number,"tracking_number"?: string | null
+                    "checkout_fingerprint"?: string | null,"checkout_idempotency_key"?: string | null,"created_at"?: string,"customer_id": string,"id"?: string,"reservation_expires_at"?: string | null,"shipping_address": string,"status"?: Database["public"]['Enums']["order_status"],"stock_released_at"?: string | null,"total_amount_inr": number,"tracking_number"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"customer_id"?: string,"id"?: string,"shipping_address"?: string,"status"?: Database["public"]['Enums']["order_status"],"total_amount_inr"?: number,"tracking_number"?: string | null
+                    "checkout_fingerprint"?: string | null,"checkout_idempotency_key"?: string | null,"created_at"?: string,"customer_id"?: string,"id"?: string,"reservation_expires_at"?: string | null,"shipping_address"?: string,"status"?: Database["public"]['Enums']["order_status"],"stock_released_at"?: string | null,"total_amount_inr"?: number,"tracking_number"?: string | null
                   }
                   Relationships: [
                     {
@@ -340,6 +340,32 @@ isOneToOne: false
       columns: ["order_id"]
 isOneToOne: false
       referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payment_refund_reviews": {
+                  Row: {
+                    "created_at": string,"gateway_order_id": string,"gateway_payment_id": string,"id": string,"reason": string,"refund_id": string | null,"resolved_at": string | null,"status": string,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"gateway_order_id": string,"gateway_payment_id": string,"id"?: string,"reason": string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"gateway_order_id"?: string,"gateway_payment_id"?: string,"id"?: string,"reason"?: string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payment_refund_reviews_gateway_payment_id_fkey"
+      columns: ["gateway_payment_id"]
+isOneToOne: true
+      referencedRelation: "payment_transactions"
+      referencedColumns: ["gateway_payment_id"]
+    },{
+      foreignKeyName: "payment_refund_reviews_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -449,16 +475,36 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"profiles": {
+                },"patient_push_tokens": {
                   Row: {
-                    "avatar_url": string | null,"created_at": string,"deleted_at": string | null,"expo_push_token": string | null,"full_name": string,"id": string,"phone": string | null,"role": Database["public"]['Enums']["user_role"],"updated_at": string
+                    "expo_push_token": string,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"expo_push_token"?: string | null,"full_name": string,"id": string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
+                    "expo_push_token": string,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"expo_push_token"?: string | null,"full_name"?: string,"id"?: string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
+                    "expo_push_token"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "patient_push_tokens_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"profiles": {
+                  Row: {
+                    "avatar_url": string | null,"created_at": string,"deleted_at": string | null,"full_name": string,"id": string,"phone": string | null,"role": Database["public"]['Enums']["user_role"],"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"full_name": string,"id": string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
+                  }
+                  Update: {
+                    "avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"full_name"?: string,"id"?: string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -577,14 +623,14 @@ isOneToOne: false
                   ]
                 },"razorpay_order_logs": {
                   Row: {
-                    "amount_paise": number,"created_at": string,"currency": string,"entity_id": string,"entity_type": string,"id": string,"order_id": string,"status": string,"user_id": string
+                    "amount_paise": number,"created_at": string,"currency": string,"entity_id": string,"entity_type": string,"id": string,"order_id": string,"program_enrolment_id": string | null,"status": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_paise": number,"created_at"?: string,"currency"?: string,"entity_id": string,"entity_type": string,"id"?: string,"order_id": string,"status"?: string,"user_id": string
+                    "amount_paise": number,"created_at"?: string,"currency"?: string,"entity_id": string,"entity_type": string,"id"?: string,"order_id": string,"program_enrolment_id"?: string | null,"status"?: string,"user_id": string
                   }
                   Update: {
-                    "amount_paise"?: number,"created_at"?: string,"currency"?: string,"entity_id"?: string,"entity_type"?: string,"id"?: string,"order_id"?: string,"status"?: string,"user_id"?: string
+                    "amount_paise"?: number,"created_at"?: string,"currency"?: string,"entity_id"?: string,"entity_type"?: string,"id"?: string,"order_id"?: string,"program_enrolment_id"?: string | null,"status"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -592,6 +638,12 @@ isOneToOne: false
       columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "razorpay_order_logs_program_enrolment_id_fkey"
+      columns: ["program_enrolment_id"]
+isOneToOne: false
+      referencedRelation: "program_enrolments"
       referencedColumns: ["id"]
     }
                   ]
@@ -628,7 +680,19 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "create_mobile_order":
-{ Args: { "p_items": Json,"p_shipping_address": string }; Returns: string
+{ Args: { "p_idempotency_key": string,"p_items": Json,"p_shipping_address": string }; Returns: string
+                           },
+"expire_pending_consultations":
+{ Args: { "p_limit"?: number }; Returns: number
+                           },
+"expire_pending_shop_orders":
+{ Args: { "p_limit"?: number }; Returns: number
+                           },
+"fulfill_program_enrolment":
+{ Args: { "p_order_id": string,"p_patient_id": string,"p_program_id": string }; Returns: string
+                           },
+"record_payment_refund_review":
+{ Args: { "p_gateway_payment_id": string,"p_refund_id": string }; Returns: string
                            },
 "current_user_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["user_role"]

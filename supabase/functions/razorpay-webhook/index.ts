@@ -99,8 +99,17 @@ Deno.serve(async (request) => {
       409,
     );
   }
+  if (orderLog.status === "refunded") {
+    return jsonResponse({
+      received: true,
+      status: "refunded",
+      duplicate: true,
+      entity_type: orderLog.entity_type,
+    });
+  }
 
   const captured = event.event === "payment.captured";
+  let paymentOrderUsable = ["created", "captured", "fulfilled"].includes(orderLog.status);
   const { data: priorPayment, error: priorError } = await supabase.from(
     "payment_transactions",
   )
@@ -112,12 +121,24 @@ Deno.serve(async (request) => {
   }
   const alreadyCaptured = priorPayment?.status === "captured";
   const status = captured || alreadyCaptured ? "captured" : "failed";
-  const { error: logError } = await supabase.from("razorpay_order_logs")
-    .update({ status })
-    .eq("order_id", orderId)
-    .neq("status", "captured");
-  if (logError) {
-    return jsonResponse({ error: "Could not update payment order" }, 500);
+  if (captured && paymentOrderUsable) {
+    const { data: activeLog, error: logError } = await supabase.from("razorpay_order_logs")
+      .update({ status: "captured" })
+      .eq("order_id", orderId)
+      .in("status", ["created", "captured"])
+      .select("status")
+      .maybeSingle();
+    if (logError) return jsonResponse({ error: "Could not update payment order" }, 500);
+    if (activeLog) {
+      orderLog.status = activeLog.status;
+    } else {
+      // A concurrent expiry or price change may have superseded the order after the initial lookup.
+      const { data: latestLog, error: latestError } = await supabase.from("razorpay_order_logs")
+        .select("status").eq("order_id", orderId).maybeSingle();
+      if (latestError) return jsonResponse({ error: "Could not recheck payment order" }, 500);
+      orderLog.status = latestLog?.status ?? "superseded";
+      paymentOrderUsable = ["captured", "fulfilled"].includes(orderLog.status);
+    }
   }
 
   const errorEntity = isObject(payment.error) ? payment.error : {};
@@ -151,6 +172,53 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: "Could not save payment audit" }, 500);
   }
 
+  const recordRefundReview = async (
+    reason: string,
+  ): Promise<"recorded" | "fulfilled" | "refunded" | "error"> => {
+    const { data: updatedLog, error: logError } = await supabase.from("razorpay_order_logs")
+      .update({ status: "refund_review" })
+      .eq("order_id", orderId)
+      .in("status", ["superseded", "failed", "captured", "refund_review"])
+      .select("status")
+      .maybeSingle();
+    if (logError) return "error";
+    if (!updatedLog) {
+      const { data: latestLog, error: latestError } = await supabase.from("razorpay_order_logs")
+        .select("status").eq("order_id", orderId).maybeSingle();
+      if (latestError || !latestLog) return "error";
+      if (latestLog.status === "fulfilled") return "fulfilled";
+      if (latestLog.status === "refunded") return "refunded";
+      if (latestLog.status !== "refund_review") return "error";
+    }
+
+    const { error: reviewError } = await supabase.from("payment_refund_reviews").insert({
+      gateway_payment_id: paymentId,
+      gateway_order_id: orderId,
+      user_id: orderLog.user_id,
+      reason,
+    });
+    return reviewError && reviewError.code !== "23505" ? "error" : "recorded";
+  };
+
+  if (orderLog.status === "fulfilled") {
+    return jsonResponse({ received: true, status: "captured", duplicate: true, entity_type: orderLog.entity_type });
+  }
+
+  if (captured && !paymentOrderUsable) {
+    const review = await recordRefundReview(
+      "Razorpay captured this payment after its local payment order was superseded or failed.",
+    );
+    if (review === "error") {
+      return jsonResponse({ error: "Captured payment refund review could not be recorded" }, 500);
+    }
+    return jsonResponse({
+      received: true,
+      status: review === "refunded" ? "refunded" : "captured",
+      refund_review: review === "recorded",
+      duplicate: review === "fulfilled" || review === "refunded",
+    });
+  }
+
   if (status !== "captured") {
     return jsonResponse({
       received: true,
@@ -181,86 +249,73 @@ Deno.serve(async (request) => {
         .select("booking_status")
         .eq("id", orderLog.entity_id)
         .maybeSingle();
-      return jsonResponse({
-        received: true,
-        status,
-        entity_type: orderLog.entity_type,
-        booking_status: booking?.booking_status ?? null,
-        refund_review: booking?.booking_status === "cancelled",
-      });
+      if (booking?.booking_status !== "confirmed") {
+        const review = await recordRefundReview(
+          "The consultation was no longer awaiting payment when Razorpay captured this payment.",
+        );
+        if (review === "error") {
+          return jsonResponse({ error: "Captured payment refund review could not be recorded" }, 500);
+        }
+        return jsonResponse({
+          received: true,
+          status: review === "refunded" ? "refunded" : status,
+          entity_type: orderLog.entity_type,
+          refund_review: review === "recorded",
+          duplicate: review === "fulfilled" || review === "refunded",
+        });
+      }
     }
   } else if (orderLog.entity_type === "shop_order") {
-    const { error } = await supabase.from("orders").update({ status: "paid" })
+    const { data: paidOrder, error } = await supabase.from("orders").update({ status: "paid" })
       .eq("id", orderLog.entity_id).eq("customer_id", orderLog.user_id).eq(
         "status",
         "pending",
-      );
+      ).is("stock_released_at", null).gt("reservation_expires_at", new Date().toISOString())
+      .select("id").maybeSingle();
     if (error) {
       return jsonResponse({
         error: "Payment saved, but order confirmation failed",
       }, 500);
     }
-  } else if (orderLog.entity_type === "program") {
-    const { data: program, error: programError } = await supabase.from(
-      "programs",
-    )
-      .select("id,duration_days,is_active").eq("id", orderLog.entity_id)
-      .maybeSingle();
-    if (programError || !program || !program.is_active) {
-      return jsonResponse({
-        error: "Payment saved, but program is unavailable",
-      }, 500);
-    }
-    const { data: activeEnrolment, error: enrolmentLookupError } =
-      await supabase.from("program_enrolments")
-        .select("id")
-        .eq("patient_id", orderLog.user_id)
-        .eq("program_id", orderLog.entity_id)
-        .eq("status", "active")
-        .gt("expires_at", new Date().toISOString())
-        .limit(1)
-        .maybeSingle();
-    if (enrolmentLookupError) {
-      return jsonResponse({ error: "Could not check existing enrolment" }, 500);
-    }
-    if (!activeEnrolment) {
-      const { error } = await supabase.from("program_enrolments").insert({
-        patient_id: orderLog.user_id,
-        program_id: orderLog.entity_id,
-        started_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + program.duration_days * 86_400_000)
-          .toISOString(),
-        status: "active",
-      });
-      if (error) {
-        // 23505 means an active row already holds this program slot. It is success only when that row
-        // is an unexpired enrolment. An expired row still marked active blocks the new one, and the
-        // payment then needs a human decision, so the request fails loudly.
-        if (error.code !== "23505") {
-          return jsonResponse({
-            error: "Payment saved, but enrolment creation failed",
-          }, 500);
+    if (!paidOrder) {
+      const { data: currentOrder, error: currentOrderError } = await supabase.from("orders")
+        .select("status").eq("id", orderLog.entity_id).eq("customer_id", orderLog.user_id).maybeSingle();
+      if (currentOrderError) return jsonResponse({ error: "Payment saved, but order state could not be checked." }, 500);
+      if (currentOrder?.status === "paid" || currentOrder?.status === "shipped" || currentOrder?.status === "delivered") {
+        // A concurrent webhook already applied this captured payment.
+      } else {
+        const review = await recordRefundReview(
+          "The stock reservation expired before Razorpay captured this payment.",
+        );
+        if (review === "error") {
+          return jsonResponse({ error: "Captured payment refund review could not be recorded" }, 500);
         }
-        const { data: liveEnrolment, error: liveError } = await supabase
-          .from("program_enrolments")
-          .select("id")
-          .eq("patient_id", orderLog.user_id)
-          .eq("program_id", orderLog.entity_id)
-          .eq("status", "active")
-          .gt("expires_at", new Date().toISOString())
-          .limit(1)
-          .maybeSingle();
-        if (liveError || !liveEnrolment) {
-          return jsonResponse({
-            error:
-              "Payment saved, but an expired active enrolment blocks the new one. Needs manual enrolment repair.",
-          }, 500);
-        }
+        return jsonResponse({
+          received: true,
+          status: review === "refunded" ? "refunded" : status,
+          refund_review: review === "recorded",
+          duplicate: review === "fulfilled" || review === "refunded",
+        });
       }
+    }
+  } else if (orderLog.entity_type === "program") {
+    const { error: enrolmentError } = await supabase.rpc("fulfill_program_enrolment", {
+      p_patient_id: orderLog.user_id,
+      p_program_id: orderLog.entity_id,
+      p_order_id: orderId,
+    });
+    if (enrolmentError) {
+      return jsonResponse({ error: "Payment saved, but enrolment could not be activated." }, 500);
     }
   } else {
     return jsonResponse({ error: "Unsupported payment entity type" }, 400);
   }
+
+  const { error: fulfillmentLogError } = await supabase.from("razorpay_order_logs")
+    .update({ status: "fulfilled" })
+    .eq("order_id", orderId)
+    .in("status", ["captured", "fulfilled"]);
+  if (fulfillmentLogError) return jsonResponse({ error: "Payment succeeded, but its final state could not be recorded" }, 500);
 
   return jsonResponse({
     received: true,

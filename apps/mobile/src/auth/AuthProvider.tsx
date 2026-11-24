@@ -87,9 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { needsConfirmation: data.session === null };
       },
       signOut: async () => {
-        // Stop alerts to this device before the session goes. Best effort: sign-out must still succeed offline.
+        // Keep the session if server-side token removal fails, so this device cannot keep receiving alerts.
         const userId = state.session?.user.id;
-        if (userId) await clearPushToken(userId).catch(() => undefined);
+        if (userId) await clearPushToken(userId);
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
       },

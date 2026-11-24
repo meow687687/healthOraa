@@ -47,16 +47,15 @@ Deno.serve(async (request) => {
   if (pending.length === 0) return json({ processed: 0, sent: 0, failed: 0, skipped: 0 }, 200);
 
   const recipientIds = [...new Set(pending.map((row) => row.recipient_id))];
-  const { data: profiles, error: profileError } = await admin
-    .from("profiles")
-    .select("id, expo_push_token, deleted_at")
-    .in("id", recipientIds);
+  const [{ data: profiles, error: profileError }, { data: tokens, error: tokenError }] = await Promise.all([
+    admin.from("profiles").select("id, deleted_at").in("id", recipientIds),
+    admin.from("patient_push_tokens").select("user_id, expo_push_token").in("user_id", recipientIds),
+  ]);
   if (profileError) return json({ error: "Could not read recipients." }, 500);
-  const tokenFor = new Map<string, string | null>(
-    (profiles ?? []).map((profile) => [
-      profile.id,
-      profile.deleted_at === null ? profile.expo_push_token : null,
-    ]),
+  if (tokenError) return json({ error: "Could not read device tokens." }, 500);
+  const deletedRecipients = new Set((profiles ?? []).filter((profile) => profile.deleted_at !== null).map((profile) => profile.id));
+  const tokenFor = new Map<string, string>(
+    (tokens ?? []).map((token) => [token.user_id, token.expo_push_token]),
   );
 
   const now = new Date().toISOString();
@@ -66,7 +65,7 @@ Deno.serve(async (request) => {
   const deliverable: Array<{ row: OutboxRow; token: string }> = [];
 
   for (const row of pending) {
-    const token = tokenFor.get(row.recipient_id);
+    const token = deletedRecipients.has(row.recipient_id) ? undefined : tokenFor.get(row.recipient_id);
     if (!token) {
       skipped += 1;
       await admin.from("push_outbox")
@@ -113,7 +112,7 @@ Deno.serve(async (request) => {
       failed += 1;
       if (ticket?.details?.error === "DeviceNotRegistered") {
         // The device uninstalled the app or revoked permission. Stop sending to that token.
-        await admin.from("profiles").update({ expo_push_token: null }).eq("expo_push_token", token);
+        await admin.from("patient_push_tokens").delete().eq("expo_push_token", token);
       }
       await admin.from("push_outbox")
         .update({

@@ -17,7 +17,7 @@ const PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
 
 export type PushRegistration = 'registered' | 'skipped' | 'denied';
 
-// Asks for permission, gets this device's token and stores it on the patient's profile.
+// Asks for permission and stores this device's token in the owner-private token table.
 export async function registerPushToken(userId: string): Promise<PushRegistration> {
   if (Platform.OS === 'web' || !PROJECT_ID) return 'skipped';
   try {
@@ -32,7 +32,11 @@ export async function registerPushToken(userId: string): Promise<PushRegistratio
     if (status !== 'granted') return 'denied';
 
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId: PROJECT_ID });
-    const { error } = await supabase.from('profiles').update({ expo_push_token: token }).eq('id', userId);
+    const { error } = await supabase.from('patient_push_tokens').upsert({
+      user_id: userId,
+      expo_push_token: token,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
     if (error) throw new Error(error.message);
     return 'registered';
   } catch {
@@ -42,5 +46,6 @@ export async function registerPushToken(userId: string): Promise<PushRegistratio
 }
 
 export async function clearPushToken(userId: string): Promise<void> {
-  await supabase.from('profiles').update({ expo_push_token: null }).eq('id', userId);
+  const { error } = await supabase.from('patient_push_tokens').delete().eq('user_id', userId);
+  if (error) throw new Error(`The push token could not be cleared: ${error.message}`);
 }

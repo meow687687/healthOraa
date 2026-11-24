@@ -38,10 +38,12 @@ export const usePlaceOrder = () => {
     mutationFn: async (input: {
       items: { productId: string; quantity: number }[];
       checkout: CheckoutOrderInput;
+      idempotencyKey: string;
     }): Promise<string> => {
       const { data, error } = await supabase.rpc('create_mobile_order', {
         p_shipping_address: formatShippingAddress(input.checkout),
         p_items: input.items.map((item) => ({ product_id: item.productId, quantity: item.quantity })),
+        p_idempotency_key: input.idempotencyKey,
       });
       if (error) throw new Error(error.message);
       if (!data) throw new Error('The order was not created. Try again.');

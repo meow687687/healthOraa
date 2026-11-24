@@ -10,12 +10,14 @@ import { Drawer, DrawerHeader } from "../ui/Drawer";
 import { ViewHeader } from "../ui/ViewHeader";
 import { ERROR_BOX, LABEL, MONEY, NUM, PANEL, ROW_MICRO, type Tone } from "../ui/tokens";
 import { cn } from "../../lib/cn";
+import { RefundReviewAction } from "./RefundReviewAction";
 
-type FilterValue = "all" | Extract<PaymentStatus, "captured" | "failed" | "refunded">;
+type FilterValue = "all" | Extract<PaymentStatus, "captured" | "failed" | "refunded"> | "refund_review";
 
 const FILTERS: { id: FilterValue; label: string }[] = [
   { id: "all", label: "All" },
   { id: "captured", label: "Captured" },
+  { id: "refund_review", label: "Refund review" },
   { id: "failed", label: "Failed" },
   { id: "refunded", label: "Refunded" },
 ];
@@ -47,6 +49,7 @@ function DetailDrawer({ payment, onClose }: { payment: PaymentWithCustomer | nul
 
       {payment && (
         <div className="flex-1 space-y-5 py-6">
+          <RefundReviewAction review={payment.refund_review} onResolved={onClose} />
           {payment.error_code && (
             <div className="rounded-2xl border border-accent-red/30 bg-accent-red/10 px-4 py-3 space-y-1">
               <p className="text-xs font-mono uppercase tracking-wider text-accent-red">{payment.error_code}</p>
@@ -77,9 +80,13 @@ export default function PaymentsAuditView() {
   const { data: payments, isLoading, isError, error, refetch } = usePayments();
 
   const counts = useMemo<Record<FilterValue, number>>(() => {
-    const base: Record<FilterValue, number> = { all: payments?.length ?? 0, captured: 0, failed: 0, refunded: 0 };
+    const base: Record<FilterValue, number> = { all: payments?.length ?? 0, captured: 0, refund_review: 0, failed: 0, refunded: 0 };
     for (const p of payments ?? []) {
-      if (p.status in base) base[p.status as FilterValue] += 1;
+      if (p.refund_review?.status === "pending") {
+        base.refund_review += 1;
+      } else if (p.status === "captured" || p.status === "failed" || p.status === "refunded") {
+        base[p.status] += 1;
+      }
     }
     return base;
   }, [payments]);
@@ -141,8 +148,10 @@ export default function PaymentsAuditView() {
     {
       id: "status",
       header: "Status",
-      cell: (payment) => <Badge tone={STATUS_META[payment.status].tone}>{STATUS_META[payment.status].label}</Badge>,
-      sortValue: (payment) => payment.status,
+      cell: (payment) => payment.refund_review?.status === "pending"
+        ? <Badge tone="amber">Refund review</Badge>
+        : <Badge tone={STATUS_META[payment.status].tone}>{STATUS_META[payment.status].label}</Badge>,
+      sortValue: (payment) => payment.refund_review?.status === "pending" ? "refund_review" : payment.status,
     },
     {
       id: "actions",
@@ -172,7 +181,9 @@ export default function PaymentsAuditView() {
     active: filter,
     options: FILTERS.map((option) => ({ id: option.id, label: `${option.label} ${counts[option.id]}` })),
     onChange: (id) => setFilter(id as FilterValue),
-    match: (payment, id) => id === "all" || payment.status === id,
+    match: (payment, id) => id === "all" || (id === "refund_review"
+      ? payment.refund_review?.status === "pending"
+      : payment.refund_review?.status !== "pending" && payment.status === id),
   };
 
   return (

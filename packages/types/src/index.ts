@@ -14,6 +14,7 @@ export type ProgramMessage = Tables<"program_messages">;
 export type Product = Tables<"products">;
 export type Order = Tables<"orders">;
 export type PaymentTransaction = Tables<"payment_transactions">;
+export type PaymentRefundReview = Tables<"payment_refund_reviews">;
 export type AppBanner = Tables<"app_banners">;
 export type ComplianceRequest = Tables<"compliance_requests">;
 

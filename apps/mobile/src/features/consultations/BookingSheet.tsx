@@ -7,7 +7,7 @@ import { Button, Card, ErrorBox, LabelLine, Pill, Skeleton, monoStyle } from '..
 import { Sheet } from '../../components/Sheet';
 import { TextField } from '../../components/TextField';
 import { formatPaise, gstOn, rupeesToPaise } from '../../lib/money';
-import { startCheckout } from '../../lib/payments';
+import { RAZORPAY_PAYMENTS_ENABLED, startCheckout } from '../../lib/payments';
 import { formatIstDate, formatIstTime, istDayKey, istHour } from '../../lib/time';
 import type { PractitionerView } from './DoctorCard';
 import { useBookConsultation, useDoctorSlots, type BookingResult } from './queries';
@@ -20,7 +20,7 @@ interface Slot {
   end_time: string;
 }
 
-// Booking runs in four steps: pick a slot, describe the concern, review the amount, then pay.
+// Booking runs in four steps: pick a slot, describe the concern, review the amount, then show its payment state.
 export function BookingSheet({
   doctor,
   onClose,
@@ -102,6 +102,7 @@ function BookingFlow({ doctor, onClose }: { doctor: PractitionerView; onClose: (
             slots={slots.data}
             selected={slot}
             onSelect={setSlot}
+            onDayChange={() => setSlot(null)}
           />
         ) : null}
         <Button label="Continue to intake" disabled={!slot} onPress={() => setStep('intake')} />
@@ -148,8 +149,16 @@ function BookingFlow({ doctor, onClose }: { doctor: PractitionerView; onClose: (
           <LabelLine label="GST (18%)" value={formatPaise(gstOn(feePaise))} />
           <LabelLine label="Total" value={formatPaise(previewTotal)} strong />
         </Card>
-        <Text style={styles.note}>The final amount is set by the server when the booking is created.</Text>
-        <Button label={`Confirm and pay ${formatPaise(previewTotal)}`} busy={booking.isPending} onPress={() => void confirmBooking()} />
+        <Text style={styles.note}>
+          {RAZORPAY_PAYMENTS_ENABLED
+            ? 'The final amount is set by the server when the booking is created.'
+            : 'Demo mode: payment is disabled. The booking will remain unpaid and unconfirmed.'}
+        </Text>
+        <Button
+          label={RAZORPAY_PAYMENTS_ENABLED ? `Confirm and pay ${formatPaise(previewTotal)}` : 'Submit booking request'}
+          busy={booking.isPending}
+          onPress={() => void confirmBooking()}
+        />
         <Button label="Back" variant="secondary" onPress={() => setStep('intake')} />
       </>
     );
@@ -164,7 +173,12 @@ function BookingFlow({ doctor, onClose }: { doctor: PractitionerView; onClose: (
       </Card>
       {paymentError ? <ErrorBox message={paymentError} /> : null}
       {paymentNote ? <Text style={styles.note}>{paymentNote}</Text> : null}
-      <Button label={`Pay ${formatPaise(result?.totalPaise ?? 0)} with Razorpay`} onPress={() => void onPay()} />
+      {!RAZORPAY_PAYMENTS_ENABLED ? <Text style={styles.note}>No payment was taken. This booking is pending and is not confirmed.</Text> : null}
+      <Button
+        label={RAZORPAY_PAYMENTS_ENABLED ? `Pay ${formatPaise(result?.totalPaise ?? 0)} with Razorpay` : 'Payment disabled in demo'}
+        disabled={!RAZORPAY_PAYMENTS_ENABLED}
+        onPress={() => void onPay()}
+      />
       <Button label="Done" variant="secondary" onPress={onClose} />
     </>
   );
@@ -175,10 +189,12 @@ function SlotPicker({
   slots,
   selected,
   onSelect,
+  onDayChange,
 }: {
   slots: Slot[];
   selected: Slot | null;
   onSelect: (slot: Slot) => void;
+  onDayChange: () => void;
 }) {
   const days = useMemo(() => {
     const keys = [...new Set(slots.map((slot) => istDayKey(slot.start_time)))];
@@ -205,7 +221,11 @@ function SlotPicker({
               key={key}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
-              onPress={() => setDayKey(key)}
+              onPress={() => {
+                if (key === activeDay) return;
+                setDayKey(key);
+                onDayChange();
+              }}
               style={[styles.dayChip, active ? styles.dayChipActive : null]}
             >
               <Text style={[styles.dayText, active ? styles.dayTextActive : null]}>
@@ -259,7 +279,7 @@ const styles = StyleSheet.create({
   },
   dayChipActive: { backgroundColor: COLORS.accentBlue, borderColor: COLORS.accentBlue },
   dayText: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '600' },
-  dayTextActive: { color: COLORS.textPrimary },
+  dayTextActive: { color: COLORS.canvas },
   block: { gap: SPACE.sm },
   blockTitle: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },

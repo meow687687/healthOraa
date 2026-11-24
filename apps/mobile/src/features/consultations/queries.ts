@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { consultationMessageSchema } from '@healthoraa/validation';
 import { supabase } from '../../lib/supabase';
@@ -93,8 +94,9 @@ export const useBookConsultation = () => {
   });
 };
 
-export const useConsultationMessages = (consultationId: string) =>
-  useQuery({
+export const useConsultationMessages = (consultationId: string) => {
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: ['consultation-messages', consultationId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -106,6 +108,21 @@ export const useConsultationMessages = (consultationId: string) =>
       return data;
     },
   });
+  useEffect(() => {
+    const channel = supabase
+      .channel(`consultation-messages:${consultationId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'consultation_messages', filter: `consultation_id=eq.${consultationId}` },
+        () => void queryClient.invalidateQueries({ queryKey: ['consultation-messages', consultationId] }),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [consultationId, queryClient]);
+  return query;
+};
 
 // The database rejects inserts after the 7-day window, so an expired chat cannot be written to from here either.
 export const useSendConsultationMessage = (consultationId: string) => {

@@ -178,5 +178,5 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: COLORS.accentBlue, borderColor: COLORS.accentBlue },
   chipText: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '600' },
-  chipTextOn: { color: COLORS.textPrimary },
+  chipTextOn: { color: COLORS.canvas },
 });

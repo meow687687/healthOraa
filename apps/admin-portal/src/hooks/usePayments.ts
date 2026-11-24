@@ -15,7 +15,10 @@ export type PaymentWithCustomer = PaymentTransaction & {
   customer_name: string | null;
   linked_order_id: string | null;
   linked_consultation_id: string | null;
-  refund_review: Pick<PaymentRefundReview, "status" | "reason" | "created_at" | "resolved_at"> | null;
+  refund_review: Pick<
+    PaymentRefundReview,
+    "gateway_payment_id" | "refund_id" | "status" | "reason" | "created_at" | "resolved_at"
+  > | null;
 };
 
 type RefundReviewSummary = PaymentWithCustomer["refund_review"];
@@ -91,10 +94,10 @@ export const usePayments = () => {
       if (error) throw new Error(error.message);
       const { data: refundReviews, error: refundReviewError } = await supabase
         .from("payment_refund_reviews")
-        .select("gateway_payment_id,status,reason,created_at,resolved_at");
+        .select("gateway_payment_id,refund_id,status,reason,created_at,resolved_at");
       if (refundReviewError) throw new Error(refundReviewError.message);
       const reviewByPaymentId = new Map<string, RefundReviewSummary>(
-        (refundReviews ?? []).map(({ gateway_payment_id, ...review }) => [gateway_payment_id, review]),
+        (refundReviews ?? []).map((review) => [review.gateway_payment_id, review]),
       );
       return ((data ?? []) as PaymentRow[]).map((row) =>
         toPaymentWithCustomer(

@@ -143,6 +143,24 @@ CREATE TABLE public.patient_push_tokens (
     expo_push_token TEXT NOT NULL UNIQUE,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Preserve existing patient device registrations before removing the legacy profile column. If duplicate
+-- tokens exist, retain the most recently updated patient because a device token can only belong to one row.
+WITH ranked_tokens AS (
+    SELECT p.id, p.expo_push_token, p.updated_at,
+           row_number() OVER (PARTITION BY p.expo_push_token ORDER BY p.updated_at DESC, p.id) AS token_rank
+    FROM public.profiles AS p
+    WHERE p.role = 'patient'::public.user_role
+      AND p.expo_push_token IS NOT NULL
+)
+INSERT INTO public.patient_push_tokens (user_id, expo_push_token, updated_at)
+SELECT id, expo_push_token, updated_at
+FROM ranked_tokens
+WHERE token_rank = 1
+ON CONFLICT (user_id) DO UPDATE
+SET expo_push_token = EXCLUDED.expo_push_token,
+    updated_at = EXCLUDED.updated_at;
+
 ALTER TABLE public.patient_push_tokens ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage only their own push token" ON public.patient_push_tokens
     FOR ALL TO authenticated
@@ -150,6 +168,16 @@ CREATE POLICY "Users manage only their own push token" ON public.patient_push_to
     WITH CHECK (user_id = (SELECT auth.uid()) AND public.current_user_role() IS NOT NULL);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.patient_push_tokens TO authenticated;
 ALTER TABLE public.profiles DROP COLUMN IF EXISTS expo_push_token;
+
+-- Expo receipts arrive after push tickets. Keep the ticket and the token timestamp (not the token itself)
+-- so receipt processing can be both durable and safe when a patient has since registered a new device token.
+ALTER TABLE public.push_outbox
+    ADD COLUMN expo_ticket_id TEXT,
+    ADD COLUMN expo_token_updated_at TIMESTAMPTZ,
+    ADD COLUMN receipt_checked_at TIMESTAMPTZ;
+CREATE INDEX push_outbox_pending_receipts_idx
+    ON public.push_outbox (sent_at)
+    WHERE expo_ticket_id IS NOT NULL AND receipt_checked_at IS NULL;
 
 -- A retried booking request returns the same pending booking instead of creating a second chargeable slot.
 ALTER TABLE public.consultations ADD COLUMN IF NOT EXISTS payment_expires_at TIMESTAMPTZ;

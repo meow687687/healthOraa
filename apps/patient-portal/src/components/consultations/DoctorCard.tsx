@@ -32,7 +32,7 @@ export function DoctorCard({ doctor, onBook }: { doctor: DoctorOption; onBook: (
       <button
         type="button"
         onClick={onBook}
-        className="inline-flex shrink-0 items-center justify-center rounded-full bg-accent-blue px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-accent-blue-glow transition-all hover:bg-accent-blue/90 active:scale-[0.98]"
+        className="inline-flex shrink-0 items-center justify-center rounded-full bg-accent-blue px-5 py-2.5 text-xs font-semibold text-aura-canvas shadow-lg shadow-accent-blue-glow transition-all hover:bg-accent-blue/90 active:scale-[0.98]"
       >
         Book consultation
       </button>

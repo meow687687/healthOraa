@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FileText, LogOut, ShieldAlert, Trash2, Upload } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE } from '../../constants/theme';
-import { GRIEVANCE_OFFICER, MEDICAL_DISCLAIMERS, hasPendingLegalDetails } from '../../src/constants/legal';
+import { GRIEVANCE_OFFICER, LEGAL_COPY_APPROVED, MEDICAL_DISCLAIMERS, hasPendingLegalDetails } from '../../src/constants/legal';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Button, Card, EmptyState, ErrorBox, Heading, Pill, Screen, Skeleton, monoStyle } from '../../src/components/primitives';
 import { OrdersSection } from '../../src/features/profile/OrdersSection';
@@ -21,6 +21,7 @@ export default function ProfileScreen() {
   const deleteAccount = useDeleteAccount();
   const [lockerError, setLockerError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -61,8 +62,8 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Heading eyebrow="Account" title="Profile" />
 
-        {__DEV__ && hasPendingLegalDetails() ? (
-          <ErrorBox message="Development warning: legal details are still placeholders (TODO_CLIENT_LEGAL). Replace them in src/constants/legal.ts before release." />
+        {__DEV__ && (!LEGAL_COPY_APPROVED || hasPendingLegalDetails()) ? (
+          <ErrorBox message="Client and counsel approval is still needed for the legal and emergency guidance shown before public release." />
         ) : null}
 
         <Card>
@@ -122,30 +123,40 @@ export default function ProfileScreen() {
 
         <Section title="Medical disclaimers">
           <Card>
-            {MEDICAL_DISCLAIMERS.map((line) => (
-              <Text key={line} style={styles.body}>
-                • {line}
-              </Text>
-            ))}
+            {LEGAL_COPY_APPROVED ? MEDICAL_DISCLAIMERS.map((line) => (
+              <Text key={line} style={styles.body}>• {line}</Text>
+            )) : <Text style={styles.body}>Medical and emergency guidance is pending client and counsel approval.</Text>}
           </Card>
         </Section>
 
         <Section title="Grievance officer">
           <Card>
-            <View style={styles.docRow}>
-              <ShieldAlert color={COLORS.textSecondary} size={18} />
-              <Text style={styles.body}>{GRIEVANCE_OFFICER.name}</Text>
-            </View>
-            <Text style={[styles.meta, monoStyle]}>{GRIEVANCE_OFFICER.email}</Text>
-            <Text style={styles.body}>{GRIEVANCE_OFFICER.address}</Text>
-            <Text style={styles.body}>{GRIEVANCE_OFFICER.hours}</Text>
-            <Text style={styles.body}>{GRIEVANCE_OFFICER.responseWindow}</Text>
+            {LEGAL_COPY_APPROVED && !hasPendingLegalDetails() ? (
+              <>
+                <View style={styles.docRow}>
+                  <ShieldAlert color={COLORS.textSecondary} size={18} />
+                  <Text style={styles.body}>{GRIEVANCE_OFFICER.name}</Text>
+                </View>
+                <Text style={[styles.meta, monoStyle]}>{GRIEVANCE_OFFICER.email}</Text>
+                <Text style={styles.body}>{GRIEVANCE_OFFICER.address}</Text>
+                <Text style={styles.body}>{GRIEVANCE_OFFICER.hours}</Text>
+                <Text style={styles.body}>{GRIEVANCE_OFFICER.responseWindow}</Text>
+              </>
+            ) : (
+              <Text style={styles.body}>Grievance contact details are pending client approval and will be published before release.</Text>
+            )}
           </Card>
         </Section>
 
+        {signOutError ? <ErrorBox message={signOutError} /> : null}
         <Button label="Sign out" variant="secondary" icon={LogOut} busy={signingOut} onPress={() => {
+          setSignOutError(null);
           setSigningOut(true);
-          void signOut().finally(() => setSigningOut(false));
+          void signOut()
+            .catch((error: unknown) => {
+              setSignOutError(error instanceof Error ? error.message : 'We could not safely sign out. Try again.');
+            })
+            .finally(() => setSigningOut(false));
         }} />
 
         {deleteError ? <ErrorBox message={deleteError} /> : null}

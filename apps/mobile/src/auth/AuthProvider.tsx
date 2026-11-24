@@ -1,9 +1,10 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { Platform, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { clearPushToken } from '../lib/notifications';
+import { allowPushTokenRegistration, clearPushToken } from '../lib/notifications';
 
-export type AuthStatus = 'loading' | 'signed-out' | 'signed-in';
+export type AuthStatus = 'loading' | 'signed-out' | 'signed-in' | 'profile-error';
 
 interface AuthState {
   status: AuthStatus;
@@ -16,53 +17,91 @@ export interface AuthApi extends AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (fullName: string, email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
+  retryProfile: () => void;
   setNotice: (notice: string | null) => void;
 }
 
 const PATIENT_ONLY = 'This app is for patient accounts. Practitioners and admins use the web portals.';
-const LOAD_FAILED = 'We could not load your account. Check your connection and try again.';
+const LOAD_FAILED = 'We could not verify your patient account. Check your connection and try again.';
 
 const AuthContext = createContext<AuthApi | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading', session: null, notice: null });
+  const retryProfileRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     let active = true;
+    let requestId = 0;
 
-    // A session only counts when its profile is a patient profile. Other roles are signed out at once.
+    // A session only reaches the app after its profile is verified as a patient profile.
     const resolve = async (session: Session | null) => {
+      const currentRequestId = ++requestId;
       if (!session) {
         setState((prev) => ({ status: 'signed-out', session: null, notice: prev.notice }));
         return;
       }
+      setState((prev) => ({ ...prev, status: 'loading', session, notice: null }));
       const { data, error } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
-      if (!active) return;
+      if (!active || currentRequestId !== requestId) return;
       if (error || !data) {
-        await supabase.auth.signOut();
-        if (active) setState({ status: 'signed-out', session: null, notice: LOAD_FAILED });
+        // Keep the auth session and offer a retry. A temporary profile query failure is not a sign-out.
+        setState({ status: 'profile-error', session, notice: LOAD_FAILED });
         return;
       }
       if (data.role !== 'patient') {
-        await supabase.auth.signOut();
-        if (active) setState({ status: 'signed-out', session: null, notice: PATIENT_ONLY });
+        try {
+          await clearPushToken(session.user.id);
+        } catch {
+          if (!active || currentRequestId !== requestId) return;
+          setState({
+            status: 'profile-error',
+            session,
+            notice: 'We could not safely disconnect notifications for this account. Check your connection and try again.',
+          });
+          return;
+        }
+        if (!active || currentRequestId !== requestId) return;
+        setState((prev) => ({ ...prev, notice: PATIENT_ONLY }));
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError && active && currentRequestId === requestId) {
+          setState({ status: 'profile-error', session, notice: 'Sign out failed. Retry account check or try signing out again.' });
+        }
         return;
       }
+      allowPushTokenRegistration(session.user.id);
       setState({ status: 'signed-in', session, notice: null });
     };
 
+    retryProfileRef.current = () => {
+      void supabase.auth.getSession().then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          setState((prev) => ({ ...prev, status: 'profile-error', notice: LOAD_FAILED }));
+          return;
+        }
+        void resolve(data.session);
+      });
+    };
+
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'TOKEN_REFRESHED') {
-        // Same account, new token: keep the screens mounted and only swap the session.
-        setState((prev) => (prev.status === 'signed-in' ? { ...prev, session } : prev));
+      if (event === 'TOKEN_REFRESHED' && session) {
+        // Keep signed-in screens mounted when only the access token rotates.
+        setState((prev) => prev.status === 'signed-in' && prev.session?.user.id === session.user.id
+          ? { ...prev, session }
+          : prev);
         return;
       }
-      setState((prev) => ({ ...prev, status: 'loading' }));
+      // Every other auth event supersedes the in-flight profile lookup.
+      setState((prev) => ({ ...prev, status: session ? 'loading' : 'signed-out', session }));
       void resolve(session);
     });
 
     return () => {
       active = false;
+      requestId += 1;
+      retryProfileRef.current = null;
       subscription.subscription.unsubscribe();
     };
   }, []);
@@ -87,16 +126,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { needsConfirmation: data.session === null };
       },
       signOut: async () => {
-        // Keep the session if server-side token removal fails, so this device cannot keep receiving alerts.
         const userId = state.session?.user.id;
-        if (userId) await clearPushToken(userId);
+        if (userId) {
+          try {
+            await clearPushToken(userId);
+          } catch {
+            // Keep the session active until the backend can no longer send pushes to this device.
+            throw new Error('We could not safely disconnect this device from notifications. Check your connection and try again.');
+          }
+        }
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
       },
+      retryProfile: () => retryProfileRef.current?.(),
       setNotice: (notice) => setState((prev) => ({ ...prev, notice })),
     }),
     [state],
   );
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', padding: 28, backgroundColor: '#101515' }}>
+        <Text accessibilityRole="header" style={{ color: '#f2f6f4', fontSize: 24, fontWeight: '700' }}>
+          Healthoraa is a mobile app
+        </Text>
+        <Text style={{ marginTop: 12, color: '#b4c1bd', fontSize: 16, lineHeight: 24 }}>
+          Patient sign-in is available in the iOS and Android apps. This browser build cannot access patient accounts.
+        </Text>
+      </View>
+    );
+  }
 
   return <AuthContext.Provider value={api}>{children}</AuthContext.Provider>;
 }

@@ -25,7 +25,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [isPending, startTransition] = useTransition();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const { user, isPrototype, signOut } = useAuth();
+  const { user, isDemoData, signOut } = useAuth();
   const { item, group } = findNav(activeTab);
 
   // Ctrl K (or Cmd K) opens the section search from anywhere.
@@ -55,7 +55,7 @@ export default function App() {
           groupLabel={group.title ?? "Overview"}
           email={user.email}
           role={user.role}
-          isPrototype={isPrototype}
+          isDemoData={isDemoData}
           onSignOut={() => void signOut()}
           onOpenSearch={() => setPaletteOpen(true)}
         />

@@ -43,10 +43,12 @@ function ProgramChatBody({ target }: { target: ProgramChatTarget }) {
   const userId = session?.user.id;
 
   const sendText = async () => {
+    if (attaching || send.isPending) return;
     setFailure(null);
+    const text = draft;
     try {
-      await send.mutateAsync({ text: draft, attachmentPath: null });
-      setDraft('');
+      await send.mutateAsync({ text, attachmentPath: null });
+      setDraft((current) => current === text ? '' : current);
     } catch (error) {
       setFailure(error instanceof Error ? error.message : 'Message not sent. Try again.');
     }
@@ -54,26 +56,27 @@ function ProgramChatBody({ target }: { target: ProgramChatTarget }) {
 
   const attachMealPhoto = async () => {
     setFailure(null);
-    if (!userId) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setFailure('Allow photo access to attach a meal photo.');
-      return;
-    }
-    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
-    if (picked.canceled || picked.assets.length === 0) return;
-    const asset = picked.assets[0];
-    if ((asset.fileSize ?? 0) > DOCUMENT_MAX_BYTES) {
-      setFailure('That photo is larger than 10 MB. Choose a smaller one.');
-      return;
-    }
+    if (!userId || send.isPending || attaching) return;
     setAttaching(true);
     try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setFailure('Allow photo access to attach a meal photo.');
+        return;
+      }
+      const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+      if (picked.canceled || picked.assets.length === 0) return;
+      const asset = picked.assets[0];
+      if ((asset.fileSize ?? 0) > DOCUMENT_MAX_BYTES) {
+        setFailure('That photo is larger than 10 MB. Choose a smaller one.');
+        return;
+      }
+      const caption = draft;
       const extension = (asset.mimeType ?? 'image/jpeg').endsWith('png') ? 'png' : 'jpg';
       const path = `${userId}/meals/${Date.now()}-${safeFileName(asset.fileName ?? `meal.${extension}`)}`;
       await uploadRecordFile(path, asset.uri, asset.mimeType ?? 'image/jpeg');
-      await send.mutateAsync({ text: draft, attachmentPath: path });
-      setDraft('');
+      await send.mutateAsync({ text: caption, attachmentPath: path });
+      setDraft((current) => current === caption ? '' : current);
     } catch (error) {
       setFailure(error instanceof Error ? error.message : 'The meal photo could not be sent.');
     } finally {
@@ -116,10 +119,10 @@ function ProgramChatBody({ target }: { target: ProgramChatTarget }) {
           />
           <View style={styles.actions}>
             <View style={styles.grow}>
-              <Button label="Send" busy={send.isPending && !attaching} onPress={() => void sendText()} />
+              <Button label="Send" busy={send.isPending || attaching} onPress={() => void sendText()} />
             </View>
             <View style={styles.grow}>
-              <Button label="Meal photo" variant="secondary" icon={Camera} busy={attaching} onPress={() => void attachMealPhoto()} />
+              <Button label="Meal photo" variant="secondary" icon={Camera} busy={attaching || send.isPending} onPress={() => void attachMealPhoto()} />
             </View>
           </View>
         </View>

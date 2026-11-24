@@ -14,7 +14,7 @@ const initialsOf = (name: string): string =>
 
 export function TopBar() {
   const patient = usePatient();
-  const { user, isPrototype, signOut } = useAuth();
+  const { user, isPrototype, isDemoData, signOut } = useAuth();
   const program = useActiveProgram();
   const status = program.data?.program;
 
@@ -36,13 +36,12 @@ export function TopBar() {
             {status.protocolLabel} • Day {status.currentDay}/{status.durationDays}
           </Badge>
         )}
-        {isPrototype ? (
-          <span className="hidden md:inline-flex">
-            <Badge tone="violet">Offline prototype identity</Badge>
-          </span>
-        ) : (
+        {isDemoData ? (
+          <Badge tone="violet" className="text-xs">Demo data · synthetic records</Badge>
+        ) : null}
+        {!isPrototype ? (
           <AccountMenu email={user.email} role={user.role} displayName={patient.displayName} onSignOut={() => void signOut()} />
-        )}
+        ) : null}
       </div>
     </header>
   );

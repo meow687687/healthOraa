@@ -45,9 +45,10 @@ function ChatBody({ target, onBookAgain }: { target: ChatTarget; onBookAgain: (d
 
   const onSend = async () => {
     setFailure(null);
+    const message = draft;
     try {
-      await send.mutateAsync(draft);
-      setDraft('');
+      await send.mutateAsync(message);
+      setDraft((current) => current === message ? '' : current);
     } catch (error) {
       setFailure(error instanceof Error ? error.message : 'Message not sent. Try again.');
     }

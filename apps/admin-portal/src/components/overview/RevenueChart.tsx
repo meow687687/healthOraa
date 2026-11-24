@@ -29,8 +29,8 @@ export default function RevenueChart({ summary }: { summary: DashboardSummary })
               <ComposedChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4387F6" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#4387F6" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#4D90FF" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#4D90FF" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#1D2130" vertical={false} />
@@ -42,7 +42,7 @@ export default function RevenueChart({ summary }: { summary: DashboardSummary })
                   formatter={(value, name) => [formatInrFull(Number(value)), name === "current" ? "This period" : "Previous period"]}
                   labelFormatter={(label) => String(label)}
                 />
-                <Area type="monotone" dataKey="current" stroke="#4387F6" strokeWidth={2} fill="url(#revenueFill)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="current" stroke="#4D90FF" strokeWidth={2} fill="url(#revenueFill)" isAnimationActive={false} />
                 <Line type="monotone" dataKey="previous" stroke="#838899" strokeWidth={1.5} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
               </ComposedChart>
             </ResponsiveContainer>

@@ -5,7 +5,16 @@ import type { LucideIcon } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE, FONT_MONO } from '../../constants/theme';
 
 export function Screen({ children }: { children: ReactNode }) {
-  return <SafeAreaView edges={['top']} style={styles.screen}>{children}</SafeAreaView>;
+  return (
+    <SafeAreaView edges={['top']} style={styles.screen}>
+      {process.env.EXPO_PUBLIC_DEMO_DATA === 'true' ? (
+        <View accessibilityRole="text" style={styles.demoNotice}>
+          <Text style={styles.demoNoticeText}>Demo data · synthetic records</Text>
+        </View>
+      ) : null}
+      {children}
+    </SafeAreaView>
+  );
 }
 
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
@@ -51,6 +60,7 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
 // Every button meets the 44 pt touch target and shows a spinner while its action is running.
 export function Button({ label, variant = 'primary', busy = false, disabled, icon: Icon, ...rest }: ButtonProps) {
   const inactive = disabled || busy;
+  const foreground = variant === 'primary' || variant === 'danger' ? COLORS.canvas : COLORS.textPrimary;
   return (
     <Pressable
       accessibilityRole="button"
@@ -66,11 +76,11 @@ export function Button({ label, variant = 'primary', busy = false, disabled, ico
       {...rest}
     >
       {busy ? (
-        <ActivityIndicator color={COLORS.textPrimary} />
+        <ActivityIndicator color={foreground} />
       ) : (
         <>
-          {Icon ? <Icon color={COLORS.textPrimary} size={16} /> : null}
-          <Text style={styles.buttonText}>{label}</Text>
+          {Icon ? <Icon color={foreground} size={16} /> : null}
+          <Text style={[styles.buttonText, { color: foreground }]}>{label}</Text>
         </>
       )}
     </Pressable>
@@ -157,6 +167,8 @@ const variantStyle: Record<ButtonVariant, ViewStyle> = {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.canvas },
+  demoNotice: { minHeight: 28, justifyContent: 'center', paddingHorizontal: SPACE.lg, paddingVertical: SPACE.xs, backgroundColor: COLORS.s2, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.line },
+  demoNoticeText: { color: COLORS.textSecondary, fontSize: 11, fontWeight: '600' },
   card: {
     backgroundColor: COLORS.s1,
     borderRadius: RADIUS.xl,
@@ -180,7 +192,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: SPACE.sm,
   },
-  buttonText: { color: COLORS.textPrimary, fontSize: 15, fontWeight: '600' },
+  buttonText: { fontSize: 15, fontWeight: '600' },
   pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
   inactive: { opacity: 0.5 },
   iconButton: {

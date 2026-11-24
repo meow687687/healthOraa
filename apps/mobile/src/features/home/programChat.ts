@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { programMessageSchema } from '@healthoraa/validation';
 import { supabase } from '../../lib/supabase';
@@ -12,8 +13,9 @@ export interface ProgramMessageRow {
   created_at: string;
 }
 
-export const useProgramMessages = (enrolmentId: string) =>
-  useQuery({
+export const useProgramMessages = (enrolmentId: string) => {
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: ['program-messages', enrolmentId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -25,6 +27,21 @@ export const useProgramMessages = (enrolmentId: string) =>
       return data;
     },
   });
+  useEffect(() => {
+    const channel = supabase
+      .channel(`program-messages:${enrolmentId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'program_messages', filter: `enrolment_id=eq.${enrolmentId}` },
+        () => void queryClient.invalidateQueries({ queryKey: ['program-messages', enrolmentId] }),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [enrolmentId, queryClient]);
+  return query;
+};
 
 // Text, a meal photo, or both. The database accepts writes only while the programme is active.
 export const useSendProgramMessage = (enrolmentId: string) => {

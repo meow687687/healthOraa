@@ -24,6 +24,9 @@ interface CreatedOrder {
 }
 
 const PUBLIC_KEY_ID = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID;
+export const RAZORPAY_PAYMENTS_ENABLED =
+  process.env.EXPO_PUBLIC_RAZORPAY_PAYMENTS_ENABLED === 'true' && Boolean(PUBLIC_KEY_ID);
+let checkoutInProgress = false;
 
 // Loaded only when a payment starts. The native module exists in development and production builds, not in
 // every runtime, so a plain import could stop the whole app from starting.
@@ -41,28 +44,33 @@ export async function startCheckout(input: {
   entityId: string;
   description: string;
 }): Promise<CheckoutOutcome> {
-  if (!PUBLIC_KEY_ID) {
-    Alert.alert(
-      'Payments are not set up yet',
-      'Online payment is not enabled in this build. Your booking or order is saved and will be paid once payments are switched on.',
-    );
-    return { status: 'not-configured' };
+  if (checkoutInProgress) {
+    return { status: 'failed', message: 'A payment window is already open. Finish or close it before trying again.' };
   }
 
-  const checkout = loadRazorpayCheckout();
-  if (!checkout) {
-    Alert.alert('Checkout unavailable', 'This build does not include the Razorpay checkout. Use a development build to pay.');
-    return { status: 'not-configured' };
-  }
-
-  const { data, error } = await supabase.functions.invoke<CreatedOrder>('create-razorpay-order', {
-    body: { entity_type: input.entityType, entity_id: input.entityId },
-  });
-  if (error || !data) {
-    return { status: 'failed', message: await functionErrorMessage(error, 'The payment could not be started. Try again.') };
-  }
-
+  checkoutInProgress = true;
   try {
+    if (!RAZORPAY_PAYMENTS_ENABLED) {
+      Alert.alert(
+        'Payments are disabled for this demo',
+        'No payment was started or taken. This booking, programme, or order remains unpaid.',
+      );
+      return { status: 'not-configured' };
+    }
+
+    const checkout = loadRazorpayCheckout();
+    if (!checkout) {
+      Alert.alert('Checkout unavailable', 'This build does not include the Razorpay checkout. Use a development build to pay.');
+      return { status: 'not-configured' };
+    }
+
+    const { data, error } = await supabase.functions.invoke<CreatedOrder>('create-razorpay-order', {
+      body: { entity_type: input.entityType, entity_id: input.entityId },
+    });
+    if (error || !data) {
+      return { status: 'failed', message: await functionErrorMessage(error, 'The payment could not be started. Try again.') };
+    }
+
     await checkout.open({
       key: data.key_id,
       amount: data.amount_paise,
@@ -70,12 +78,17 @@ export async function startCheckout(input: {
       order_id: data.order_id,
       name: 'Healthoraa',
       description: input.description,
-      theme: { color: '#2B7FFF' },
+      theme: { color: '#4594FF' },
     });
     return { status: 'submitted' };
   } catch (cause) {
     const reason = cause as { code?: number; description?: string };
     if (reason.code === 0 || /cancel/i.test(reason.description ?? '')) return { status: 'cancelled' };
-    return { status: 'failed', message: reason.description ?? 'The payment did not complete. Try again.' };
+    return {
+      status: 'failed',
+      message: reason.description ?? (cause instanceof Error ? cause.message : 'The payment did not complete. Try again.'),
+    };
+  } finally {
+    checkoutInProgress = false;
   }
 }

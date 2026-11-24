@@ -7,10 +7,10 @@ import { useAuth } from '../../auth/AuthProvider';
 export type ProgramCategory = Enums<'program_category'>;
 
 export const HOME_CATEGORIES: ReadonlyArray<{ value: ProgramCategory; label: string; blurb: string }> = [
-  { value: 'weight_management', label: 'Weight Management', blurb: 'Structured 30, 60 and 90-day metabolic plans.' },
-  { value: 'pcod_pcos', label: 'PCOD / PCOS Management', blurb: 'Hormonal balance and cycle-aligned meal plans.' },
-  { value: 'dermato_nutrition', label: 'Dermato-Nutrition', blurb: 'Anti-inflammatory plans for acne, eczema and skin.' },
-  { value: 'custom', label: 'Personalized Nutrition', blurb: 'Diet therapy for diabetes, hypertension and gut health.' },
+  { value: 'weight_management', label: 'Weight Management', blurb: 'Explore available programmes and review each plan before enrolling.' },
+  { value: 'pcod_pcos', label: 'PCOD / PCOS Management', blurb: 'Review programme details and practitioner support before enrolling.' },
+  { value: 'dermato_nutrition', label: 'Dermato-Nutrition', blurb: 'Explore available programmes and their included support.' },
+  { value: 'custom', label: 'Personalized Nutrition', blurb: 'Compare programme scope, duration and price before deciding.' },
 ];
 
 // The category list above must cover every category the database defines.

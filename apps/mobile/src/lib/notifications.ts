@@ -17,9 +17,23 @@ const PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
 
 export type PushRegistration = 'registered' | 'skipped' | 'denied';
 
+let tokenOperationQueue: Promise<void> = Promise.resolve();
+const blockedRegistrations = new Set<string>();
+
+const serializeTokenOperation = async <T>(operation: () => Promise<T>): Promise<T> => {
+  const result = tokenOperationQueue.then(operation, operation);
+  tokenOperationQueue = result.then(() => undefined, () => undefined);
+  return result;
+};
+
+// A cleared account stays blocked until AuthProvider verifies a later signed-in session.
+export function allowPushTokenRegistration(userId: string): void {
+  blockedRegistrations.delete(userId);
+}
+
 // Asks for permission and stores this device's token in the owner-private token table.
 export async function registerPushToken(userId: string): Promise<PushRegistration> {
-  if (Platform.OS === 'web' || !PROJECT_ID) return 'skipped';
+  if (blockedRegistrations.has(userId) || Platform.OS === 'web' || !PROJECT_ID) return 'skipped';
   try {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
@@ -32,13 +46,16 @@ export async function registerPushToken(userId: string): Promise<PushRegistratio
     if (status !== 'granted') return 'denied';
 
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId: PROJECT_ID });
-    const { error } = await supabase.from('patient_push_tokens').upsert({
-      user_id: userId,
-      expo_push_token: token,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
-    if (error) throw new Error(error.message);
-    return 'registered';
+    return serializeTokenOperation(async () => {
+      if (blockedRegistrations.has(userId)) return 'skipped';
+      const { error } = await supabase.from('patient_push_tokens').upsert({
+        user_id: userId,
+        expo_push_token: token,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+      if (error) throw new Error(error.message);
+      return 'registered';
+    });
   } catch {
     // Expo Go and simulators cannot issue push tokens. The app works without them.
     return 'skipped';
@@ -46,6 +63,9 @@ export async function registerPushToken(userId: string): Promise<PushRegistratio
 }
 
 export async function clearPushToken(userId: string): Promise<void> {
-  const { error } = await supabase.from('patient_push_tokens').delete().eq('user_id', userId);
-  if (error) throw new Error(`The push token could not be cleared: ${error.message}`);
+  blockedRegistrations.add(userId);
+  await serializeTokenOperation(async () => {
+    const { error } = await supabase.from('patient_push_tokens').delete().eq('user_id', userId);
+    if (error) throw new Error(`The push token could not be cleared: ${error.message}`);
+  });
 }

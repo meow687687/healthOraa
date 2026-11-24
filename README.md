@@ -60,9 +60,16 @@ Each app reads from its own `.env.local`. Copy the example file and fill in your
 
 ```bash
 cp apps/patient-portal/.env.example apps/patient-portal/.env.local
+cp apps/doctor-portal/.env.example apps/doctor-portal/.env.local
+cp apps/admin-portal/.env.example apps/admin-portal/.env.local
+cp apps/mobile/.env.example apps/mobile/.env.local
 ```
 
-Required variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+Use the local Supabase URL and anon key for all four apps. `VITE_DEMO_DATA=true` and `EXPO_PUBLIC_DEMO_DATA=true` keep a visible “Demo data · synthetic records” label on sample-data screens. Keep `VITE_AUTH_ENABLED` enabled for local database walkthroughs; disabling portal auth uses prototype identities, which do not have database permissions.
+
+### Razorpay
+
+Payments are disabled by default. A mobile build requires both `EXPO_PUBLIC_RAZORPAY_PAYMENTS_ENABLED=true` and `EXPO_PUBLIC_RAZORPAY_KEY_ID`; the `create-razorpay-order` Edge Function independently requires `RAZORPAY_PAYMENTS_ENABLED=true`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET`. Keep both enable flags unset for Phase 1 demos. Patient sign-in is unavailable in browser builds because the native app uses SecureStore and browser storage cannot protect refresh tokens. The database allows at most three active pending shop reservations per patient. If an enabled gateway captures payment after a booking or stock reservation expires, the webhook requests an idempotent full refund and tracks refund lifecycle events; failed requests remain in the admin refund queue for manual resolution. Enabling checkout requires the Phase 2 payment lifecycle and refund/reconciliation process to be sandbox-verified, approved, and operational.
 
 ## Database
 

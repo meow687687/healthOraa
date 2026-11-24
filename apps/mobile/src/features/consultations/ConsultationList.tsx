@@ -5,7 +5,7 @@ import { COLORS, SPACE } from '../../../constants/theme';
 import { Button, Card, EmptyState, ErrorBox, Pill, Skeleton, monoStyle } from '../../components/primitives';
 import { formatIstDateTime } from '../../lib/time';
 import { useMyConsultations } from './queries';
-import { startCheckout } from '../../lib/payments';
+import { RAZORPAY_PAYMENTS_ENABLED, startCheckout } from '../../lib/payments';
 import { ChatSheet, type ChatTarget } from './ChatSheet';
 
 export type ConsultationRowData = NonNullable<ReturnType<typeof useMyConsultations>['data']>[number];
@@ -126,7 +126,13 @@ function PayNowButton({ consultationId, doctorName }: { consultationId: string; 
   return (
     <>
       {failure ? <ErrorBox message={failure} /> : null}
-      <Button label="Pay now" busy={busy} onPress={() => void onPress()} />
+      {!RAZORPAY_PAYMENTS_ENABLED ? <Text style={styles.meta}>Demo mode: no payment was taken; this visit is not confirmed.</Text> : null}
+      <Button
+        label={RAZORPAY_PAYMENTS_ENABLED ? 'Pay now' : 'Payment disabled in demo'}
+        disabled={!RAZORPAY_PAYMENTS_ENABLED}
+        busy={busy}
+        onPress={() => void onPress()}
+      />
     </>
   );
 }

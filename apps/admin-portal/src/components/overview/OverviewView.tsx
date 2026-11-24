@@ -58,7 +58,7 @@ export function OverviewView({ onNavigate }: { onNavigate: (id: TabId) => void }
         <OverviewSkeleton />
       ) : summary.isError ? (
         <div className="space-y-3">
-          <div role="alert" className={ERROR_BOX}>The overview could not load. {summary.error.message}</div>
+          <div role="alert" className={ERROR_BOX}>The overview could not load. Check your connection and try again.</div>
           <button type="button" onClick={() => void summary.refetch()} className="min-h-[44px] rounded-full border border-aura-line2 px-4 text-[13px] font-semibold text-text-secondary hover:text-text-primary cursor-pointer">
             Try again
           </button>

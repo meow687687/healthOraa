@@ -10,8 +10,10 @@ import { SignUpForm } from '../src/features/auth/SignUpForm';
 type Mode = 'sign-in' | 'sign-up';
 
 export default function SignInScreen() {
-  const { notice } = useAuth();
+  const { notice, status, retryProfile, signOut } = useAuth();
   const [mode, setMode] = useState<Mode>('sign-in');
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -22,19 +24,38 @@ export default function SignInScreen() {
           <Text style={styles.tagline}>Diet programmes, doctor consultations and wellness products.</Text>
         </View>
 
-        <View style={styles.segment} accessibilityRole="tablist">
-          <Segment label="Sign in" active={mode === 'sign-in'} onPress={() => setMode('sign-in')} />
-          <Segment label="Create account" active={mode === 'sign-up'} onPress={() => setMode('sign-up')} />
-        </View>
-
         {notice ? <ErrorBox message={notice} /> : null}
 
-        <View style={styles.form}>{mode === 'sign-in' ? <SignInForm /> : <SignUpForm />}</View>
+        {status === 'profile-error' ? (
+          <View style={styles.form}>
+            <Button label="Retry account check" onPress={retryProfile} />
+            <Button
+              label="Sign out to switch accounts"
+              variant="secondary"
+              busy={signingOut}
+              onPress={() => {
+                setSignOutError(null);
+                setSigningOut(true);
+                void signOut()
+                  .catch((error: unknown) => {
+                    setSignOutError(error instanceof Error ? error.message : 'We could not safely sign out. Try again.');
+                  })
+                  .finally(() => setSigningOut(false));
+              }}
+            />
+            {signOutError ? <ErrorBox message={signOutError} /> : null}
+          </View>
+        ) : (
+          <>
+            <View style={styles.segment} accessibilityRole="tablist">
+              <Segment label="Sign in" active={mode === 'sign-in'} onPress={() => setMode('sign-in')} />
+              <Segment label="Create account" active={mode === 'sign-up'} onPress={() => setMode('sign-up')} />
+            </View>
+            <View style={styles.form}>{mode === 'sign-in' ? <SignInForm /> : <SignUpForm />}</View>
+          </>
+        )}
 
-        <Text style={styles.legal}>
-          Healthoraa provides nutrition programmes and telemedicine consultations. It does not replace emergency care. In an
-          emergency call 112.
-        </Text>
+        <Text style={styles.legal}>Medical, emergency and grievance guidance is pending client and counsel approval.</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -60,7 +81,7 @@ const styles = StyleSheet.create({
     lineHeight: 56,
     fontSize: 26,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: COLORS.canvas,
     backgroundColor: COLORS.accentBlue,
     overflow: 'hidden',
   },

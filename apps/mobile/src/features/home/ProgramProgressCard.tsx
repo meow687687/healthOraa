@@ -17,7 +17,14 @@ export function ProgramProgressCard() {
 
   if (enrolment.isPending) return <Skeleton height={130} />;
   if (enrolment.isError) {
-    return <EmptyState icon={Activity} title="Could not load your plan" description="Pull to refresh or try again later." />;
+    return (
+      <EmptyState
+        icon={Activity}
+        title="Could not load your plan"
+        description="Check your connection and try again."
+        action={{ label: 'Try again', onPress: () => void enrolment.refetch() }}
+      />
+    );
   }
   if (!enrolment.data) {
     return (

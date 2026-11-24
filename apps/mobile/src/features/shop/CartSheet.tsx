@@ -60,7 +60,15 @@ export function CartSheet({
         </Card>
       ))}
 
-      {unavailable.length > 0 ? <ErrorBox message="Some items are no longer available. Remove them to check out." /> : null}
+      {unavailable.map((id) => (
+        <Card key={id}>
+          <Text style={styles.title}>Unavailable item</Text>
+          <Text style={styles.meta}>This product is no longer available. Remove it to continue.</Text>
+          <Button label="Remove unavailable item" variant="secondary" onPress={() => remove(id)} />
+        </Card>
+      ))}
+
+      {unavailable.length > 0 ? <ErrorBox message="Remove unavailable items before checkout." /> : null}
 
       {lines.length > 0 ? (
         <Card>

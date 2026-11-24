@@ -31,28 +31,30 @@ export function AttentionStrip({ summary, onNavigate }: { summary: DashboardSumm
         <p className="text-[13px] text-text-muted">{outstanding === 0 ? "Nothing outstanding" : `${outstanding} of ${items.length} queues have work`}</p>
       </div>
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        {items.map((item) => {
+        {items.map((item, index) => {
           const clear = item.count === 0;
           const { Icon } = item;
+          const fillsLastMobileRow = items.length % 2 === 1 && index === items.length - 1;
           return (
-            <li key={item.label}>
+            <li key={item.label} className={fillsLastMobileRow ? "col-span-2 lg:col-span-1" : undefined}>
               <button
                 type="button"
                 onClick={() => onNavigate(item.target)}
                 className={cn(
                   "flex min-h-[96px] w-full flex-col justify-between rounded-2xl border p-4 text-left transition-colors duration-150 cursor-pointer",
+                  fillsLastMobileRow && "flex-row items-center gap-4 lg:flex-col lg:items-stretch lg:gap-0",
                   clear ? "border-aura-line bg-aura-s1 hover:border-aura-line2" : item.urgent ? "border-accent-red/40 bg-accent-red/5 hover:border-accent-red/60" : "border-accent-amber/40 bg-accent-amber/5 hover:border-accent-amber/60",
                 )}
               >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="text-[13px] font-medium text-text-secondary">{item.label}</span>
+                <span className={cn("flex items-center justify-between gap-2", fillsLastMobileRow && "min-w-0 flex-1 lg:flex-initial")}>
+                  <span className={cn("min-w-0 text-[13px] font-medium text-text-secondary", fillsLastMobileRow && "truncate")}>{item.label}</span>
                   {clear ? (
                     <CheckCircle2 className="h-4 w-4 text-accent-emerald" aria-hidden="true" />
                   ) : (
                     <Icon className={cn("h-4 w-4", item.urgent ? "text-accent-red" : "text-accent-amber")} aria-hidden="true" />
                   )}
                 </span>
-                <span className="mt-3 flex items-baseline gap-2">
+                <span className={cn("mt-3 flex items-baseline gap-2", fillsLastMobileRow && "mt-0 shrink-0 whitespace-nowrap lg:mt-3")}>
                   <span className="font-mono text-2xl font-semibold tabular-nums text-text-primary">{item.count}</span>
                   <span className="text-[12px] text-text-muted">{clear ? "All clear" : "open"}</span>
                 </span>

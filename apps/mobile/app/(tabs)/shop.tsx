@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   chipActive: { backgroundColor: COLORS.accentBlue, borderColor: COLORS.accentBlue },
   chipText: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '600' },
-  chipTextActive: { color: COLORS.textPrimary },
+  chipTextActive: { color: COLORS.canvas },
   grid: { gap: SPACE.md },
   footnote: { color: COLORS.textMuted, fontSize: 12, lineHeight: 18 },
 });

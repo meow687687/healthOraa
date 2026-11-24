@@ -3,6 +3,7 @@
 // Every value marked TODO_CLIENT_LEGAL is a placeholder. The founders must replace it with the official details
 // before any store release. A development build shows a warning while any placeholder remains.
 export const TODO_MARKER = 'TODO_CLIENT_LEGAL';
+export const LEGAL_COPY_APPROVED = false;
 
 export const GRIEVANCE_OFFICER = {
   // TODO_CLIENT_LEGAL: full legal name of the appointed Grievance Officer.

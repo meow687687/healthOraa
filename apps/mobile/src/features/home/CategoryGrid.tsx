@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { startCheckout } from '../../lib/payments';
+import { RAZORPAY_PAYMENTS_ENABLED, startCheckout } from '../../lib/payments';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE } from '../../../constants/theme';
@@ -108,7 +108,13 @@ function EnrolButton({ programId, title }: { programId: string; title: string })
     <>
       {failure ? <ErrorBox message={failure} /> : null}
       {note ? <Text style={styles.note}>{note}</Text> : null}
-      <Button label="Enrol and pay" busy={busy} onPress={() => void onPress()} />
+      {!RAZORPAY_PAYMENTS_ENABLED ? <Text style={styles.note}>Demo mode: payment is off, so this programme will not start.</Text> : null}
+      <Button
+        label={RAZORPAY_PAYMENTS_ENABLED ? 'Enrol and pay' : 'Payment disabled in demo'}
+        disabled={!RAZORPAY_PAYMENTS_ENABLED}
+        busy={busy}
+        onPress={() => void onPress()}
+      />
     </>
   );
 }

@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { Leaf, Package, Pill as PillIcon, Scale, Sparkles, type LucideIcon } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE } from '../../../constants/theme';
 import { Button, Card, Pill, monoStyle } from '../../components/primitives';
 import { formatPaise, rupeesToPaise } from '../../lib/money';
@@ -10,6 +11,13 @@ export const CATEGORY_LABEL: Record<string, string> = {
   ayurvedic: 'Ayurvedic',
   skincare: 'Skincare',
   equipment: 'Equipment',
+};
+
+const CATEGORY_ART: Record<string, { Icon: LucideIcon; color: string; background: string }> = {
+  supplements: { Icon: PillIcon, color: COLORS.accentBlue, background: '#101D2C' },
+  ayurvedic: { Icon: Leaf, color: COLORS.accentEmerald, background: '#10231E' },
+  skincare: { Icon: Sparkles, color: COLORS.accentViolet, background: '#21192A' },
+  equipment: { Icon: Scale, color: COLORS.accentAmber, background: '#292113' },
 };
 
 export interface ShopProductView {
@@ -32,10 +40,20 @@ export function ProductCard({
 }) {
   const soldOut = product.stock_count <= 0;
   const atLimit = inCart >= product.stock_count;
+  const art = CATEGORY_ART[product.category] ?? { Icon: Package, color: COLORS.textSecondary, background: COLORS.s3 };
+  const ArtIcon = art.Icon;
   return (
     <Card>
-      <View style={styles.tile} accessibilityElementsHidden>
-        <Text style={styles.tileLetter}>{product.title.charAt(0)}</Text>
+      <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={`Illustrative ${CATEGORY_LABEL[product.category] ?? product.category} category art; not a product photo.`}
+        style={[styles.tile, { backgroundColor: art.background }]}
+      >
+        <View style={[styles.artMark, { borderColor: `${art.color}55`, backgroundColor: `${art.color}12` }]}>
+          <ArtIcon color={art.color} size={26} strokeWidth={1.8} />
+        </View>
+        <Text style={[styles.tileMessage, { color: art.color }]}>CATEGORY ART</Text>
       </View>
       <View style={styles.row}>
         <Pill label={CATEGORY_LABEL[product.category] ?? product.category} />
@@ -63,13 +81,14 @@ export function ProductCard({
 
 const styles = StyleSheet.create({
   tile: {
-    height: 96,
+    height: 104,
     borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.s3,
+    gap: SPACE.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tileLetter: { color: COLORS.textSecondary, fontSize: 32, fontWeight: '800' },
+  artMark: { width: 50, height: 50, borderWidth: 1, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
+  tileMessage: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2 },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACE.sm },
   title: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '700' },
   description: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 18 },

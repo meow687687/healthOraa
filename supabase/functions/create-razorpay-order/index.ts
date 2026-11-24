@@ -78,8 +78,6 @@ Deno.serve(async (request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const keyId = Deno.env.get("RAZORPAY_KEY_ID");
-  const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
   if (!supabaseUrl || !anonKey || !serviceKey) return json({ error: "The server is not configured." }, 500);
 
   const caller = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -95,7 +93,12 @@ Deno.serve(async (request) => {
   if (profile.deleted_at !== null || profile.role !== "patient") {
     return json({ error: "This account cannot make payments." }, 403);
   }
-  // Checked after the account, so a deleted account is refused before any configuration detail is revealed.
+  // Live payment creation is opt-in on the server; a client build flag alone can never enable charges.
+  if (Deno.env.get("RAZORPAY_PAYMENTS_ENABLED") !== "true") {
+    return json({ error: "Payments are disabled for this environment." }, 503);
+  }
+  const keyId = Deno.env.get("RAZORPAY_KEY_ID");
+  const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
   if (!keyId || !keySecret) {
     return json({ error: "Payments are not configured on this server yet." }, 503);
   }

@@ -53,26 +53,34 @@ Deno.serve(async (request) => {
   } catch {
     return jsonResponse({ error: "Invalid JSON payload" }, 400);
   }
-  if (
-    !isObject(event) ||
-    (event.event !== "payment.captured" && event.event !== "payment.failed")
-  ) {
+  if (!isObject(event)) {
+    return jsonResponse({ error: "Unsupported webhook event" }, 400);
+  }
+  const eventName = event.event;
+  const isRefundEvent = eventName === "refund.created" || eventName === "refund.processed" || eventName === "refund.failed";
+  if (!isRefundEvent && eventName !== "payment.captured" && eventName !== "payment.failed") {
     return jsonResponse({ error: "Unsupported webhook event" }, 400);
   }
   const payload = isObject(event.payload) && isObject(event.payload.payment)
     ? event.payload.payment
     : null;
   const payment = payload && isObject(payload.entity) ? payload.entity : null;
+  const refundPayload = isObject(event.payload) && isObject(event.payload.refund)
+    ? event.payload.refund
+    : null;
+  const refund = refundPayload && isObject(refundPayload.entity) ? refundPayload.entity : null;
   const orderId = payment?.order_id;
   const paymentId = payment?.id;
   const amount = payment?.amount;
   const currency = payment?.currency;
   if (
-    !payment || typeof orderId !== "string" || !orderId ||
-    typeof paymentId !== "string" || !paymentId ||
-    !Number.isSafeInteger(amount) || (amount as number) <= 0 ||
-    typeof currency !== "string"
-  ) return jsonResponse({ error: "Invalid payment entity" }, 400);
+    !payment || typeof paymentId !== "string" || !paymentId ||
+    (isRefundEvent
+      ? !refund || refund.payment_id !== paymentId || typeof refund.id !== "string" ||
+        !refund.id || !Number.isSafeInteger(refund.amount) || (refund.amount as number) <= 0
+      : typeof orderId !== "string" || !orderId || !Number.isSafeInteger(amount) ||
+        (amount as number) <= 0 || typeof currency !== "string")
+  ) return jsonResponse({ error: isRefundEvent ? "Invalid refund entity" : "Invalid payment entity" }, 400);
 
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) {
@@ -81,6 +89,87 @@ Deno.serve(async (request) => {
   const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
   });
+
+  if (isRefundEvent && refund) {
+    const { data: transaction, error: transactionError } = await supabase.from("payment_transactions")
+      .select("amount_inr")
+      .eq("gateway_payment_id", paymentId)
+      .maybeSingle();
+    if (transactionError) return jsonResponse({ error: "Could not load refund audit" }, 500);
+    if (!transaction) return jsonResponse({ received: true, ignored: true });
+
+    const refundId = refund.id as string;
+    const { data: review, error: reviewError } = await supabase.from("payment_refund_reviews")
+      .select("refund_id,status")
+      .eq("gateway_payment_id", paymentId)
+      .maybeSingle();
+    if (reviewError) return jsonResponse({ error: "Could not load refund review" }, 500);
+    if (review?.refund_id && review.refund_id !== refundId) {
+      return jsonResponse({ received: true, ignored: true });
+    }
+
+    if (eventName === "refund.created") {
+      if (review?.status === "pending") {
+        const { error } = await supabase.from("payment_refund_reviews")
+          .update({ refund_id: refundId })
+          .eq("gateway_payment_id", paymentId)
+          .eq("status", "pending");
+        if (error) return jsonResponse({ error: "Could not save refund reference" }, 500);
+      }
+      return jsonResponse({ received: true, status: "refund_pending" });
+    }
+
+    if (eventName === "refund.failed") {
+      if (review?.status === "pending") {
+        const { error } = await supabase.from("payment_refund_reviews")
+          .update({
+            refund_id: null,
+            reason: "The automatic refund failed. Issue a refund in Razorpay and record its ID here.",
+          })
+          .eq("gateway_payment_id", paymentId)
+          .eq("status", "pending");
+        if (error) return jsonResponse({ error: "Could not update refund review" }, 500);
+      }
+      return jsonResponse({ received: true, status: "refund_failed" });
+    }
+
+    const isFullRefund = Number.isFinite(Number(transaction.amount_inr)) &&
+      refund.amount === Math.round(Number(transaction.amount_inr) * 100);
+    if (!isFullRefund) {
+      if (review?.status === "pending") {
+        const { error } = await supabase.from("payment_refund_reviews")
+          .update({
+            refund_id: null,
+            reason: "The provider completed a partial refund. Verify the remaining balance and record the final refund here.",
+          })
+          .eq("gateway_payment_id", paymentId)
+          .eq("status", "pending");
+        if (error) return jsonResponse({ error: "Could not update refund review" }, 500);
+      }
+      return jsonResponse({ received: true, status: "partial_refund_review" });
+    }
+
+    const resolvedAt = new Date().toISOString();
+    const { error: paymentUpdateError } = await supabase.from("payment_transactions")
+      .update({ status: "refunded" })
+      .eq("gateway_payment_id", paymentId);
+    if (paymentUpdateError) return jsonResponse({ error: "Could not record completed refund" }, 500);
+    if (review?.status === "pending") {
+      const { error } = await supabase.from("payment_refund_reviews")
+        .update({ refund_id: refundId, status: "resolved", resolved_at: resolvedAt })
+        .eq("gateway_payment_id", paymentId)
+        .eq("status", "pending");
+      if (error) return jsonResponse({ error: "Could not resolve refund review" }, 500);
+    }
+    if (typeof orderId === "string") {
+      const { error } = await supabase.from("razorpay_order_logs")
+        .update({ status: "refunded" })
+        .eq("order_id", orderId)
+        .eq("status", "refund_review");
+      if (error) return jsonResponse({ error: "Could not update refunded order" }, 500);
+    }
+    return jsonResponse({ received: true, status: "refunded" });
+  }
 
   const { data: orderLog, error: lookupError } = await supabase
     .from("razorpay_order_logs")
@@ -200,12 +289,114 @@ Deno.serve(async (request) => {
     return reviewError && reviewError.code !== "23505" ? "error" : "recorded";
   };
 
+  const requestAutomaticRefund = async (
+    reason: string,
+  ): Promise<"recorded" | "fulfilled" | "refunded" | "error"> => {
+    const reviewResult = await recordRefundReview(reason);
+    if (reviewResult !== "recorded") return reviewResult;
+
+    const { data: existingReview, error: existingReviewError } = await supabase.from("payment_refund_reviews")
+      .select("refund_id,status")
+      .eq("gateway_payment_id", paymentId)
+      .maybeSingle();
+    if (existingReviewError) return "error";
+    if (existingReview?.status === "resolved") return "refunded";
+    if (existingReview?.refund_id) return "recorded";
+
+    const keyId = Deno.env.get("RAZORPAY_KEY_ID");
+    const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
+    if (!keyId || !keySecret) {
+      const { error } = await supabase.from("payment_refund_reviews")
+        .update({ reason: `${reason} Automatic refund is unavailable. Issue the refund in Razorpay and record its ID here.` })
+        .eq("gateway_payment_id", paymentId)
+        .eq("status", "pending");
+      return error ? "error" : "recorded";
+    }
+
+    let refundResponse: Response;
+    try {
+      refundResponse = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId as string)}/refund`, {
+        method: "POST",
+        headers: {
+          authorization: `Basic ${btoa(`${keyId}:${keySecret}`)}`,
+          "content-type": "application/json",
+          "X-Refund-Idempotency": `healthoraa-${paymentId}`,
+        },
+        body: JSON.stringify({ notes: { reason: "Reservation expired before payment capture" } }),
+      });
+    } catch {
+      return "error";
+    }
+
+    if (!refundResponse.ok) {
+      if ([408, 409, 425, 429].includes(refundResponse.status) || refundResponse.status >= 500) {
+        // A non-2xx webhook response makes Razorpay retry with exponential backoff. The refund
+        // idempotency key makes a retry safe if the provider accepted a request before timing out.
+        return "error";
+      }
+      const { error } = await supabase.from("payment_refund_reviews")
+        .update({ reason: `${reason} Automatic refund could not be started. Issue the refund in Razorpay and record its ID here.` })
+        .eq("gateway_payment_id", paymentId)
+        .eq("status", "pending");
+      return error ? "error" : "recorded";
+    }
+
+    let refundResult: unknown;
+    try {
+      refundResult = await refundResponse.json();
+    } catch {
+      return "error";
+    }
+    const refundId = isObject(refundResult) && typeof refundResult.id === "string" ? refundResult.id : null;
+    const refundStatus = isObject(refundResult) && typeof refundResult.status === "string" ? refundResult.status : null;
+    if (!refundId) return "error";
+
+    if (refundStatus === "failed") {
+      const { error } = await supabase.from("payment_refund_reviews")
+        .update({
+          refund_id: null,
+          reason: `${reason} Automatic refund failed. Issue the refund in Razorpay and record its ID here.`,
+        })
+        .eq("gateway_payment_id", paymentId)
+        .eq("status", "pending");
+      return error ? "error" : "recorded";
+    }
+
+    const { error: refundIdError } = await supabase.from("payment_refund_reviews")
+      .update({ refund_id: refundId })
+      .eq("gateway_payment_id", paymentId)
+      .eq("status", "pending");
+    if (refundIdError) return "error";
+
+    if (refundStatus === "processed") {
+      const resolvedAt = new Date().toISOString();
+      const { error: transactionUpdateError } = await supabase.from("payment_transactions")
+        .update({ status: "refunded" })
+        .eq("gateway_payment_id", paymentId);
+      if (transactionUpdateError) return "error";
+      const { error: reviewUpdateError } = await supabase.from("payment_refund_reviews")
+        .update({ status: "resolved", resolved_at: resolvedAt })
+        .eq("gateway_payment_id", paymentId)
+        .eq("refund_id", refundId)
+        .eq("status", "pending");
+      if (reviewUpdateError) return "error";
+      const { error: orderUpdateError } = await supabase.from("razorpay_order_logs")
+        .update({ status: "refunded" })
+        .eq("order_id", orderId)
+        .eq("status", "refund_review");
+      if (orderUpdateError) return "error";
+      return "refunded";
+    }
+
+    return "recorded";
+  };
+
   if (orderLog.status === "fulfilled") {
     return jsonResponse({ received: true, status: "captured", duplicate: true, entity_type: orderLog.entity_type });
   }
 
   if (captured && !paymentOrderUsable) {
-    const review = await recordRefundReview(
+    const review = await requestAutomaticRefund(
       "Razorpay captured this payment after its local payment order was superseded or failed.",
     );
     if (review === "error") {
@@ -244,13 +435,14 @@ Deno.serve(async (request) => {
     if (!confirmed?.length) {
       // An earlier delivery already confirmed it, or the booking was cancelled. A cancelled
       // booking is never confirmed here; its payment stays in the audit for a refund.
-      const { data: booking } = await supabase
+      const { data: booking, error: bookingError } = await supabase
         .from("consultations")
         .select("booking_status")
         .eq("id", orderLog.entity_id)
         .maybeSingle();
+      if (bookingError) return jsonResponse({ error: "Could not verify consultation state before refunding." }, 500);
       if (booking?.booking_status !== "confirmed") {
-        const review = await recordRefundReview(
+        const review = await requestAutomaticRefund(
           "The consultation was no longer awaiting payment when Razorpay captured this payment.",
         );
         if (review === "error") {
@@ -284,7 +476,7 @@ Deno.serve(async (request) => {
       if (currentOrder?.status === "paid" || currentOrder?.status === "shipped" || currentOrder?.status === "delivered") {
         // A concurrent webhook already applied this captured payment.
       } else {
-        const review = await recordRefundReview(
+        const review = await requestAutomaticRefund(
           "The stock reservation expired before Razorpay captured this payment.",
         );
         if (review === "error") {

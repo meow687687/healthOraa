@@ -8,12 +8,12 @@ import { Button, Card, ErrorBox, LabelLine, Pill } from '../../components/primit
 import { Sheet } from '../../components/Sheet';
 import { TextField } from '../../components/TextField';
 import { formatPaise } from '../../lib/money';
-import { startCheckout } from '../../lib/payments';
+import { RAZORPAY_PAYMENTS_ENABLED, startCheckout } from '../../lib/payments';
 import { secureStorage } from '../../lib/secureStorage';
 import { useAuth } from '../../auth/AuthProvider';
 import { useCartStore } from './cartStore';
 import type { CartLine } from './cartMath';
-import { usePlaceOrder } from './queries';
+import { CheckoutReservationExpiredError, usePlaceOrder } from './queries';
 
 interface Totals {
   units: number;
@@ -86,15 +86,15 @@ function ShippingForm({
 
   const onSubmit = async (values: CheckoutOrderInput) => {
     setFailure(null);
-    // Stock is checked on the device at placement time. The database does not reserve stock yet.
+    // This client check gives quick feedback; the database validates and reserves stock atomically.
     const short = lines.find((line) => line.quantity > line.product.stock_count);
     if (short) {
       setFailure(`Only ${short.product.stock_count} of ${short.product.title} left. Lower the quantity in your cart.`);
       return;
     }
+    const items = lines.map((line) => ({ productId: line.product.id, quantity: line.quantity }));
     try {
       if (!userId) throw new Error('Sign in to place your order.');
-      const items = lines.map((line) => ({ productId: line.product.id, quantity: line.quantity }));
       const signature = hashRequest(JSON.stringify({ items, checkout: values }));
       if (checkoutAttempt.current?.signature !== signature) {
         const storageKey = `healthoraa.shop.checkout.${userId}`;
@@ -108,8 +108,9 @@ function ShippingForm({
         const key = savedAttempt?.signature === signature && typeof savedAttempt.key === 'string'
           ? savedAttempt.key
           : createIdempotencyKey();
-        checkoutAttempt.current = { signature, key };
-        await secureStorage.setItem(storageKey, JSON.stringify(checkoutAttempt.current));
+        const nextAttempt = { signature, key };
+        await secureStorage.setItem(storageKey, JSON.stringify(nextAttempt));
+        checkoutAttempt.current = nextAttempt;
       }
       const orderId = await place.mutateAsync({
         items,
@@ -120,6 +121,19 @@ function ShippingForm({
       await secureStorage.removeItem(`healthoraa.shop.checkout.${userId}`);
       onPlaced(orderId);
     } catch (error) {
+      if (error instanceof CheckoutReservationExpiredError && userId) {
+        const signature = hashRequest(JSON.stringify({ items, checkout: values }));
+        const nextAttempt = { signature, key: createIdempotencyKey() };
+        checkoutAttempt.current = nextAttempt;
+        try {
+          await secureStorage.setItem(`healthoraa.shop.checkout.${userId}`, JSON.stringify(nextAttempt));
+          setFailure('Your previous reservation expired and was cancelled. Review your details, then place the order again.');
+        } catch {
+          checkoutAttempt.current = null;
+          setFailure('Your previous reservation expired. We could not save a new checkout attempt; try again.');
+        }
+        return;
+      }
       setFailure(error instanceof Error ? error.message : 'The order could not be placed. Try again.');
     }
   };
@@ -225,7 +239,12 @@ function PlacedOrder({ orderId, totalPaise, onDone }: { orderId: string; totalPa
       </Card>
       {failure ? <ErrorBox message={failure} /> : null}
       {note ? <Text style={styles.note}>{note}</Text> : null}
-      <Button label={`Pay ${formatPaise(totalPaise)} with Razorpay`} onPress={() => void onPay()} />
+      {!RAZORPAY_PAYMENTS_ENABLED ? <Text style={styles.note}>Demo mode: no payment was taken. This order remains pending and unpaid.</Text> : null}
+      <Button
+        label={RAZORPAY_PAYMENTS_ENABLED ? `Pay ${formatPaise(totalPaise)} with Razorpay` : 'Payment disabled in demo'}
+        disabled={!RAZORPAY_PAYMENTS_ENABLED}
+        onPress={() => void onPay()}
+      />
       <Button label="Done" variant="secondary" onPress={onDone} />
     </>
   );

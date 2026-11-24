@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { FileText, Upload } from "lucide-react";
 import { BTN_PRIMARY, EmptyState, ERROR_BOX, LABEL } from "@healthoraa/ui";
 import { useHealthLocker } from "../../hooks/useHealthLocker";
+import { useAuth } from "../../context/AuthContext";
 import { downloadLocalDocument, downloadRecord } from "../../lib/download";
 import type { LockerDocument } from "../../types/locker";
 import { BiomarkerStrip } from "./BiomarkerStrip";
@@ -26,6 +27,7 @@ const matchesFilter = (document: LockerDocument, filter: LockerFilter): boolean 
 };
 
 export default function HealthLockerView() {
+  const { isDemoData } = useAuth();
   const locker = useHealthLocker();
   const [filter, setFilter] = useState<LockerFilter>("all");
   const [previewing, setPreviewing] = useState<LockerDocument | null>(null);
@@ -76,7 +78,11 @@ export default function HealthLockerView() {
             Key biomarkers
           </h3>
           <p className="text-[11px] text-text-muted">
-            {locker.data.biomarkerSource === "live" ? "From your lab results" : "Demo values. Sign in to load your lab results."}
+            {isDemoData
+              ? "Demo values · synthetic sample"
+              : locker.data.biomarkerSource === "live"
+                ? "From your lab results"
+                : "Sample values · connect your lab records"}
           </p>
         </div>
         <BiomarkerStrip biomarkers={locker.data.biomarkers} />

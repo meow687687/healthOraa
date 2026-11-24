@@ -4,7 +4,7 @@ import { Package } from 'lucide-react-native';
 import { COLORS, SPACE } from '../../../constants/theme';
 import { Button, Card, EmptyState, ErrorBox, LabelLine, Pill, Skeleton, monoStyle } from '../../components/primitives';
 import { formatPaise, rupeesToPaise } from '../../lib/money';
-import { startCheckout } from '../../lib/payments';
+import { RAZORPAY_PAYMENTS_ENABLED, startCheckout } from '../../lib/payments';
 import { formatIstDateTime } from '../../lib/time';
 import { useOrders } from './queries';
 
@@ -91,7 +91,13 @@ function PayOrderButton({ orderId }: { orderId: string }) {
   return (
     <>
       {failure ? <ErrorBox message={failure} /> : null}
-      <Button label="Pay now" busy={busy} onPress={() => void onPress()} />
+      {!RAZORPAY_PAYMENTS_ENABLED ? <Text style={styles.meta}>Demo mode: no payment was taken; this order remains unpaid.</Text> : null}
+      <Button
+        label={RAZORPAY_PAYMENTS_ENABLED ? 'Pay now' : 'Payment disabled in demo'}
+        disabled={!RAZORPAY_PAYMENTS_ENABLED}
+        busy={busy}
+        onPress={() => void onPress()}
+      />
     </>
   );
 }

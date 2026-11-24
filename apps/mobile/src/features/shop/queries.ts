@@ -30,6 +30,13 @@ export const useBestSellers = () =>
 export const formatShippingAddress = (values: CheckoutOrderInput): string =>
   `${values.full_name}, ${values.phone}, ${values.address_line}, ${values.city}, ${values.state} ${values.pincode}`;
 
+export class CheckoutReservationExpiredError extends Error {
+  constructor() {
+    super('Your previous order reservation expired. Review the cart and place the order again.');
+    this.name = 'CheckoutReservationExpiredError';
+  }
+}
+
 // Places the order in one database transaction: the order, its lines at the current price, and the stock
 // decrement. The server sets every price and total. Returns the new order id.
 export const usePlaceOrder = () => {
@@ -46,7 +53,7 @@ export const usePlaceOrder = () => {
         p_idempotency_key: input.idempotencyKey,
       });
       if (error) throw new Error(error.message);
-      if (!data) throw new Error('The order was not created. Try again.');
+      if (!data) throw new CheckoutReservationExpiredError();
       return data;
     },
     onSuccess: () => {

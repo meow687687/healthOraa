@@ -39,18 +39,18 @@ export const ERROR_BOX = "rounded-xl border border-accent-red/30 bg-accent-red/1
 const FOCUS_RING = "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-blue/20";
 
 export const BTN_PRIMARY = cn(
-  "inline-flex items-center justify-center gap-2 bg-accent-blue hover:bg-accent-blue/90 text-white font-semibold rounded-full px-5 py-2.5 shadow-lg shadow-accent-blue-glow transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
+  "inline-flex items-center justify-center gap-2 bg-accent-blue hover:bg-accent-blue/90 text-aura-canvas font-semibold rounded-full px-5 py-2.5 shadow-lg shadow-accent-blue-glow transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
   FOCUS_RING,
 );
 export const BTN_PRIMARY_BLOCK = cn(BTN_PRIMARY, "w-full px-6 py-3");
 export const BTN_SECONDARY_BLOCK =
   "inline-flex w-full items-center justify-center gap-2 bg-aura-s2 hover:bg-aura-s3 border border-aura-line text-text-secondary font-medium py-3 px-6 rounded-full transition-colors disabled:opacity-60";
-export const BTN_DANGER = "inline-flex items-center justify-center gap-2 bg-accent-red hover:bg-accent-red/90 text-white font-semibold rounded-full px-5 py-2.5 shadow-lg transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed";
+export const BTN_DANGER = "inline-flex items-center justify-center gap-2 bg-accent-red hover:bg-accent-red/90 text-aura-canvas font-semibold rounded-full px-5 py-2.5 shadow-lg transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed";
 export const BTN_DANGER_BLOCK = cn(BTN_DANGER, "w-full px-6 py-3");
 export const BTN_OUTLINE_DANGER_BLOCK =
   "inline-flex w-full items-center justify-center gap-2 border border-accent-red/40 text-accent-red font-semibold py-3 px-6 rounded-full hover:bg-accent-red/10 transition-colors disabled:opacity-60";
 export const BTN_TEXT = "px-3 py-1.5 rounded-full text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors disabled:opacity-60";
-export const BTN_DANGER_SM = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-red hover:bg-accent-red/90 text-white text-xs font-semibold transition-all disabled:opacity-60";
+export const BTN_DANGER_SM = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-red hover:bg-accent-red/90 text-aura-canvas text-xs font-semibold transition-all disabled:opacity-60";
 
 // Floating action pill: reveals on row hover, row focus, or when the row is active.
 export const ROW_REVEAL = "opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100";

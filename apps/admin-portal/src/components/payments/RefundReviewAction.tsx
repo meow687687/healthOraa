@@ -3,7 +3,7 @@ import type { PaymentRefundReview } from "@healthoraa/types";
 import { useRecordPaymentRefundReview } from "../../hooks/usePayments";
 
 type RefundReviewActionProps = {
-  review: PaymentRefundReview | null;
+  review: Pick<PaymentRefundReview, "gateway_payment_id" | "refund_id" | "status" | "reason"> | null;
   onResolved: () => void;
 };
 
@@ -18,6 +18,16 @@ export function RefundReviewAction({ review, onResolved }: RefundReviewActionPro
       <div className="rounded-2xl border border-accent-emerald/30 bg-accent-emerald/10 px-4 py-3 space-y-1">
         <p className="text-xs font-mono uppercase tracking-wider text-accent-emerald">Refund recorded</p>
         <p className="text-sm text-text-primary">Razorpay refund ID: {review.refund_id}</p>
+      </div>
+    );
+  }
+
+  if (review.refund_id) {
+    return (
+      <div className="space-y-1 rounded-2xl border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
+        <p className="text-xs font-mono uppercase tracking-wider text-accent-blue">Refund processing</p>
+        <p className="text-sm text-text-primary">Razorpay refund ID: {review.refund_id}</p>
+        <p className="text-xs text-text-muted">The payment audit will update when Razorpay confirms the refund.</p>
       </div>
     );
   }

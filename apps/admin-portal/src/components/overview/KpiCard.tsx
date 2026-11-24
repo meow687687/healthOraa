@@ -27,7 +27,7 @@ export function KpiCard({
       : change >= 0
         ? { text: `${change.toFixed(0)}% vs last week`, tone: "text-accent-emerald", Icon: ArrowUpRight }
         : { text: `${Math.abs(change).toFixed(0)}% vs last week`, tone: "text-accent-red", Icon: ArrowDownRight };
-  const color = { blue: "#4387F6", emerald: "#10B981", amber: "#FFB020", violet: "#8B6CFF" }[tone];
+  const color = { blue: "#4D90FF", emerald: "#10B981", amber: "#FFB020", violet: "#8B6CFF" }[tone];
 
   return (
     <article className="flex flex-col rounded-3xl border border-aura-line bg-aura-s1 p-5 shadow-aura-card transition-colors duration-150 hover:border-aura-line2">

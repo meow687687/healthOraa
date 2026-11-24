@@ -1,6 +1,6 @@
 import { EmptyState } from "@healthoraa/ui";
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ImageOff, Loader2, Megaphone, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, Megaphone, Plus, Trash2 } from "lucide-react";
 import type { AppBanner } from "@healthoraa/types";
 import {
   useBanners,
@@ -45,9 +45,17 @@ function BannerCard({
     <article className="group relative bg-aura-s2 border border-aura-line rounded-2xl overflow-hidden shadow-aura-card">
       <div className="relative aspect-video bg-aura-s3">
         {imageFailed ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-text-muted">
-            <ImageOff className="w-6 h-6" />
-            <span className="text-xs font-mono">Image unavailable</span>
+          <div role="img" aria-label={`${banner.title} banner artwork preview`} className="absolute inset-0 flex flex-col justify-between overflow-hidden bg-gradient-to-br from-[#193430] via-[#162223] to-[#101515] p-5">
+            <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full border border-white/10" />
+            <div className="pointer-events-none absolute -right-1 -top-3 h-24 w-24 rounded-full border border-white/10" />
+            <div className="relative flex items-center gap-2 text-accent-emerald">
+              <Megaphone className="h-4 w-4" aria-hidden="true" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">Artwork preview · {meta.label}</span>
+            </div>
+            <div className="relative max-w-[80%]">
+              <p className="text-2xl font-semibold leading-tight tracking-tight text-text-primary">{banner.title}</p>
+              <p className="mt-2 text-xs text-text-secondary">Add approved campaign artwork to replace this preview.</p>
+            </div>
           </div>
         ) : (
           <img

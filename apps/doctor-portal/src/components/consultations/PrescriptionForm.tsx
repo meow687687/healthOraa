@@ -99,7 +99,7 @@ export function PrescriptionForm({
         <button
           type="submit"
           disabled={save.isPending}
-          className="rounded-full bg-accent-blue px-6 py-2.5 font-semibold text-white shadow-aura-elevated transition-all hover:bg-accent-blue/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full bg-accent-blue px-6 py-2.5 font-semibold text-aura-canvas shadow-aura-elevated transition-all hover:bg-accent-blue/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {save.isPending ? "Signing..." : "Issue & Sign Rx"}
         </button>

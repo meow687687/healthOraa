@@ -6,14 +6,14 @@ import type { PatientRecord } from "../../types/patients";
 import { ClinicalTimeline } from "./ClinicalTimeline";
 import { LabVault } from "./LabVault";
 
-export function PatientDossierDrawer({ patient, onClose }: { patient: PatientRecord | null; onClose: () => void }) {
+export function PatientDossierDrawer({ patient, isDemoData, onClose }: { patient: PatientRecord | null; isDemoData: boolean; onClose: () => void }) {
   // Keep the last patient mounted while the drawer slides out.
   const [shown, setShown] = useState<PatientRecord | null>(patient);
   if (patient && patient !== shown) setShown(patient);
 
   return (
     <Drawer isOpen={patient !== null} onClose={onClose} labelledBy="dossier-title" className="max-w-3xl p-6 md:p-8">
-      {shown && <DossierBody key={shown.id} patient={shown} onClose={onClose} />}
+      {shown && <DossierBody key={shown.id} patient={shown} isDemoData={isDemoData} onClose={onClose} />}
     </Drawer>
   );
 }
@@ -27,18 +27,19 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function DossierBody({ patient, onClose }: { patient: PatientRecord; onClose: () => void }) {
+function DossierBody({ patient, isDemoData, onClose }: { patient: PatientRecord; isDemoData: boolean; onClose: () => void }) {
   const vitals = patient.latestIntake?.vitals ?? null;
   const hasAlerts = patient.allergies.length > 0 || patient.drugAlerts.length > 0;
   const ageSex = patient.age !== null && patient.sex ? `${patient.age} yrs · ${patient.sex}` : "Age and sex not on file";
+  const isSynthetic = isDemoData || patient.dataSource !== "live";
 
   return (
     <>
       <DrawerHeader eyebrow="Patient dossier" title={patient.name} titleId="dossier-title" onClose={onClose}>
         <div className="flex flex-wrap gap-2">
           <Badge tone="neutral">{ageSex}</Badge>
-          <Badge tone={patient.dataSource === "live" ? "emerald" : "amber"}>
-            {patient.dataSource === "live" ? "Live record" : "Mock record"}
+          <Badge tone={isSynthetic ? "amber" : "emerald"}>
+            {isSynthetic ? "Demo record · synthetic" : "Live record"}
           </Badge>
         </div>
       </DrawerHeader>

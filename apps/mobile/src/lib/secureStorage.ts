@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 // SecureStore keeps each value under about 2 KB. A Supabase session can be larger, so long values are
 // split across numbered keys and a small manifest records how many parts exist.
@@ -30,10 +31,14 @@ const manifestCount = (raw: string | null): number => {
 };
 
 export const secureStorage = {
-  // An unreadable stored session (locked keychain, damaged entry, no native store) counts as signed out.
-  // Without this the auth client never reports a session and the app stays on its loading screen.
+  // Patient accounts are not supported on web because browser storage cannot protect refresh tokens.
+  // Native sessions stay in SecureStore and use chunked keys for values larger than the platform limit.
   async getItem(key: string): Promise<string | null> {
     try {
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') window.localStorage.removeItem(key);
+        return null;
+      }
       const raw = await SecureStore.getItemAsync(key);
       const count = manifestCount(raw);
       if (count === 0) return raw;
@@ -44,6 +49,9 @@ export const secureStorage = {
   },
 
   async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      throw new Error('Patient account sessions are only supported in the native app.');
+    }
     const previous = manifestCount(await SecureStore.getItemAsync(key));
     if (value.length <= CHUNK_CHARS) {
       await SecureStore.setItemAsync(key, value);
@@ -59,6 +67,10 @@ export const secureStorage = {
   },
 
   async removeItem(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') window.localStorage.removeItem(key);
+      return;
+    }
     const count = manifestCount(await SecureStore.getItemAsync(key));
     await deletePartsRange(key, 0, count);
     await SecureStore.deleteItemAsync(key);

@@ -153,6 +153,43 @@ Deno.serve(async (request) => {
     return json({ error: "A previous payment needs refund review before another payment can start." }, 409);
   }
 
+  const supersedeCreatedOrder = async (orderId: string): Promise<boolean> => {
+    const { error } = await admin.from("razorpay_order_logs")
+      .update({ status: "superseded" })
+      .eq("order_id", orderId)
+      .eq("status", "created");
+    return !error;
+  };
+  const isEntityPayableNow = async (): Promise<{ payable: boolean; failed: boolean }> => {
+    const { data, error } = await admin.rpc("can_start_mobile_payment", {
+      p_user_id: userId,
+      p_entity_type: entityType,
+      p_entity_id: entityId,
+    });
+    return { payable: data === true, failed: Boolean(error) };
+  };
+  const exposeExistingOrder = async (orderId: string, amountPaise: number): Promise<Response> => {
+    if (entityType === "consultation") {
+      const { data: linked, error } = await admin.rpc("link_consultation_payment_order", {
+        p_consultation_id: entityId,
+        p_patient_id: userId,
+        p_order_id: orderId,
+      });
+      if (error) return json({ error: "The booking could not be rechecked before payment." }, 500);
+      if (linked !== true) {
+        if (!await supersedeCreatedOrder(orderId)) return json({ error: "The payment order could not be marked inactive." }, 500);
+        return json({ error: "The booking expired before payment could start." }, 409);
+      }
+    }
+    const current = await isEntityPayableNow();
+    if (current.failed) return json({ error: "The item could not be rechecked before payment." }, 500);
+    if (!current.payable) {
+      if (!await supersedeCreatedOrder(orderId)) return json({ error: "The payment order could not be marked inactive." }, 500);
+      return json({ error: "This item is no longer waiting for payment." }, 409);
+    }
+    return orderResponse(orderId, amountPaise, keyId);
+  };
+
   const { data: priorOrder, error: priorError } = await admin.from("razorpay_order_logs")
     .select("order_id, amount_paise, status")
     .eq("user_id", userId)
@@ -168,14 +205,7 @@ Deno.serve(async (request) => {
       return json({ error: "Payment is processing. Refresh the booking or order before trying again." }, 409);
     }
     if (priorOrder.amount_paise === priced.amountPaise) {
-      if (entityType === "consultation") {
-        const { data: linked, error: linkError } = await admin.from("consultations")
-          .update({ payment_order_id: priorOrder.order_id })
-          .eq("id", entityId).eq("patient_id", userId).eq("booking_status", "pending_payment")
-          .select("id").maybeSingle();
-        if (linkError || !linked) return json({ error: "The booking expired before payment could start." }, linkError ? 500 : 409);
-      }
-      return orderResponse(priorOrder.order_id, priced.amountPaise, keyId);
+      return await exposeExistingOrder(priorOrder.order_id, priced.amountPaise);
     }
     return json({ error: "An existing payment order has a different amount. Contact support before retrying." }, 409);
   }
@@ -222,36 +252,29 @@ Deno.serve(async (request) => {
       if (winner.status === "captured") {
         return json({ error: "Payment is processing. Refresh the booking or order before trying again." }, 409);
       }
-      if (entityType === "consultation") {
-        const { data: linked, error: linkError } = await admin.from("consultations")
-          .update({ payment_order_id: winner.order_id })
-          .eq("id", entityId).eq("patient_id", userId).eq("booking_status", "pending_payment")
-          .select("id").maybeSingle();
-        if (linkError || !linked) return json({ error: "The booking expired before payment could start." }, linkError ? 500 : 409);
-      }
-      return orderResponse(winner.order_id, priced.amountPaise, keyId);
+      return await exposeExistingOrder(winner.order_id, priced.amountPaise);
     }
     return json({ error: "The payment could not be recorded. Try again." }, 500);
   }
 
   if (entityType === "consultation") {
-    // The webhook checks the entity's pending state and the recorded payment order before confirming.
-    const { data: linked, error: linkError } = await admin.from("consultations")
-      .update({ payment_order_id: order.id })
-      .eq("id", entityId).eq("patient_id", userId).eq("booking_status", "pending_payment")
-      .select("id").maybeSingle();
-    if (linkError || !linked) {
-      await admin.from("razorpay_order_logs").update({ status: "superseded" }).eq("order_id", order.id);
-      return json({ error: "The booking expired before payment could start." }, linkError ? 500 : 409);
+    const { data: linked, error: linkError } = await admin.rpc("link_consultation_payment_order", {
+      p_consultation_id: entityId,
+      p_patient_id: userId,
+      p_order_id: order.id,
+    });
+    if (linkError) return json({ error: "The booking could not be rechecked before payment." }, 500);
+    if (linked !== true) {
+      if (!await supersedeCreatedOrder(order.id)) return json({ error: "The payment order could not be marked inactive." }, 500);
+      return json({ error: "The booking expired before payment could start." }, 409);
     }
-  } else if (entityType === "shop_order") {
-    const { data: liveOrder, error: liveError } = await admin.from("orders")
-      .select("id").eq("id", entityId).eq("customer_id", userId).eq("status", "pending")
-      .is("stock_released_at", null).gt("reservation_expires_at", new Date().toISOString()).maybeSingle();
-    if (liveError || !liveOrder) {
-      await admin.from("razorpay_order_logs").update({ status: "superseded" }).eq("order_id", order.id);
-      return json({ error: "The stock reservation expired before payment could start." }, liveError ? 500 : 409);
-    }
+  }
+
+  const currentEligibility = await isEntityPayableNow();
+  if (currentEligibility.failed) return json({ error: "The item could not be rechecked before payment." }, 500);
+  if (!currentEligibility.payable) {
+    if (!await supersedeCreatedOrder(order.id)) return json({ error: "The payment order could not be marked inactive." }, 500);
+    return json({ error: "This item is no longer waiting for payment." }, 409);
   }
 
   // A refund review can be recorded while the gateway order is being created. Recheck before
@@ -275,14 +298,19 @@ Deno.serve(async (request) => {
     .maybeSingle(),
   ]);
   if (pendingReviewError || lateRefundReviewError || latePendingRefundReview || lateRefundReview) {
-    const { error: supersedeError } = await admin.from("razorpay_order_logs")
-      .update({ status: "superseded" }).eq("order_id", order.id).eq("status", "created");
-    if (supersedeError) return json({ error: "The new payment order could not be marked inactive." }, 500);
+    if (!await supersedeCreatedOrder(order.id)) return json({ error: "The new payment order could not be marked inactive." }, 500);
     return json({
       error: pendingReviewError || lateRefundReviewError
         ? "The previous payment status could not be confirmed. Try again."
         : "A previous payment needs refund review before another payment can start.",
     }, pendingReviewError || lateRefundReviewError ? 500 : 409);
+  }
+
+  const finalEligibility = await isEntityPayableNow();
+  if (finalEligibility.failed) return json({ error: "The item could not be rechecked before payment." }, 500);
+  if (!finalEligibility.payable) {
+    if (!await supersedeCreatedOrder(order.id)) return json({ error: "The payment order could not be marked inactive." }, 500);
+    return json({ error: "This item is no longer waiting for payment." }, 409);
   }
 
   return orderResponse(order.id, priced.amountPaise, keyId);

@@ -25,6 +25,7 @@ const insertConsultation = (id: string, status: string, bookingStatus: string, o
 const cleanup = (): void => {
   script(`
     delete from payment_refund_reviews where gateway_payment_id like ${lit(`pay_${run}%`)};
+    delete from razorpay_refund_events where gateway_payment_id like ${lit(`pay_${run}%`)};
     delete from payment_transactions where gateway_payment_id like ${lit(`pay_${run}%`)};
     delete from razorpay_order_logs where order_id like ${lit(`order_${run}%`)};
     delete from consultation_slots where start_time = '${FAR_FUTURE} 04:30:00+00';
@@ -149,6 +150,71 @@ test.describe.serial("review fixes", () => {
     expect(psql(`select public.has_pending_payment_refund_review('${PATIENT}', 'shop_order', '${entityId}')::text`)).toBe("true");
   });
 
+  test("refunds delivered before capture are retained and applied when the payment arrives", async () => {
+    script(
+      `insert into programs (title, category, duration_days, price_inr, is_active)
+       values (${lit(`${run} early refund program`)}, 'custom', 30, 1999, true);`,
+    );
+    const programId = psql(`select id from programs where title = ${lit(`${run} early refund program`)}`);
+    const orderId = `order_${run}_early_refund`;
+    const paymentId = `pay_${run}_early_refund`;
+    script(`
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(orderId)}, '${PATIENT}', 199900, 'INR', 'created', 'program', '${programId}');
+    `);
+
+    const refund = await sendRefundProcessed({
+      orderId,
+      paymentId,
+      refundId: `rfnd_${run}_early_refund`,
+      refundAmountPaise: 199900,
+    });
+    expect(refund.status, JSON.stringify(refund.body)).toBe(200);
+    expect(refund.body.status).toBe("unmatched");
+    expect(psql(`select status from razorpay_refund_events where gateway_payment_id = ${lit(paymentId)}`)).toBe("processed");
+
+    const capture = await sendPaymentCaptured({ orderId, amountPaise: 199900, currency: "INR", paymentId });
+    expect(capture.status, JSON.stringify(capture.body)).toBe(200);
+    expect(capture.body.status).toBe("refunded");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("refunded");
+    expect(psql(`select status from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe("refunded");
+    expect(psql(`select count(*) from program_enrolments where program_id = '${programId}' and status = 'active'`)).toBe("0");
+  });
+
+  test("separate partial refunds reconcile to a full refund", async () => {
+    const orderId = `order_${run}_multi_refund`;
+    const paymentId = `pay_${run}_multi_refund`;
+    const entityId = crypto.randomUUID();
+    script(`
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(orderId)}, '${PATIENT}', 79900, 'INR', 'fulfilled', 'shop_order', '${entityId}');
+      insert into payment_transactions (gateway_payment_id, gateway_order_id, amount_inr, currency, status)
+      values (${lit(paymentId)}, ${lit(orderId)}, 799, 'INR', 'captured');
+    `);
+
+    const first = await sendRefundProcessed({
+      orderId,
+      paymentId,
+      refundId: `rfnd_${run}_multi_a`,
+      refundAmountPaise: 30000,
+    });
+    expect(first.status, JSON.stringify(first.body)).toBe(200);
+    expect(first.body.status).toBe("partial_refund_review");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("captured");
+
+    const second = await sendRefundProcessed({
+      orderId,
+      paymentId,
+      refundId: `rfnd_${run}_multi_b`,
+      refundAmountPaise: 49900,
+    });
+    expect(second.status, JSON.stringify(second.body)).toBe(200);
+    expect(second.body.status).toBe("refunded");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("refunded");
+    expect(psql(`select status from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe("resolved");
+    expect(psql(`select sum(amount_paise) from razorpay_refund_events where gateway_payment_id = ${lit(paymentId)} and status = 'processed'`)).toBe("79900");
+  });
+
   test("concurrent deliveries of one program payment create one active enrolment", async () => {
     script(
       `insert into programs (title, category, duration_days, price_inr, is_active)
@@ -174,6 +240,78 @@ test.describe.serial("review fixes", () => {
         ),
       ),
     ).toBe(1);
+  });
+
+  test("a second distinct captured payment on the same order is sent to refund review", async () => {
+    script(
+      `insert into programs (title, category, duration_days, price_inr, is_active)
+       values (${lit(`${run} duplicate payment program`)}, 'custom', 30, 1999, true);`,
+    );
+    const programId = psql(`select id from programs where title = ${lit(`${run} duplicate payment program`)}`);
+    const orderId = `order_${run}_duplicate_payment`;
+    const firstPaymentId = `pay_${run}_duplicate_first`;
+    const secondPaymentId = `pay_${run}_duplicate_second`;
+    script(`
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(orderId)}, '${PATIENT}', 199900, 'INR', 'created', 'program', '${programId}');
+    `);
+
+    const first = await sendPaymentCaptured({ orderId, amountPaise: 199900, currency: "INR", paymentId: firstPaymentId });
+    expect(first.status, JSON.stringify(first.body)).toBe(200);
+    expect(psql(`select status from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe("fulfilled");
+
+    const second = await sendPaymentCaptured({ orderId, amountPaise: 199900, currency: "INR", paymentId: secondPaymentId });
+    expect(second.status, JSON.stringify(second.body)).toBe(200);
+    expect(second.body.duplicate).toBe(true);
+    expect(second.body.refund_review).toBe(true);
+    expect(psql(`select captured_payment_id from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe(firstPaymentId);
+    expect(psql(`select status from payment_refund_reviews where gateway_payment_id = ${lit(secondPaymentId)}`)).toBe("pending");
+    expect(psql(`select status from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe("fulfilled");
+    expect(psql(`select count(*) from program_enrolments where program_id = '${programId}' and status = 'active'`)).toBe("1");
+  });
+
+  test("a repeated capture does not start a second full refund during refund review", async () => {
+    const orderId = `order_${run}_partial_review_replay`;
+    const paymentId = `pay_${run}_partial_review_replay`;
+    const entityId = crypto.randomUUID();
+    const reason = `${run}: partial refund requires manual reconciliation`;
+    script(`
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id, captured_payment_id)
+      values (${lit(orderId)}, '${PATIENT}', 79900, 'INR', 'refund_review', 'program', '${entityId}', ${lit(paymentId)});
+      insert into payment_transactions (gateway_payment_id, gateway_order_id, amount_inr, currency, status)
+      values (${lit(paymentId)}, ${lit(orderId)}, 799, 'INR', 'captured');
+      insert into payment_refund_reviews (gateway_payment_id, gateway_order_id, user_id, reason)
+      values (${lit(paymentId)}, ${lit(orderId)}, '${PATIENT}', ${lit(reason)});
+    `);
+
+    const replay = await sendPaymentCaptured({ orderId, amountPaise: 79900, currency: "INR", paymentId });
+    expect(replay.status, JSON.stringify(replay.body)).toBe(200);
+    expect(replay.body.refund_review).toBe(true);
+    expect(replay.body.duplicate).toBe(true);
+    expect(psql(`select reason from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe(reason);
+    expect(psql(`select status from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe("refund_review");
+  });
+
+  test("a distinct late capture on a refunded order is recorded for refund review", async () => {
+    const orderId = `order_${run}_refunded_late_capture`;
+    const firstPaymentId = `pay_${run}_refunded_first`;
+    const latePaymentId = `pay_${run}_refunded_late`;
+    const entityId = crypto.randomUUID();
+    script(`
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id, captured_payment_id)
+      values (${lit(orderId)}, '${PATIENT}', 79900, 'INR', 'refunded', 'program', '${entityId}', ${lit(firstPaymentId)});
+      insert into payment_transactions (gateway_payment_id, gateway_order_id, amount_inr, currency, status)
+      values (${lit(firstPaymentId)}, ${lit(orderId)}, 799, 'INR', 'refunded');
+    `);
+
+    const lateCapture = await sendPaymentCaptured({ orderId, amountPaise: 79900, currency: "INR", paymentId: latePaymentId });
+    expect(lateCapture.status, JSON.stringify(lateCapture.body)).toBe(200);
+    expect(lateCapture.body.duplicate).toBe(true);
+    expect(lateCapture.body.refund_review).toBe(true);
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(latePaymentId)}`)).toBe("captured");
+    expect(psql(`select status from payment_refund_reviews where gateway_payment_id = ${lit(latePaymentId)}`)).toBe("pending");
+    expect(psql(`select captured_payment_id from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe(firstPaymentId);
+    expect(psql(`select status from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe("refunded");
   });
 
   test("a stale active enrolment is closed before a new paid enrolment is activated", async () => {

@@ -48,12 +48,17 @@ export const accessToken = async (persona: "doctor" | "patient" | "admin"): Prom
 
 export const deleteAccountFunctionReady = async (): Promise<boolean> => {
   try {
+    const token = await accessToken("patient");
     const response = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
-      method: "POST",
-      headers: { apikey: PUBLISHABLE_KEY, "content-type": "application/json" },
-      body: "{}",
+      method: "GET",
+      headers: {
+        apikey: PUBLISHABLE_KEY,
+        authorization: `Bearer ${token}`,
+      },
     });
-    return response.status === 401;
+    if (response.status !== 405) return false;
+    const body = (await response.json()) as { error?: unknown };
+    return body.error === "Method not allowed.";
   } catch {
     return false;
   }

@@ -26,7 +26,7 @@ export function ProgramProgressCard() {
       />
     );
   }
-  if (!enrolment.data) {
+  if (!enrolment.data || enrolment.data.length === 0) {
     return (
       <EmptyState
         icon={Activity}
@@ -36,7 +36,33 @@ export function ProgramProgressCard() {
     );
   }
 
-  const active = enrolment.data;
+  return (
+    <View style={styles.list}>
+      {enrolment.data.map((active) => (
+        <ActiveProgramCard
+          key={active.id}
+          active={active}
+          onOpenChat={() =>
+            setChat({
+              enrolmentId: active.id,
+              title: active.programs?.title ?? 'Nutrition programme',
+              expiresAt: active.expires_at,
+            })
+          }
+        />
+      ))}
+      <ProgramChatSheet target={chat} onClose={() => setChat(null)} />
+    </View>
+  );
+}
+
+function ActiveProgramCard({
+  active,
+  onOpenChat,
+}: {
+  active: NonNullable<ReturnType<typeof useActiveEnrolment>['data']>[number];
+  onOpenChat: () => void;
+}) {
   const { programs, started_at, expires_at } = active;
   const duration = programs?.duration_days ?? 60;
   const elapsedDays = Math.floor((Date.now() - new Date(started_at).getTime()) / DAY_MS) + 1;
@@ -61,20 +87,14 @@ export function ProgramProgressCard() {
         label="Message your dietitian"
         variant="secondary"
         icon={MessageCircle}
-        onPress={() =>
-          setChat({
-            enrolmentId: active.id,
-            title: programs?.title ?? 'Nutrition programme',
-            expiresAt: expires_at,
-          })
-        }
+        onPress={onOpenChat}
       />
-      <ProgramChatSheet target={chat} onClose={() => setChat(null)} />
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
+  list: { gap: SPACE.md },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   meta: { color: COLORS.textMuted, fontSize: 12 },
   title: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '700', marginTop: SPACE.xs },

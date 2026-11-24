@@ -66,11 +66,9 @@ export const useActiveEnrolment = () => {
         .eq('patient_id', userId)
         .eq('status', 'active')
         .gt('expires_at', new Date().toISOString())
-        .order('started_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('started_at', { ascending: false });
       if (error) throw new Error(error.message);
-      return data;
+      return data ?? [];
     },
   });
 };

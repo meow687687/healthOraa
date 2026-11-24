@@ -2,7 +2,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  
+
   "graphql_public": {
           Tables: {
             [_ in never]: never
@@ -35,7 +35,7 @@ export type Database = {
                     "created_at"?: string,"display_order"?: number,"id"?: string,"image_url"?: string,"is_active"?: boolean,"target_id"?: string | null,"target_type"?: Database["public"]['Enums']["banner_target_type"],"title"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"cart_items": {
                   Row: {
@@ -319,14 +319,14 @@ isOneToOne: false
                   ]
                 },"patient_push_tokens": {
                   Row: {
-                    "expo_push_token": string,"updated_at": string,"user_id": string
+                    "expo_push_token": string,"registration_version": string,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "expo_push_token": string,"updated_at"?: string,"user_id": string
+                    "expo_push_token": string,"registration_version"?: string,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "expo_push_token"?: string,"updated_at"?: string,"user_id"?: string
+                    "expo_push_token"?: string,"registration_version"?: string,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -493,7 +493,7 @@ isOneToOne: false
                     "category"?: Database["public"]['Enums']["product_category"],"created_at"?: string,"description"?: string | null,"id"?: string,"is_active"?: boolean,"price_inr"?: number,"sku"?: string,"stock_count"?: number,"title"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"profiles": {
                   Row: {
@@ -507,7 +507,7 @@ isOneToOne: false
                     "avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"full_name"?: string,"id"?: string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"program_enrolments": {
                   Row: {
@@ -599,18 +599,18 @@ isOneToOne: false
                     "category"?: Database["public"]['Enums']["program_category"],"created_at"?: string,"description"?: string | null,"duration_days"?: number,"id"?: string,"is_active"?: boolean,"price_inr"?: number,"title"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"push_outbox": {
                   Row: {
-                    "attempts": number,"body": string,"created_at": string,"data": NonNullable<Json>,"expo_ticket_id": string | null,"expo_token_updated_at": string | null,"id": string,"last_error": string | null,"receipt_checked_at": string | null,"recipient_id": string,"sent_at": string | null,"title": string
+                    "attempts": number,"body": string,"created_at": string,"data": NonNullable<Json>,"delivery_claimed_at": string | null,"delivery_state": string,"expo_ticket_id": string | null,"expo_token_registration_version": string | null,"expo_token_updated_at": string | null,"id": string,"last_error": string | null,"receipt_checked_at": string | null,"receipt_next_check_at": string | null,"recipient_id": string,"sent_at": string | null,"title": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "attempts"?: number,"body": string,"created_at"?: string,"data"?: NonNullable<Json>,"expo_ticket_id"?: string | null,"expo_token_updated_at"?: string | null,"id"?: string,"last_error"?: string | null,"receipt_checked_at"?: string | null,"recipient_id": string,"sent_at"?: string | null,"title": string
+                    "attempts"?: number,"body": string,"created_at"?: string,"data"?: NonNullable<Json>,"delivery_claimed_at"?: string | null,"delivery_state"?: string,"expo_ticket_id"?: string | null,"expo_token_registration_version"?: string | null,"expo_token_updated_at"?: string | null,"id"?: string,"last_error"?: string | null,"receipt_checked_at"?: string | null,"receipt_next_check_at"?: string | null,"recipient_id": string,"sent_at"?: string | null,"title": string
                   }
                   Update: {
-                    "attempts"?: number,"body"?: string,"created_at"?: string,"data"?: NonNullable<Json>,"expo_ticket_id"?: string | null,"expo_token_updated_at"?: string | null,"id"?: string,"last_error"?: string | null,"receipt_checked_at"?: string | null,"recipient_id"?: string,"sent_at"?: string | null,"title"?: string
+                    "attempts"?: number,"body"?: string,"created_at"?: string,"data"?: NonNullable<Json>,"delivery_claimed_at"?: string | null,"delivery_state"?: string,"expo_ticket_id"?: string | null,"expo_token_registration_version"?: string | null,"expo_token_updated_at"?: string | null,"id"?: string,"last_error"?: string | null,"receipt_checked_at"?: string | null,"receipt_next_check_at"?: string | null,"recipient_id"?: string,"sent_at"?: string | null,"title"?: string
                   }
                   Relationships: [
                     {
@@ -623,14 +623,14 @@ isOneToOne: false
                   ]
                 },"razorpay_order_logs": {
                   Row: {
-                    "amount_paise": number,"created_at": string,"currency": string,"entity_id": string,"entity_type": string,"id": string,"order_id": string,"program_enrolment_id": string | null,"status": string,"user_id": string
+                    "amount_paise": number,"captured_payment_id": string | null,"created_at": string,"currency": string,"entity_id": string,"entity_type": string,"id": string,"order_id": string,"program_enrolment_id": string | null,"status": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_paise": number,"created_at"?: string,"currency"?: string,"entity_id": string,"entity_type": string,"id"?: string,"order_id": string,"program_enrolment_id"?: string | null,"status"?: string,"user_id": string
+                    "amount_paise": number,"captured_payment_id"?: string | null,"created_at"?: string,"currency"?: string,"entity_id": string,"entity_type": string,"id"?: string,"order_id": string,"program_enrolment_id"?: string | null,"status"?: string,"user_id": string
                   }
                   Update: {
-                    "amount_paise"?: number,"created_at"?: string,"currency"?: string,"entity_id"?: string,"entity_type"?: string,"id"?: string,"order_id"?: string,"program_enrolment_id"?: string | null,"status"?: string,"user_id"?: string
+                    "amount_paise"?: number,"captured_payment_id"?: string | null,"created_at"?: string,"currency"?: string,"entity_id"?: string,"entity_type"?: string,"id"?: string,"order_id"?: string,"program_enrolment_id"?: string | null,"status"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -646,6 +646,20 @@ isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
+                  ]
+                },"razorpay_refund_events": {
+                  Row: {
+                    "amount_paise": number,"created_at": string,"gateway_order_id": string | null,"gateway_payment_id": string,"refund_id": string,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_paise": number,"created_at"?: string,"gateway_order_id"?: string | null,"gateway_payment_id": string,"refund_id": string,"status": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount_paise"?: number,"created_at"?: string,"gateway_order_id"?: string | null,"gateway_payment_id"?: string,"refund_id"?: string,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+
                   ]
                 }
           }
@@ -680,8 +694,17 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"can_start_mobile_payment":
+{ Args: { "p_entity_id": string,"p_entity_type": string,"p_user_id": string }; Returns: boolean
+                           },
+"claim_razorpay_order_capture":
+{ Args: { "p_order_id": string,"p_payment_id": string }; Returns: boolean
+                           },
 "confirm_consultation_payment_capture":
 { Args: { "p_consultation_id": string,"p_order_id": string,"p_patient_id": string }; Returns: boolean
+                           },
+"confirm_shop_order_payment_capture":
+{ Args: { "p_order_id": string,"p_patient_id": string }; Returns: boolean
                            },
 "create_mobile_order":
 { Args: { "p_items": Json,"p_shipping_address": string }; Returns: string
@@ -770,6 +793,9 @@ isOneToOne: false
 "issue_prescription":
 { Args: { "p_clinical_notes": string,"p_consultation_id": string,"p_diagnosis": string,"p_followup_days": number,"p_medicines": Json }; Returns: string
                            },
+"link_consultation_payment_order":
+{ Args: { "p_consultation_id": string,"p_order_id": string,"p_patient_id": string }; Returns: boolean
+                           },
 "list_patient_owned_meal_objects":
 { Args: { "p_patient_id": string }; Returns: {
               "bucket_id": string,"name": string
@@ -806,8 +832,14 @@ isOneToOne: false
 "queue_push":
 { Args: { "p_body": string,"p_data": Json,"p_recipient": string,"p_title": string }; Returns: undefined
                            },
+"reconcile_razorpay_refunds":
+{ Args: { "p_gateway_payment_id": string }; Returns: string
+                           },
 "record_payment_refund_review":
 { Args: { "p_gateway_payment_id": string,"p_refund_id": string }; Returns: string
+                           },
+"record_razorpay_refund_event":
+{ Args: { "p_amount_paise": number,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: boolean
                            },
 "register_patient_push_token":
 { Args: { "p_expo_push_token": string }; Returns: undefined
@@ -971,7 +1003,7 @@ export type CompositeTypes<
 export const Constants = {
   "graphql_public": {
           Enums: {
-            
+
           }
         },"public": {
           Enums: {

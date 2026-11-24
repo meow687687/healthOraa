@@ -21,6 +21,9 @@ export const useMyConsultations = () => {
   return useQuery({
     queryKey: ['consultations', userId],
     enabled: Boolean(userId),
+    refetchInterval: (query) =>
+      query.state.data?.some((consultation) => consultation.booking_status === 'pending_payment') ? 5_000 : false,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       if (!userId) throw new Error('Not signed in');
       const { data, error } = await supabase

@@ -84,8 +84,8 @@ export interface LockerUpload {
   file: { uri: string; name: string; size: number | null; mimeType: string };
 }
 
-// Uploads the file to the patient's folder, then records the document. A failed metadata write compensates by
-// removing the private upload so an unsuccessful locker entry does not leave a retained orphan.
+// Uploads the file to the patient's folder, then records the document. Remove the private upload only after
+// Postgres returns a definitive rejection; transport errors can have an unknown commit outcome.
 export const useUploadLockerDocument = () => {
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -114,6 +114,9 @@ export const useUploadLockerDocument = () => {
           .maybeSingle();
         if (savedDocument) return;
         if (verificationError) {
+          throw new Error('We could not confirm whether the document was saved. Refresh your Health Locker before trying again.');
+        }
+        if (!/^[0-9A-Z]{5}$/.test(error.code ?? '') || error.code.startsWith('PGRST')) {
           throw new Error('We could not confirm whether the document was saved. Refresh your Health Locker before trying again.');
         }
 

@@ -6,6 +6,7 @@ import { FALLBACK_ANCHOR, buildFallbackQueue } from "../lib/fallbackData";
 import { followupWindowFrom } from "../lib/followupWindow";
 import { signedConsultationIds } from "../lib/prescriptionStore";
 import { startedConsultationIds } from "../lib/startedStore";
+import { useAuth } from "../context/AuthContext";
 import { useDoctor } from "../context/DoctorContext";
 import type { ConsultationStatus, QueueConsultation } from "../types/queue";
 
@@ -94,6 +95,7 @@ const withSignedStatus = (queue: QueueConsultation[]): QueueConsultation[] => {
 // when Supabase is unreachable or returns no rows.
 export const useConsultationQueue = () => {
   const { doctor } = useDoctor();
+  const { isDemoData } = useAuth();
   const queryClient = useQueryClient();
 
   // Realtime: a new booking, payment or status change refetches the queue at once.
@@ -109,26 +111,28 @@ export const useConsultationQueue = () => {
   );
 
   return useQuery<QueueConsultation[], Error>({
-    queryKey: [...CONSULTATION_QUEUE_KEY, doctor.id],
-    queryFn: () =>
-      withFallback(
-        async () => {
-          const { data, error } = await supabase
-            .from("consultations")
-            .select("id, patient_id, slot_start, slot_end, status, followup_expires_at, chief_complaint, profiles!consultations_patient_id_fkey(full_name)")
-            .eq("doctor_id", doctor.id)
-            .eq("booking_status", "confirmed")
-            .in("status", QUEUE_STATUSES)
-            .gte("slot_start", startOfToday())
-            .order("slot_start", { ascending: true });
-          if (error) throw new Error(error.message);
-          const rows = (data ?? []) as QueueRow[];
-          const intakes = await fetchIntakes(rows.map((row) => row.id));
-          return rows.map((row) => toQueueItem(row, intakes.get(row.id)));
-        },
-        buildFallbackQueue(FALLBACK_ANCHOR),
-        "consultation queue",
-      ),
+    queryKey: [...CONSULTATION_QUEUE_KEY, doctor.id, isDemoData],
+    queryFn: async () => {
+      const loadQueue = async (): Promise<QueueConsultation[]> => {
+        const { data, error } = await supabase
+          .from("consultations")
+          .select("id, patient_id, slot_start, slot_end, status, followup_expires_at, chief_complaint, profiles!consultations_patient_id_fkey(full_name)")
+          .eq("doctor_id", doctor.id)
+          .eq("booking_status", "confirmed")
+          .in("status", QUEUE_STATUSES)
+          .gte("slot_start", startOfToday())
+          .order("slot_start", { ascending: true });
+        if (error) throw new Error(error.message);
+        const rows = (data ?? []) as QueueRow[];
+        const intakes = await fetchIntakes(rows.map((row) => row.id));
+        return rows.map((row) => toQueueItem(row, intakes.get(row.id)));
+      };
+
+      if (isDemoData) {
+        return withFallback(loadQueue, buildFallbackQueue(FALLBACK_ANCHOR), "consultation queue");
+      }
+      return loadQueue();
+    },
     select: (queue) => withStartedStatus(withSignedStatus(queue)),
     refetchInterval: 60_000,
   });

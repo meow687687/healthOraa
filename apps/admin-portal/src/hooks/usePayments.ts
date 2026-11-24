@@ -28,6 +28,9 @@ export const paymentKeys = {
   list: () => [...paymentKeys.all, "list"] as const,
 };
 
+const PAYMENT_PAGE_SIZE = 500;
+const REFUND_LOOKUP_BATCH_SIZE = 100;
+
 type RefundResolutionInput = { gatewayPaymentId: string; refundId: string };
 
 export const useRecordPaymentRefundReview = (
@@ -82,24 +85,44 @@ export const usePayments = () => {
   return useQuery<PaymentWithCustomer[], Error>({
     queryKey: paymentKeys.list(),
     queryFn: async (): Promise<PaymentWithCustomer[]> => {
-      const { data, error } = await supabase
-        .from("payment_transactions")
-        .select(
-          `*,
-          orders:orders!payment_transactions_order_id_fkey(id, profiles!orders_customer_id_fkey(full_name)),
-          consultations:consultations!payment_transactions_consultation_id_fkey(id, profiles!consultations_patient_id_fkey(full_name))`,
-        )
-        .order("created_at", { ascending: false });
+      const paymentRows: PaymentRow[] = [];
+      for (let offset = 0; ; offset += PAYMENT_PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from("payment_transactions")
+          .select(
+            `*,
+            orders:orders!payment_transactions_order_id_fkey(id, profiles!orders_customer_id_fkey(full_name)),
+            consultations:consultations!payment_transactions_consultation_id_fkey(id, profiles!consultations_patient_id_fkey(full_name))`,
+          )
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(offset, offset + PAYMENT_PAGE_SIZE - 1);
 
-      if (error) throw new Error(error.message);
-      const { data: refundReviews, error: refundReviewError } = await supabase
-        .from("payment_refund_reviews")
-        .select("gateway_payment_id,refund_id,status,reason,created_at,resolved_at");
-      if (refundReviewError) throw new Error(refundReviewError.message);
+        if (error) throw new Error(error.message);
+        const page = (data ?? []) as PaymentRow[];
+        paymentRows.push(...page);
+        if (page.length < PAYMENT_PAGE_SIZE) break;
+      }
+
+      const paymentIds = paymentRows
+        .map((row) => row.gateway_payment_id)
+        .filter((id): id is string => id !== null);
+      const refundReviews: Array<NonNullable<RefundReviewSummary>> = [];
+      for (let start = 0; start < paymentIds.length; start += REFUND_LOOKUP_BATCH_SIZE) {
+        const batch = paymentIds.slice(start, start + REFUND_LOOKUP_BATCH_SIZE);
+        const { data, error } = await supabase
+          .from("payment_refund_reviews")
+          .select("gateway_payment_id,refund_id,status,reason,created_at,resolved_at")
+          .in("gateway_payment_id", batch)
+          .order("gateway_payment_id", { ascending: true })
+          .range(0, batch.length - 1);
+        if (error) throw new Error(error.message);
+        refundReviews.push(...(data ?? []));
+      }
       const reviewByPaymentId = new Map<string, RefundReviewSummary>(
-        (refundReviews ?? []).map((review) => [review.gateway_payment_id, review]),
+        refundReviews.map((review) => [review.gateway_payment_id, review]),
       );
-      return ((data ?? []) as PaymentRow[]).map((row) =>
+      return paymentRows.map((row) =>
         toPaymentWithCustomer(
           row,
           row.gateway_payment_id ? reviewByPaymentId.get(row.gateway_payment_id) ?? null : null,

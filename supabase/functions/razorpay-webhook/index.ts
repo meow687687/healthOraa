@@ -91,107 +91,36 @@ Deno.serve(async (request) => {
   });
 
   if (isRefundEvent && refund) {
-    const { data: transaction, error: transactionError } = await supabase.from("payment_transactions")
-      .select("amount_inr,gateway_order_id")
-      .eq("gateway_payment_id", paymentId)
-      .maybeSingle();
-    if (transactionError) return jsonResponse({ error: "Could not load refund audit" }, 500);
-    if (!transaction) return jsonResponse({ received: true, ignored: true });
-
     const refundId = refund.id as string;
-    const { data: review, error: reviewError } = await supabase.from("payment_refund_reviews")
-      .select("refund_id,status")
-      .eq("gateway_payment_id", paymentId)
-      .maybeSingle();
-    if (reviewError) return jsonResponse({ error: "Could not load refund review" }, 500);
-    if (review?.refund_id && review.refund_id !== refundId) {
-      return jsonResponse({ received: true, ignored: true });
-    }
+    const refundStatus = eventName === "refund.processed"
+      ? "processed"
+      : eventName === "refund.failed"
+      ? "failed"
+      : "created";
+    const { data: recorded, error: recordError } = await supabase.rpc("record_razorpay_refund_event", {
+      p_refund_id: refundId,
+      p_gateway_payment_id: paymentId,
+      p_gateway_order_id: typeof orderId === "string" ? orderId : null,
+      p_amount_paise: refund.amount,
+      p_status: refundStatus,
+    });
+    if (recordError || recorded !== true) return jsonResponse({ error: "Could not retain refund event" }, 500);
 
-    if (eventName === "refund.created") {
-      if (review?.status === "pending") {
-        const { error } = await supabase.from("payment_refund_reviews")
-          .update({ refund_id: refundId })
-          .eq("gateway_payment_id", paymentId)
-          .eq("status", "pending");
-        if (error) return jsonResponse({ error: "Could not save refund reference" }, 500);
-      }
-      return jsonResponse({ received: true, status: "refund_pending" });
-    }
-
-    if (eventName === "refund.failed") {
-      if (review?.status === "pending") {
-        const { error } = await supabase.from("payment_refund_reviews")
-          .update({
-            refund_id: null,
-            reason: "The automatic refund failed. Issue a refund in Razorpay and record its ID here.",
-          })
-          .eq("gateway_payment_id", paymentId)
-          .eq("status", "pending");
-        if (error) return jsonResponse({ error: "Could not update refund review" }, 500);
-      }
-      return jsonResponse({ received: true, status: "refund_failed" });
-    }
-
-    const isFullRefund = Number.isFinite(Number(transaction.amount_inr)) &&
-      refund.amount === Math.round(Number(transaction.amount_inr) * 100);
-    if (!isFullRefund) {
-      if (review?.status === "pending") {
-        const { error } = await supabase.from("payment_refund_reviews")
-          .update({
-            refund_id: null,
-            reason: "The provider completed a partial refund. Verify the remaining balance and record the final refund here.",
-          })
-          .eq("gateway_payment_id", paymentId)
-          .eq("status", "pending");
-        if (error) return jsonResponse({ error: "Could not update refund review" }, 500);
-      } else if (!review) {
-        const gatewayOrderId = typeof orderId === "string" && orderId
-          ? orderId
-          : transaction.gateway_order_id;
-        if (!gatewayOrderId) return jsonResponse({ error: "Could not link partial refund to its payment order" }, 500);
-        const { data: orderLog, error: orderLogError } = await supabase.from("razorpay_order_logs")
-          .select("user_id")
-          .eq("order_id", gatewayOrderId)
-          .maybeSingle();
-        if (orderLogError) return jsonResponse({ error: "Could not load partial refund owner" }, 500);
-        const { error } = await supabase.from("payment_refund_reviews").insert({
-          gateway_payment_id: paymentId,
-          gateway_order_id: gatewayOrderId,
-          user_id: orderLog?.user_id ?? null,
-          reason: "The provider completed a partial refund. Verify the remaining balance and record the final refund here.",
-        });
-        if (error && error.code !== "23505") return jsonResponse({ error: "Could not record partial refund review" }, 500);
-      }
-      return jsonResponse({ received: true, status: "partial_refund_review" });
-    }
-
-    const resolvedAt = new Date().toISOString();
-    const { error: paymentUpdateError } = await supabase.from("payment_transactions")
-      .update({ status: "refunded" })
-      .eq("gateway_payment_id", paymentId);
-    if (paymentUpdateError) return jsonResponse({ error: "Could not record completed refund" }, 500);
-    if (review?.status === "pending") {
-      const { error } = await supabase.from("payment_refund_reviews")
-        .update({ refund_id: refundId, status: "resolved", resolved_at: resolvedAt })
-        .eq("gateway_payment_id", paymentId)
-        .eq("status", "pending");
-      if (error) return jsonResponse({ error: "Could not resolve refund review" }, 500);
-    }
-    if (typeof orderId === "string") {
-      const { error } = await supabase.from("razorpay_order_logs")
-        .update({ status: "refunded" })
-        .eq("order_id", orderId)
-        .eq("status", "refund_review");
-      if (error) return jsonResponse({ error: "Could not update refunded order" }, 500);
-    }
-    return jsonResponse({ received: true, status: "refunded" });
+    const { data: reconciledStatus, error: reconciliationError } = await supabase.rpc(
+      "reconcile_razorpay_refunds",
+      { p_gateway_payment_id: paymentId },
+    );
+    if (reconciliationError) return jsonResponse({ error: "Could not reconcile refund events" }, 500);
+    const responseStatus = reconciledStatus === "partial_review"
+      ? "partial_refund_review"
+      : reconciledStatus;
+    return jsonResponse({ received: true, status: responseStatus });
   }
 
   const { data: orderLog, error: lookupError } = await supabase
     .from("razorpay_order_logs")
     .select(
-      "order_id,user_id,amount_paise,currency,status,entity_type,entity_id",
+      "order_id,user_id,amount_paise,currency,status,entity_type,entity_id,captured_payment_id",
     )
     .eq("order_id", orderId)
     .maybeSingle();
@@ -205,7 +134,16 @@ Deno.serve(async (request) => {
       409,
     );
   }
-  if (orderLog.status === "refunded") {
+  const captured = event.event === "payment.captured";
+  if (orderLog.status === "refunded" && captured && orderLog.captured_payment_id === paymentId) {
+    return jsonResponse({
+      received: true,
+      status: "refunded",
+      duplicate: true,
+      entity_type: orderLog.entity_type,
+    });
+  }
+  if (orderLog.status === "refunded" && !captured) {
     return jsonResponse({
       received: true,
       status: "refunded",
@@ -214,7 +152,6 @@ Deno.serve(async (request) => {
     });
   }
 
-  const captured = event.event === "payment.captured";
   let paymentOrderUsable = ["created", "captured", "fulfilled"].includes(orderLog.status);
   const { data: priorPayment, error: priorError } = await supabase.from(
     "payment_transactions",
@@ -226,24 +163,32 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: "Could not check payment audit" }, 500);
   }
   const alreadyCaptured = priorPayment?.status === "captured";
-  const status = captured || alreadyCaptured ? "captured" : "failed";
+  const status = priorPayment?.status === "refunded"
+    ? "refunded"
+    : captured || alreadyCaptured
+    ? "captured"
+    : "failed";
+  let duplicateCapturedPayment = captured && (
+    Boolean(orderLog.captured_payment_id && orderLog.captured_payment_id !== paymentId) ||
+    (orderLog.status === "refunded" && orderLog.captured_payment_id !== paymentId)
+  );
   if (captured && paymentOrderUsable) {
-    const { data: activeLog, error: logError } = await supabase.from("razorpay_order_logs")
-      .update({ status: "captured" })
-      .eq("order_id", orderId)
-      .in("status", ["created", "captured"])
-      .select("status")
-      .maybeSingle();
-    if (logError) return jsonResponse({ error: "Could not update payment order" }, 500);
-    if (activeLog) {
-      orderLog.status = activeLog.status;
-    } else {
-      // A concurrent expiry or price change may have superseded the order after the initial lookup.
+    const { data: claimed, error: claimError } = await supabase.rpc("claim_razorpay_order_capture", {
+      p_order_id: orderId,
+      p_payment_id: paymentId,
+    });
+    if (claimError) return jsonResponse({ error: "Could not claim captured payment" }, 500);
+    if (claimed !== true) {
       const { data: latestLog, error: latestError } = await supabase.from("razorpay_order_logs")
-        .select("status").eq("order_id", orderId).maybeSingle();
-      if (latestError) return jsonResponse({ error: "Could not recheck payment order" }, 500);
-      orderLog.status = latestLog?.status ?? "superseded";
-      paymentOrderUsable = ["captured", "fulfilled"].includes(orderLog.status);
+        .select("status,captured_payment_id").eq("order_id", orderId).maybeSingle();
+      if (latestError || !latestLog) return jsonResponse({ error: "Could not recheck captured payment" }, 500);
+      orderLog.status = latestLog.status;
+      orderLog.captured_payment_id = latestLog.captured_payment_id;
+      duplicateCapturedPayment = Boolean(latestLog.captured_payment_id && latestLog.captured_payment_id !== paymentId);
+      paymentOrderUsable = false;
+    } else if (orderLog.status === "created") {
+      orderLog.status = "captured";
+      orderLog.captured_payment_id = paymentId;
     }
   }
 
@@ -278,23 +223,40 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: "Could not save payment audit" }, 500);
   }
 
+  let refundReconciliation: string | null = null;
+  if (status === "captured") {
+    const { data: result, error: reconciliationError } = await supabase.rpc(
+      "reconcile_razorpay_refunds",
+      { p_gateway_payment_id: paymentId },
+    );
+    if (reconciliationError) return jsonResponse({ error: "Could not reconcile prior refund events" }, 500);
+    refundReconciliation = typeof result === "string" ? result : "none";
+  }
+
   const recordRefundReview = async (
     reason: string,
+    preserveFulfilledOrder = false,
   ): Promise<"recorded" | "fulfilled" | "refunded" | "error"> => {
-    const { data: updatedLog, error: logError } = await supabase.from("razorpay_order_logs")
-      .update({ status: "refund_review" })
-      .eq("order_id", orderId)
-      .in("status", ["created", "superseded", "failed", "captured", "refund_review"])
-      .select("status")
-      .maybeSingle();
-    if (logError) return "error";
-    if (!updatedLog) {
+    if (preserveFulfilledOrder) {
       const { data: latestLog, error: latestError } = await supabase.from("razorpay_order_logs")
         .select("status").eq("order_id", orderId).maybeSingle();
       if (latestError || !latestLog) return "error";
-      if (latestLog.status === "fulfilled") return "fulfilled";
-      if (latestLog.status === "refunded") return "refunded";
-      if (latestLog.status !== "refund_review") return "error";
+    } else {
+      const { data: updatedLog, error: logError } = await supabase.from("razorpay_order_logs")
+        .update({ status: "refund_review" })
+        .eq("order_id", orderId)
+        .in("status", ["created", "superseded", "failed", "captured", "refund_review"])
+        .select("status")
+        .maybeSingle();
+      if (logError) return "error";
+      if (!updatedLog) {
+        const { data: latestLog, error: latestError } = await supabase.from("razorpay_order_logs")
+          .select("status").eq("order_id", orderId).maybeSingle();
+        if (latestError || !latestLog) return "error";
+        if (latestLog.status === "fulfilled") return "fulfilled";
+        if (latestLog.status === "refunded") return "refunded";
+        if (latestLog.status !== "refund_review") return "error";
+      }
     }
 
     const { error: reviewError } = await supabase.from("payment_refund_reviews").insert({
@@ -308,8 +270,9 @@ Deno.serve(async (request) => {
 
   const requestAutomaticRefund = async (
     reason: string,
+    preserveFulfilledOrder = false,
   ): Promise<"recorded" | "fulfilled" | "refunded" | "error"> => {
-    const reviewResult = await recordRefundReview(reason);
+    const reviewResult = await recordRefundReview(reason, preserveFulfilledOrder);
     if (reviewResult !== "recorded") return reviewResult;
 
     const { data: existingReview, error: existingReviewError } = await supabase.from("payment_refund_reviews")
@@ -318,10 +281,49 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (existingReviewError) return "error";
     if (existingReview?.status === "resolved") return "refunded";
-    if (existingReview?.refund_id) return "recorded";
 
     const keyId = Deno.env.get("RAZORPAY_KEY_ID");
     const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
+    if (existingReview?.refund_id) {
+      if (!keyId || !keySecret) return "error";
+      let statusResponse: Response;
+      try {
+        statusResponse = await fetch(`https://api.razorpay.com/v1/refunds/${encodeURIComponent(existingReview.refund_id)}`, {
+          headers: { authorization: `Basic ${btoa(`${keyId}:${keySecret}`)}` },
+          signal: AbortSignal.timeout(10_000),
+        });
+      } catch {
+        return "error";
+      }
+      if (!statusResponse.ok) return "error";
+      let savedRefund: unknown;
+      try {
+        savedRefund = await statusResponse.json();
+      } catch {
+        return "error";
+      }
+      if (!isObject(savedRefund) || savedRefund.id !== existingReview.refund_id || savedRefund.payment_id !== paymentId ||
+          !Number.isSafeInteger(savedRefund.amount) || (savedRefund.amount as number) <= 0) return "error";
+      const savedStatus = savedRefund.status === "processed"
+        ? "processed"
+        : savedRefund.status === "failed"
+        ? "failed"
+        : "created";
+      const { data: recorded, error: recordError } = await supabase.rpc("record_razorpay_refund_event", {
+        p_refund_id: existingReview.refund_id,
+        p_gateway_payment_id: paymentId,
+        p_gateway_order_id: orderId,
+        p_amount_paise: savedRefund.amount,
+        p_status: savedStatus,
+      });
+      if (recordError || recorded !== true) return "error";
+      const { data: reconciled, error: reconcileError } = await supabase.rpc("reconcile_razorpay_refunds", {
+        p_gateway_payment_id: paymentId,
+      });
+      if (reconcileError) return "error";
+      return reconciled === "refunded" ? "refunded" : "recorded";
+    }
+
     if (!keyId || !keySecret) {
       const { error } = await supabase.from("payment_refund_reviews")
         .update({ reason: `${reason} Automatic refund is unavailable. Issue the refund in Razorpay and record its ID here.` })
@@ -340,6 +342,7 @@ Deno.serve(async (request) => {
           "X-Refund-Idempotency": `healthoraa-${paymentId}`,
         },
         body: JSON.stringify({ notes: { reason: "Reservation expired before payment capture" } }),
+        signal: AbortSignal.timeout(10_000),
       });
     } catch {
       return "error";
@@ -366,47 +369,92 @@ Deno.serve(async (request) => {
     }
     const refundId = isObject(refundResult) && typeof refundResult.id === "string" ? refundResult.id : null;
     const refundStatus = isObject(refundResult) && typeof refundResult.status === "string" ? refundResult.status : null;
-    if (!refundId) return "error";
-
-    if (refundStatus === "failed") {
-      const { error } = await supabase.from("payment_refund_reviews")
-        .update({
-          refund_id: null,
-          reason: `${reason} Automatic refund failed. Issue the refund in Razorpay and record its ID here.`,
-        })
-        .eq("gateway_payment_id", paymentId)
-        .eq("status", "pending");
-      return error ? "error" : "recorded";
-    }
+    const refundAmount = isObject(refundResult) && Number.isSafeInteger(refundResult.amount) && (refundResult.amount as number) > 0
+      ? refundResult.amount
+      : amount;
+    if (!refundId || !Number.isSafeInteger(refundAmount) || (refundAmount as number) <= 0) return "error";
 
     const { error: refundIdError } = await supabase.from("payment_refund_reviews")
       .update({ refund_id: refundId })
       .eq("gateway_payment_id", paymentId)
       .eq("status", "pending");
     if (refundIdError) return "error";
-
-    if (refundStatus === "processed") {
-      const resolvedAt = new Date().toISOString();
-      const { error: transactionUpdateError } = await supabase.from("payment_transactions")
-        .update({ status: "refunded" })
-        .eq("gateway_payment_id", paymentId);
-      if (transactionUpdateError) return "error";
-      const { error: reviewUpdateError } = await supabase.from("payment_refund_reviews")
-        .update({ status: "resolved", resolved_at: resolvedAt })
-        .eq("gateway_payment_id", paymentId)
-        .eq("refund_id", refundId)
-        .eq("status", "pending");
-      if (reviewUpdateError) return "error";
-      const { error: orderUpdateError } = await supabase.from("razorpay_order_logs")
-        .update({ status: "refunded" })
-        .eq("order_id", orderId)
-        .eq("status", "refund_review");
-      if (orderUpdateError) return "error";
-      return "refunded";
-    }
-
-    return "recorded";
+    const gatewayRefundStatus = refundStatus === "processed"
+      ? "processed"
+      : refundStatus === "failed"
+      ? "failed"
+      : "created";
+    const { data: recorded, error: recordError } = await supabase.rpc("record_razorpay_refund_event", {
+      p_refund_id: refundId,
+      p_gateway_payment_id: paymentId,
+      p_gateway_order_id: orderId,
+      p_amount_paise: refundAmount,
+      p_status: gatewayRefundStatus,
+    });
+    if (recordError || recorded !== true) return "error";
+    const { data: reconciled, error: reconcileError } = await supabase.rpc("reconcile_razorpay_refunds", {
+      p_gateway_payment_id: paymentId,
+    });
+    if (reconcileError) return "error";
+    return reconciled === "refunded" ? "refunded" : "recorded";
   };
+
+  if (refundReconciliation && !["none", "unmatched"].includes(refundReconciliation)) {
+    return jsonResponse({
+      received: true,
+      status: refundReconciliation === "refunded" ? "refunded" : "captured",
+      entity_type: orderLog.entity_type,
+      refund_review: refundReconciliation !== "refunded",
+    });
+  }
+
+  if (status === "refunded") {
+    return jsonResponse({ received: true, status: "refunded", duplicate: true, entity_type: orderLog.entity_type });
+  }
+
+  if (duplicateCapturedPayment) {
+    const refund = await requestAutomaticRefund(
+      "A second distinct payment was captured against an order that already has a captured payment. Refund the additional charge.",
+      true,
+    );
+    if (refund === "error") return jsonResponse({ error: "Duplicate captured payment refund could not be reconciled" }, 500);
+    return jsonResponse({
+      received: true,
+      status: refund === "refunded" ? "refunded" : "captured",
+      entity_type: orderLog.entity_type,
+      refund_review: refund === "recorded",
+      duplicate: true,
+    });
+  }
+
+  if (captured && orderLog.status === "refund_review" && orderLog.captured_payment_id === paymentId) {
+    const { data: existingReview, error: reviewError } = await supabase.from("payment_refund_reviews")
+      .select("refund_id,status")
+      .eq("gateway_payment_id", paymentId)
+      .maybeSingle();
+    if (reviewError) return jsonResponse({ error: "Could not recheck existing refund review" }, 500);
+    if (existingReview?.refund_id) {
+      const resumedRefund = await requestAutomaticRefund(
+        "Resume the previously recorded refund and reconcile its provider status.",
+        true,
+      );
+      if (resumedRefund === "error") return jsonResponse({ error: "Existing refund could not be reconciled" }, 500);
+      return jsonResponse({
+        received: true,
+        status: resumedRefund === "refunded" ? "refunded" : "captured",
+        entity_type: orderLog.entity_type,
+        refund_review: resumedRefund !== "refunded",
+        duplicate: true,
+      });
+    }
+    return jsonResponse({
+      received: true,
+      status: "captured",
+      entity_type: orderLog.entity_type,
+      refund_review: true,
+      duplicate: true,
+    });
+  }
 
   if (orderLog.status === "fulfilled") {
     return jsonResponse({ received: true, status: "captured", duplicate: true, entity_type: orderLog.entity_type });
@@ -477,12 +525,10 @@ Deno.serve(async (request) => {
       }
     }
   } else if (orderLog.entity_type === "shop_order") {
-    const { data: paidOrder, error } = await supabase.from("orders").update({ status: "paid" })
-      .eq("id", orderLog.entity_id).eq("customer_id", orderLog.user_id).eq(
-        "status",
-        "pending",
-      ).is("stock_released_at", null).gt("reservation_expires_at", new Date().toISOString())
-      .select("id").maybeSingle();
+    const { data: paidOrder, error } = await supabase.rpc("confirm_shop_order_payment_capture", {
+      p_order_id: orderLog.entity_id,
+      p_patient_id: orderLog.user_id,
+    });
     if (error) {
       return jsonResponse({
         error: "Payment saved, but order confirmation failed",
@@ -510,13 +556,21 @@ Deno.serve(async (request) => {
       }
     }
   } else if (orderLog.entity_type === "program") {
-    const { error: enrolmentError } = await supabase.rpc("fulfill_program_enrolment", {
+    const { data: enrolmentId, error: enrolmentError } = await supabase.rpc("fulfill_program_enrolment", {
       p_patient_id: orderLog.user_id,
       p_program_id: orderLog.entity_id,
       p_order_id: orderId,
     });
     if (enrolmentError) {
       return jsonResponse({ error: "Payment saved, but enrolment could not be activated." }, 500);
+    }
+    if (enrolmentId === null) {
+      return jsonResponse({
+        received: true,
+        status: "captured",
+        entity_type: orderLog.entity_type,
+        refund_review: true,
+      });
     }
   } else {
     return jsonResponse({ error: "Unsupported payment entity type" }, 400);

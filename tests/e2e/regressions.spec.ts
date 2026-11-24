@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { PERSONAS, PUBLISHABLE_KEY, SUPABASE_URL } from "./support/config";
 import { lit, psql, script } from "./support/db";
 import { accessToken, api } from "./support/api";
-import { sendPaymentCaptured } from "./support/webhook";
+import { sendPaymentCaptured, sendRefundProcessed } from "./support/webhook";
 
 // Regression checks for the review fixes. Each one fails if its bug comes back. They call the
 // database and the webhook directly, so they do not depend on the portals' screens.
@@ -24,6 +24,7 @@ const insertConsultation = (id: string, status: string, bookingStatus: string, o
 
 const cleanup = (): void => {
   script(`
+    delete from payment_refund_reviews where gateway_payment_id like ${lit(`pay_${run}%`)};
     delete from payment_transactions where gateway_payment_id like ${lit(`pay_${run}%`)};
     delete from razorpay_order_logs where order_id like ${lit(`order_${run}%`)};
     delete from consultation_slots where start_time = '${FAR_FUTURE} 04:30:00+00';
@@ -93,6 +94,59 @@ test.describe.serial("review fixes", () => {
     expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(`pay_${run}_late`)}`)).toBe(
       "captured",
     );
+  });
+
+  test("a capture after consultation expiry is queued for refund before the expiry sweep", async () => {
+    const id = crypto.randomUUID();
+    const orderId = `order_${run}_expired`;
+    insertConsultation(id, "scheduled", "pending_payment", orderId);
+    script(`
+      update consultations set payment_expires_at = now() - interval '1 second' where id = '${id}';
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(orderId)}, '${PATIENT}', 79900, 'INR', 'created', 'consultation', '${id}');
+    `);
+
+    const result = await sendPaymentCaptured({
+      orderId,
+      amountPaise: 79900,
+      currency: "INR",
+      paymentId: `pay_${run}_expired`,
+    });
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    expect(result.body.refund_review).toBe(true);
+    expect(psql(`select booking_status from consultations where id = '${id}'`)).toBe("pending_payment");
+    expect(psql(`select status from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe("refund_review");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(`pay_${run}_expired`)}`)).toBe(
+      "captured",
+    );
+    expect(
+      psql(`select reason from payment_refund_reviews where gateway_payment_id = ${lit(`pay_${run}_expired`)}`),
+    ).toContain("reservation expired");
+  });
+
+  test("a partial refund without a prior review is added to the admin refund queue", async () => {
+    const orderId = `order_${run}_partial`;
+    const paymentId = `pay_${run}_partial`;
+    const entityId = crypto.randomUUID();
+    script(`
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(orderId)}, '${PATIENT}', 79900, 'INR', 'fulfilled', 'shop_order', '${entityId}');
+      insert into payment_transactions (gateway_payment_id, gateway_order_id, amount_inr, currency, status)
+      values (${lit(paymentId)}, ${lit(orderId)}, 799, 'INR', 'captured');
+    `);
+
+    const result = await sendRefundProcessed({
+      orderId,
+      paymentId,
+      refundId: `rfnd_${run}_partial`,
+      refundAmountPaise: 12000,
+    });
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    expect(result.body.status).toBe("partial_refund_review");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("captured");
+    expect(psql(`select status from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe("pending");
+    expect(psql(`select user_id from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe(PATIENT);
+    expect(psql(`select public.has_pending_payment_refund_review('${PATIENT}', 'shop_order', '${entityId}')::text`)).toBe("true");
   });
 
   test("concurrent deliveries of one program payment create one active enrolment", async () => {

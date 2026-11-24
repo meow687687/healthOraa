@@ -96,7 +96,7 @@ Record each rehearsal with the date, commit SHA, reset result, three role outcom
 |---|---|
 | Payment enable flags/credentials absent in the local demo environment | Verified 2026-11-24 by a redacted name-only check of the portal and function env files plus the current process environment; no values were printed. |
 | Clean database reset and type generation | Verified 2026-11-24; all migrations applied and generated DB types had no diff. |
-| Full 19-test lifecycle, regression, and security run, rehearsal 1 | Passed 2026-11-24 after clean reset. |
-| Full 19-test lifecycle, regression, and security run, rehearsal 2 | Passed 2026-11-24 after a second independent clean reset. |
+| Full 22-test lifecycle, regression, and security run, rehearsal 1 | Passed 2026-11-24 after clean reset; includes payment-expiry, partial-refund, storage-RLS, push-token ownership, account-deletion retry, and cleanup of 1,001-record batches. |
+| Full 22-test lifecycle, regression, and security run, rehearsal 2 | Passed 2026-11-24 after a second independent clean reset. |
 | Responsive web review | Passed 2026-11-24 across patient, practitioner, and admin at 375×812, 768×1024, and 1280×720; final browser consoles showed no errors. Screenshots are in ignored `.audit/evidence/phase1/`. |
 | Keyboard, screen-reader, and rendered native-app review | Pending; see `docs/IMPLEMENTATION_PLAN.md` limitations. |

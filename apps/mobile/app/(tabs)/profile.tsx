@@ -15,7 +15,7 @@ const DELETE_MESSAGE =
   'Your login, name, phone number and any health records you uploaded are deleted. Consultation, prescription and order records stay on file without your name, because clinical and tax rules require them. This cannot be undone.';
 
 export default function ProfileScreen() {
-  const { session, signOut, setNotice } = useAuth();
+  const { session, signOut, signOutAfterAccountDeletion, setNotice } = useAuth();
   const profile = useProfile();
   const locker = useHealthLocker();
   const deleteAccount = useDeleteAccount();
@@ -45,9 +45,9 @@ export default function ProfileScreen() {
             setDeleteError(null);
             try {
               await deleteAccount.mutateAsync();
-              // The server has already revoked the login. Clear this device and show the sign-in screen.
+              // The server already removed this device token and disabled the account. Clear the local session.
               setNotice('Your account and personal data have been deleted.');
-              await signOut();
+              await signOutAfterAccountDeletion();
             } catch (error) {
               setDeleteError(error instanceof Error ? error.message : 'Account deletion failed. Try again.');
             }

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import type { Session } from '@supabase/supabase-js';
 import { Platform, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { allowPushTokenRegistration, clearPushToken } from '../lib/notifications';
+import { allowPushTokenRegistration, blockPushTokenRegistration, clearPushToken } from '../lib/notifications';
 
 export type AuthStatus = 'loading' | 'signed-out' | 'signed-in' | 'profile-error';
 
@@ -17,6 +17,7 @@ export interface AuthApi extends AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (fullName: string, email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
+  signOutAfterAccountDeletion: () => Promise<void>;
   retryProfile: () => void;
   setNotice: (notice: string | null) => void;
 }
@@ -136,6 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
         const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+      },
+      signOutAfterAccountDeletion: async () => {
+        if (state.session?.user.id) blockPushTokenRegistration(state.session.user.id);
+        const { error } = await supabase.auth.signOut({ scope: 'local' });
         if (error) throw error;
       },
       retryProfile: () => retryProfileRef.current?.(),

@@ -35,6 +35,38 @@ export const sendPaymentCaptured = async (input: {
   return { status: response.status, body };
 };
 
+export const sendRefundProcessed = async (input: {
+  orderId: string;
+  paymentId: string;
+  refundId: string;
+  refundAmountPaise: number;
+}): Promise<WebhookResult> => {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/razorpay-webhook`, {
+    method: "POST",
+    headers: { "content-type": "application/json", apikey: PUBLISHABLE_KEY },
+    body: JSON.stringify({
+      event: "refund.processed",
+      payload: {
+        payment: {
+          entity: {
+            id: input.paymentId,
+            order_id: input.orderId,
+          },
+        },
+        refund: {
+          entity: {
+            id: input.refundId,
+            payment_id: input.paymentId,
+            amount: input.refundAmountPaise,
+          },
+        },
+      },
+    }),
+  });
+  const body = (await response.json()) as Record<string, unknown>;
+  return { status: response.status, body };
+};
+
 export const webhookReady = async (): Promise<boolean> => {
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/razorpay-webhook`, {

@@ -35,24 +35,28 @@ export function CheckoutSheet({
   onClose: () => void;
 }) {
   const [placed, setPlaced] = useState<{ orderId: string } | null>(null);
+  const [isPlacing, setIsPlacing] = useState(false);
+  const close = () => {
+    if (isPlacing) return;
+    setPlaced(null);
+    onClose();
+  };
   return (
     <Sheet
       visible={visible}
       title={placed ? 'Order placed' : 'Checkout'}
-      onClose={() => {
-        setPlaced(null);
-        onClose();
-      }}
+      onClose={close}
+      closeDisabled={isPlacing}
     >
       {placed ? (
         <PlacedOrder orderId={placed.orderId} totalPaise={totals.totalPaise} onDone={() => {
-          setPlaced(null);
-          onClose();
+          close();
         }} />
       ) : (
         <ShippingForm
           lines={lines}
           totals={totals}
+          onPlacementPending={setIsPlacing}
           onPlaced={(orderId) => {
             useCartStore.getState().clear();
             setPlaced({ orderId });
@@ -66,10 +70,12 @@ export function CheckoutSheet({
 function ShippingForm({
   lines,
   totals,
+  onPlacementPending,
   onPlaced,
 }: {
   lines: CartLine[];
   totals: Totals;
+  onPlacementPending: (pending: boolean) => void;
   onPlaced: (orderId: string) => void;
 }) {
   const place = usePlaceOrder();
@@ -93,6 +99,7 @@ function ShippingForm({
       return;
     }
     const items = lines.map((line) => ({ productId: line.product.id, quantity: line.quantity }));
+    onPlacementPending(true);
     try {
       if (!userId) throw new Error('Sign in to place your order.');
       const signature = hashRequest(JSON.stringify({ items, checkout: values }));
@@ -135,6 +142,8 @@ function ShippingForm({
         return;
       }
       setFailure(error instanceof Error ? error.message : 'The order could not be placed. Try again.');
+    } finally {
+      onPlacementPending(false);
     }
   };
 

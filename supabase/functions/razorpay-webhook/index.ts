@@ -92,7 +92,7 @@ Deno.serve(async (request) => {
 
   if (isRefundEvent && refund) {
     const { data: transaction, error: transactionError } = await supabase.from("payment_transactions")
-      .select("amount_inr")
+      .select("amount_inr,gateway_order_id")
       .eq("gateway_payment_id", paymentId)
       .maybeSingle();
     if (transactionError) return jsonResponse({ error: "Could not load refund audit" }, 500);
@@ -145,6 +145,23 @@ Deno.serve(async (request) => {
           .eq("gateway_payment_id", paymentId)
           .eq("status", "pending");
         if (error) return jsonResponse({ error: "Could not update refund review" }, 500);
+      } else if (!review) {
+        const gatewayOrderId = typeof orderId === "string" && orderId
+          ? orderId
+          : transaction.gateway_order_id;
+        if (!gatewayOrderId) return jsonResponse({ error: "Could not link partial refund to its payment order" }, 500);
+        const { data: orderLog, error: orderLogError } = await supabase.from("razorpay_order_logs")
+          .select("user_id")
+          .eq("order_id", gatewayOrderId)
+          .maybeSingle();
+        if (orderLogError) return jsonResponse({ error: "Could not load partial refund owner" }, 500);
+        const { error } = await supabase.from("payment_refund_reviews").insert({
+          gateway_payment_id: paymentId,
+          gateway_order_id: gatewayOrderId,
+          user_id: orderLog?.user_id ?? null,
+          reason: "The provider completed a partial refund. Verify the remaining balance and record the final refund here.",
+        });
+        if (error && error.code !== "23505") return jsonResponse({ error: "Could not record partial refund review" }, 500);
       }
       return jsonResponse({ received: true, status: "partial_refund_review" });
     }
@@ -419,31 +436,33 @@ Deno.serve(async (request) => {
   }
 
   if (orderLog.entity_type === "consultation") {
-    const { data: confirmed, error } = await supabase
-      .from("consultations")
-      .update({ booking_status: "confirmed" })
-      .eq("id", orderLog.entity_id)
-      .eq("patient_id", orderLog.user_id)
-      .eq("payment_order_id", orderId)
-      .eq("booking_status", "pending_payment")
-      .select("id");
+    const { data: confirmed, error } = await supabase.rpc("confirm_consultation_payment_capture", {
+      p_consultation_id: orderLog.entity_id,
+      p_patient_id: orderLog.user_id,
+      p_order_id: orderId,
+    });
     if (error) {
       return jsonResponse({
         error: "Payment saved, but consultation confirmation failed",
       }, 500);
     }
-    if (!confirmed?.length) {
+    if (!confirmed) {
       // An earlier delivery already confirmed it, or the booking was cancelled. A cancelled
       // booking is never confirmed here; its payment stays in the audit for a refund.
       const { data: booking, error: bookingError } = await supabase
         .from("consultations")
-        .select("booking_status")
+        .select("booking_status,payment_expires_at")
         .eq("id", orderLog.entity_id)
         .maybeSingle();
       if (bookingError) return jsonResponse({ error: "Could not verify consultation state before refunding." }, 500);
       if (booking?.booking_status !== "confirmed") {
+        const expired = booking?.payment_expires_at !== null &&
+          booking?.payment_expires_at !== undefined &&
+          Date.parse(booking.payment_expires_at) <= Date.now();
         const review = await requestAutomaticRefund(
-          "The consultation was no longer awaiting payment when Razorpay captured this payment.",
+          expired
+            ? "The consultation reservation expired before Razorpay captured this payment."
+            : "The consultation was no longer awaiting payment when Razorpay captured this payment.",
         );
         if (review === "error") {
           return jsonResponse({ error: "Captured payment refund review could not be recorded" }, 500);

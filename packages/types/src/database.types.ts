@@ -680,6 +680,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"confirm_consultation_payment_capture":
+{ Args: { "p_consultation_id": string,"p_order_id": string,"p_patient_id": string }; Returns: boolean
+                           },
 "create_mobile_order":
 { Args: { "p_items": Json,"p_shipping_address": string }; Returns: string
                            } |
@@ -756,6 +759,9 @@ isOneToOne: false
               "avatar_url": string,"bio": string,"consultation_fee_inr": number,"full_name": string,"id": string,"languages_spoken": (string)[],"qualification": string,"slot_duration_minutes": number,"specialization": string,"years_of_experience": number
             }[]
                            },
+"has_pending_payment_refund_review":
+{ Args: { "p_entity_id": string,"p_entity_type": string,"p_user_id": string }; Returns: boolean
+                           },
 "initiate_consultation_booking":
 { Args: { "p_chief_complaint": string,"p_patient_id": string,"p_slot_id": string }; Returns: {
               "consultation_row": Database["public"]['Tables']["consultations"]['Row'],"fee_paise": number,"gst_paise": number,"order_id": string,"total_paise": number
@@ -763,6 +769,16 @@ isOneToOne: false
                            },
 "issue_prescription":
 { Args: { "p_clinical_notes": string,"p_consultation_id": string,"p_diagnosis": string,"p_followup_days": number,"p_medicines": Json }; Returns: string
+                           },
+"list_patient_owned_meal_objects":
+{ Args: { "p_patient_id": string }; Returns: {
+              "bucket_id": string,"name": string
+            }[]
+                           },
+"list_patient_owned_record_objects":
+{ Args: { "p_patient_id": string }; Returns: {
+              "bucket_id": string,"name": string
+            }[]
                            },
 "place_shop_order":
 { Args: { "p_patient_id": string,"p_shipping_address": string }; Returns: {
@@ -792,6 +808,9 @@ isOneToOne: false
                            },
 "record_payment_refund_review":
 { Args: { "p_gateway_payment_id": string,"p_refund_id": string }; Returns: string
+                           },
+"register_patient_push_token":
+{ Args: { "p_expo_push_token": string }; Returns: undefined
                            },
 "resolve_erasure_request":
 { Args: { "p_request_id": string }; Returns: {

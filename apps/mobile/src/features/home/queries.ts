@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Enums } from '@healthoraa/types';
 import { PROGRAM_CATEGORY_VALUES } from '@healthoraa/validation';
 import { supabase } from '../../lib/supabase';
@@ -36,6 +37,24 @@ export const useBanners = () =>
 export const useActiveEnrolment = () => {
   const { session } = useAuth();
   const userId = session?.user.id;
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`active-enrolment:${userId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'program_enrolments',
+        filter: `patient_id=eq.${userId}`,
+      }, () => {
+        void queryClient.invalidateQueries({ queryKey: ['enrolment', userId] });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient, userId]);
   return useQuery({
     queryKey: ['enrolment', userId],
     enabled: Boolean(userId),

@@ -141,6 +141,7 @@ CREATE POLICY "Patients upload own diet charts" ON storage.objects
         AND public.current_user_role() = 'patient'
         AND split_part(name, '/', 1) = (SELECT auth.uid())::text
         AND split_part(name, '/', 2) = 'meals'
+        AND owner_id = (SELECT auth.uid())::text
         AND EXISTS (
             SELECT 1 FROM public.program_enrolments e
             WHERE e.patient_id = (SELECT auth.uid())

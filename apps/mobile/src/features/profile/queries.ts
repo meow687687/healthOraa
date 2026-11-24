@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { signedRecordUrl } from '../../lib/uploads';
 import { functionErrorMessage } from '../../lib/functionError';
 import { uploadRecordFile, safeFileName } from '../../lib/uploads';
+import { RECORD_BUCKET } from '../../lib/records';
 import { useAuth } from '../../auth/AuthProvider';
 
 export const useProfile = () => {
@@ -83,8 +84,8 @@ export interface LockerUpload {
   file: { uri: string; name: string; size: number | null; mimeType: string };
 }
 
-// Uploads the file to the patient's folder, then records the document. If the record fails, the file is left
-// in the private folder and no link to it is shown, so the patient can retry.
+// Uploads the file to the patient's folder, then records the document. A failed metadata write compensates by
+// removing the private upload so an unsuccessful locker entry does not leave a retained orphan.
 export const useUploadLockerDocument = () => {
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -104,7 +105,30 @@ export const useUploadLockerDocument = () => {
         mime_type: input.file.mimeType,
         is_verified: false,
       });
-      if (error) throw new Error(`The document was uploaded but not recorded: ${error.message}`);
+      if (error) {
+        const { data: savedDocument, error: verificationError } = await supabase
+          .from('patient_documents')
+          .select('id')
+          .eq('patient_id', userId)
+          .eq('file_path', path)
+          .maybeSingle();
+        if (savedDocument) return;
+        if (verificationError) {
+          throw new Error('We could not confirm whether the document was saved. Refresh your Health Locker before trying again.');
+        }
+
+        let cleanupFailed = false;
+        try {
+          const { error: cleanupError } = await supabase.storage.from(RECORD_BUCKET).remove([path]);
+          cleanupFailed = Boolean(cleanupError);
+        } catch {
+          cleanupFailed = true;
+        }
+        const cleanupMessage = cleanupFailed
+          ? ' The private file could not be removed; contact support if it remains in your Health Locker.'
+          : '';
+        throw new Error(`The document could not be recorded: ${error.message}.${cleanupMessage}`);
+      }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['locker', userId] });

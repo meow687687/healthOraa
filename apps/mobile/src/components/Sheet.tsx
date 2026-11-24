@@ -9,21 +9,25 @@ export function Sheet({
   visible,
   title,
   onClose,
+  closeDisabled = false,
   children,
 }: {
   visible: boolean;
   title: string;
   onClose: () => void;
+  closeDisabled?: boolean;
   children: ReactNode;
 }) {
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={() => {
+      if (!closeDisabled) onClose();
+    }}>
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <Text style={styles.title} accessibilityRole="header">
             {title}
           </Text>
-          <Button label="Close" variant="secondary" onPress={onClose} />
+          <Button label="Close" variant="secondary" disabled={closeDisabled} onPress={onClose} />
         </View>
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           {children}

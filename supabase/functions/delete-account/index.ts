@@ -9,7 +9,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // The login is soft-deleted (GoTrue keeps the row), so the profile foreign keys do not cascade.
 
 const RECORD_BUCKETS = ["medical-records", "patient-reports"] as const;
+const RECORD_FOLDERS = ["locker", "health-locker"] as const;
 const DIET_CHART_BUCKET = "diet-charts";
+const MEAL_BUCKETS = [DIET_CHART_BUCKET, "patient-reports"] as const;
+const STORAGE_OBJECT_PAGE_SIZE = 1000;
 
 const json = (body: Record<string, unknown>, status: number): Response =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -17,6 +20,20 @@ const json = (body: Record<string, unknown>, status: number): Response =>
 const bearerToken = (request: Request): string | null => {
   const header = request.headers.get("authorization") ?? "";
   return header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : null;
+};
+
+const verifiedOwnedPaths = (rows: unknown[], userId: string, bucket: string, folder: string): string[] => {
+  const paths: string[] = [];
+  for (const row of rows) {
+    if (typeof row !== "object" || row === null || Array.isArray(row)) continue;
+    const object = row as Record<string, unknown>;
+    if (object.bucket_id !== bucket || typeof object.name !== "string") continue;
+    const parts = object.name.split("/");
+    if (parts.length !== 3 || parts[0] !== userId || parts[1] !== folder) continue;
+    if (parts.some((part) => part === "." || part === "..")) continue;
+    paths.push(object.name);
+  }
+  return paths;
 };
 
 Deno.serve(async (request) => {
@@ -37,6 +54,41 @@ Deno.serve(async (request) => {
   const userId = userData.user.id;
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  const removeOwnedFiles = async (
+    rpcName: "list_patient_owned_record_objects" | "list_patient_owned_meal_objects",
+    buckets: readonly string[],
+    folders: readonly string[],
+  ): Promise<string | null> => {
+    for (const bucket of buckets) {
+      for (const folder of folders) {
+        let previousPage = "";
+        while (true) {
+          const { data, error } = await admin.rpc(rpcName, { p_patient_id: userId })
+            .eq("bucket_id", bucket)
+            .like("name", `${userId}/${folder}/%`)
+            .order("name", { ascending: true })
+            .range(0, STORAGE_OBJECT_PAGE_SIZE - 1);
+          if (error) return error.message;
+
+          const rows = (data ?? []) as unknown[];
+          if (rows.length === 0) break;
+
+          const paths = verifiedOwnedPaths(rows, userId, bucket, folder);
+          if (paths.length !== rows.length) return "The file list included an unexpected storage path.";
+          const pageKey = paths.join("\u0000");
+          if (pageKey === previousPage) return "The storage cleanup did not remove the requested files.";
+          previousPage = pageKey;
+
+          for (let start = 0; start < paths.length; start += 100) {
+            const { error: storageError } = await admin.storage.from(bucket).remove(paths.slice(start, start + 100));
+            if (storageError) return storageError.message;
+          }
+        }
+      }
+    }
+    return null;
+  };
 
   const { data: profile, error: profileError } = await admin
     .from("profiles")
@@ -63,56 +115,12 @@ Deno.serve(async (request) => {
   const { error: tokenError } = await admin.from("patient_push_tokens").delete().eq("user_id", userId);
   if (tokenError) return json({ error: "Your account was not fully deleted. Try again." }, 500);
 
-  const { data: documents, error: documentsError } = await admin
-    .from("patient_documents")
-    .select("file_path")
-    .eq("patient_id", userId);
-  if (documentsError) return json({ error: "Your account was not deleted. Try again." }, 500);
+  // Ownership comes from storage metadata, not client-writable patient_documents.file_path values.
+  const recordCleanupError = await removeOwnedFiles("list_patient_owned_record_objects", RECORD_BUCKETS, RECORD_FOLDERS);
+  if (recordCleanupError) return json({ error: "Your files could not be removed. Your account was not deleted." }, 500);
 
-  // A document row is client-writable metadata. Only delete objects in this patient's exact storage prefix.
-  const ownerPrefix = `${userId}/`;
-  const paths = (documents ?? [])
-    .map((row) => row.file_path)
-    .filter((path): path is string => {
-      if (typeof path !== "string" || !path.startsWith(ownerPrefix)) return false;
-      return path.split("/").every((part) => part !== "." && part !== "..");
-    });
-  if (paths.length > 0) {
-    for (const bucket of RECORD_BUCKETS) {
-      const { error: storageError } = await admin.storage.from(bucket).remove(paths);
-      if (storageError) return json({ error: "Your files could not be removed. Your account was not deleted." }, 500);
-    }
-  }
-
-  const { data: enrolments, error: enrolmentsError } = await admin
-    .from("program_enrolments")
-    .select("id")
-    .eq("patient_id", userId);
-  if (enrolmentsError) return json({ error: "Your account was not deleted. Try again." }, 500);
-
-  const enrolmentIds = (enrolments ?? []).map((enrolment) => enrolment.id);
-  if (enrolmentIds.length > 0) {
-    const { data: messages, error: messagesError } = await admin
-      .from("program_messages")
-      .select("sender_id, is_meal_photo, attachment_url")
-      .in("enrolment_id", enrolmentIds)
-      .not("attachment_url", "is", null);
-    if (messagesError) return json({ error: "Your account was not deleted. Try again." }, 500);
-
-    const mealPhotoPaths = (messages ?? [])
-      .filter((message) => message.sender_id === userId && message.is_meal_photo)
-      .map((message) => message.attachment_url)
-      .filter((path): path is string => {
-        if (typeof path !== "string" || !path.startsWith(ownerPrefix)) return false;
-        return path.split("/").every((part) => part !== "." && part !== "..");
-      });
-    if (mealPhotoPaths.length > 0) {
-      for (const bucket of [DIET_CHART_BUCKET, "patient-reports"] as const) {
-        const { error: storageError } = await admin.storage.from(bucket).remove(mealPhotoPaths);
-        if (storageError) return json({ error: "Your files could not be removed. Your account was not deleted." }, 500);
-      }
-    }
-  }
+  const mealCleanupError = await removeOwnedFiles("list_patient_owned_meal_objects", MEAL_BUCKETS, ["meals"]);
+  if (mealCleanupError) return json({ error: "Your files could not be removed. Your account was not deleted." }, 500);
 
   const cleanup = [
     admin.from("patient_biomarkers").delete().eq("patient_id", userId),
@@ -137,13 +145,16 @@ Deno.serve(async (request) => {
   });
   if (emailError) return json({ error: "Your account was not fully deleted. Try again." }, 500);
 
-  // Revoke every session for this account. Without this, an access token issued before deletion keeps working
-  // until it expires.
-  const { error: signOutError } = await admin.auth.admin.signOut(token, "global");
-  if (signOutError) return json({ error: "Your account was not fully deleted. Try again." }, 500);
-
   const { error: deleteError } = await admin.auth.admin.deleteUser(userId, true);
   if (deleteError) return json({ error: "Your account was not fully deleted. Try again." }, 500);
+
+  // Revoke any remaining sessions only after deletion succeeds. If deleteUser fails, the valid session can
+  // refresh its access token and retry against the already-blocked, idempotent cleanup state.
+  try {
+    await admin.auth.admin.signOut(token, "global");
+  } catch {
+    // The profile is already blocked and its device tokens are removed, so remote sign-out is best-effort here.
+  }
 
   return json({ deleted: true }, 200);
 });

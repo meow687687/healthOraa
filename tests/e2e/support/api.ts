@@ -15,7 +15,7 @@ export const accessToken = async (persona: "doctor" | "patient" | "admin"): Prom
 // Calls PostgREST as the given user. Returns the HTTP status and the parsed body.
 export const api = async (
   token: string,
-  method: "GET" | "POST" | "PATCH",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   path: string,
   body?: unknown,
 ): Promise<{ status: number; body: unknown }> => {

@@ -48,7 +48,13 @@ export function ConsultationList({ onOpenChat }: { onOpenChat: (target: ChatTarg
 function TabButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
     <View style={styles.tabWrap}>
-      <Button label={label} variant={active ? 'primary' : 'secondary'} onPress={onPress} />
+      <Button
+        label={label}
+        variant={active ? 'primary' : 'secondary'}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: active }}
+        onPress={onPress}
+      />
     </View>
   );
 }

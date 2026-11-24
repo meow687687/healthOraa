@@ -21,11 +21,11 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-aura-line bg-aura-s1/90 px-4 py-3 backdrop-blur-md md:px-8 lg:h-20 lg:flex-nowrap lg:py-0">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-accent-emerald to-accent-blue text-xs font-bold text-white">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-aura-s3 text-xs font-bold text-text-primary">
           {initialsOf(patient.displayName)}
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-text-muted">Welcome back</p>
+          <p className="text-xs font-semibold text-text-muted">Patient account</p>
           <h1 className="truncate text-base font-bold tracking-tight text-white lg:text-lg">{patient.displayName}</h1>
         </div>
       </div>

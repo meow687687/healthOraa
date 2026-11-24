@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { AuthSplash, UnauthorizedCard, useAuthSession } from "@healthoraa/ui";

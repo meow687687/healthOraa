@@ -117,6 +117,7 @@ export const useConsultationQueue = () => {
             .from("consultations")
             .select("id, patient_id, slot_start, slot_end, status, followup_expires_at, chief_complaint, profiles!consultations_patient_id_fkey(full_name)")
             .eq("doctor_id", doctor.id)
+            .eq("booking_status", "confirmed")
             .in("status", QUEUE_STATUSES)
             .gte("slot_start", startOfToday())
             .order("slot_start", { ascending: true });

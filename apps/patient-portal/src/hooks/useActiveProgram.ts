@@ -12,14 +12,14 @@ import type { ActiveProgram, ActiveProgramData, DayLog, MealId, ProgramNote } fr
 export const activeProgramKey = (patientId: string) => ["program", "active", patientId] as const;
 
 const ENROLMENT_SELECT =
-  "id, started_at, expires_at, programs(title, category, duration_days), dietitian:profiles!program_enrolments_dietitian_id_fkey(full_name)";
+  "id, started_at, expires_at, programs(title, category, duration_days)";
 
 interface EnrolmentRow {
   id: string;
   started_at: string;
   expires_at: string;
   programs: { title: string; category: ProgramCategory; duration_days: number } | null;
-  dietitian: { full_name: string } | null;
+  dietitianName: string | null;
 }
 
 const PROTOCOL_LABEL: Record<ProgramCategory, string> = {
@@ -45,7 +45,7 @@ export const toActiveProgram = (row: EnrolmentRow, now: Date, latestNote: Progra
     currentDay: programDayFor(row.started_at, durationDays, now),
     startsAt: row.started_at,
     expiresAt: row.expires_at,
-    nutritionist: row.dietitian ? { name: row.dietitian.full_name } : null,
+    nutritionist: row.dietitianName ? { name: row.dietitianName } : null,
     latestNote,
     dataSource: "live",
   };
@@ -93,8 +93,14 @@ const loadLiveData = async (patientId: string, now: Date): Promise<ActiveProgram
   if (!data) throw new Error("No active program enrolment for this patient.");
 
   const row = data as EnrolmentRow;
-  const [dayLogs, latestNote] = await Promise.all([loadDayLogs(row.id), loadLatestNote(row.id)]);
-  return { program: toActiveProgram(row, now, latestNote), dayLogs };
+  const [dayLogs, latestNote, dietitianResult] = await Promise.all([
+    loadDayLogs(row.id),
+    loadLatestNote(row.id),
+    supabase.rpc("get_program_dietitian_name", { p_enrolment_id: row.id }),
+  ]);
+  if (dietitianResult.error) throw new Error(dietitianResult.error.message);
+  const program = toActiveProgram({ ...row, dietitianName: dietitianResult.data }, now, latestNote);
+  return { program, dayLogs };
 };
 
 const loadMockData = (): ActiveProgramData => ({

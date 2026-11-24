@@ -43,7 +43,7 @@ export default function PatientShopView() {
         <p className="text-sm text-text-secondary">Free standard delivery across India.</p>
       </header>
 
-      {notice && <div className={ERROR_BOX}>{notice}</div>}
+      {notice && <div className={ERROR_BOX} role="alert">{notice}</div>}
 
       {products.length === 0 ? (
         <EmptyState

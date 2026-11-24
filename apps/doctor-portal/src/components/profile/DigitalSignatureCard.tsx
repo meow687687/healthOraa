@@ -58,7 +58,7 @@ export function DigitalSignatureCard() {
       <div className="flex flex-wrap items-center gap-3">
         <label
           htmlFor={inputId}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-aura-line2 bg-aura-s3 px-4 py-2 text-xs font-semibold text-text-primary transition-colors hover:bg-aura-s2 focus-within:ring-4 focus-within:ring-accent-blue/20"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-aura-line2 bg-aura-s3 px-4 py-2 text-xs font-semibold text-text-primary transition-colors hover:bg-aura-s2 focus-within:ring-2 focus-within:ring-accent-blue"
         >
           <Upload className="h-3.5 w-3.5" />
           {preview ? "Replace signature" : "Upload signature"}

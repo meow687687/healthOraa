@@ -17,12 +17,9 @@ export function ProductCard({ product, onAdd, adding }: { product: ShopProduct; 
       <div
         role="img"
         aria-label={`Illustrative ${CATEGORY_LABEL[product.category]} category art; not a product photo.`}
-        className={cn("flex aspect-[4/3] flex-col items-center justify-center gap-3 rounded-2xl border border-aura-line bg-gradient-to-br", visual.tile)}
+        className={cn("flex h-28 items-center justify-center rounded-2xl border border-aura-line", visual.tile)}
       >
-        <span className="grid h-16 w-16 place-items-center rounded-2xl border border-current/20 bg-black/10">
-          <Icon className="h-9 w-9" strokeWidth={1.7} />
-        </span>
-        <span className="text-center text-[10px] font-semibold uppercase tracking-[.18em] opacity-80">Category art</span>
+        <Icon className="h-10 w-10" strokeWidth={1.5} />
       </div>
 
       <div className="flex items-center justify-between gap-2">

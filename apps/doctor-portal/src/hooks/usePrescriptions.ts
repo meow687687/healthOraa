@@ -34,7 +34,7 @@ export const useSavePrescription = () => {
         patientName: consultation.patientName,
         doctorId: doctor.id,
         signedAt: signedAt.toISOString(),
-        followupUntil: addDays(signedAt, parsed.followup_days).toISOString(),
+        followupUntil: addDays(new Date(consultation.slotEnd), 7).toISOString(),
       };
 
       if (isMockConsultation(consultation.id)) {

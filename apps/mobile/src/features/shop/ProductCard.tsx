@@ -13,11 +13,11 @@ export const CATEGORY_LABEL: Record<string, string> = {
   equipment: 'Equipment',
 };
 
-const CATEGORY_ART: Record<string, { Icon: LucideIcon; color: string; background: string }> = {
-  supplements: { Icon: PillIcon, color: COLORS.accentBlue, background: '#101D2C' },
-  ayurvedic: { Icon: Leaf, color: COLORS.accentEmerald, background: '#10231E' },
-  skincare: { Icon: Sparkles, color: COLORS.accentViolet, background: '#21192A' },
-  equipment: { Icon: Scale, color: COLORS.accentAmber, background: '#292113' },
+const CATEGORY_ART: Record<string, { Icon: LucideIcon; color: string }> = {
+  supplements: { Icon: PillIcon, color: COLORS.accentBlue },
+  ayurvedic: { Icon: Leaf, color: COLORS.accentEmerald },
+  skincare: { Icon: Sparkles, color: COLORS.accentViolet },
+  equipment: { Icon: Scale, color: COLORS.accentAmber },
 };
 
 export interface ShopProductView {
@@ -40,7 +40,7 @@ export function ProductCard({
 }) {
   const soldOut = product.stock_count <= 0;
   const atLimit = inCart >= product.stock_count;
-  const art = CATEGORY_ART[product.category] ?? { Icon: Package, color: COLORS.textSecondary, background: COLORS.s3 };
+  const art = CATEGORY_ART[product.category] ?? { Icon: Package, color: COLORS.textSecondary };
   const ArtIcon = art.Icon;
   return (
     <Card>
@@ -48,12 +48,9 @@ export function ProductCard({
         accessible
         accessibilityRole="image"
         accessibilityLabel={`Illustrative ${CATEGORY_LABEL[product.category] ?? product.category} category art; not a product photo.`}
-        style={[styles.tile, { backgroundColor: art.background }]}
+        style={styles.tile}
       >
-        <View style={[styles.artMark, { borderColor: `${art.color}55`, backgroundColor: `${art.color}12` }]}>
-          <ArtIcon color={art.color} size={26} strokeWidth={1.8} />
-        </View>
-        <Text style={[styles.tileMessage, { color: art.color }]}>CATEGORY ART</Text>
+        <ArtIcon color={art.color} size={34} strokeWidth={1.6} />
       </View>
       <View style={styles.row}>
         <Pill label={CATEGORY_LABEL[product.category] ?? product.category} />
@@ -71,6 +68,11 @@ export function ProductCard({
       </View>
       <Button
         label={inCart > 0 ? `In cart (${inCart})` : 'Add to cart'}
+        accessibilityLabel={
+          inCart > 0
+            ? `Add another ${product.title} to cart; ${inCart} already in cart`
+            : `Add ${product.title} to cart`
+        }
         variant={inCart > 0 ? 'secondary' : 'primary'}
         disabled={soldOut || atLimit}
         onPress={() => onAdd(product)}
@@ -81,14 +83,13 @@ export function ProductCard({
 
 const styles = StyleSheet.create({
   tile: {
-    height: 104,
+    height: 120,
+    backgroundColor: COLORS.s2,
     borderRadius: RADIUS.lg,
     gap: SPACE.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  artMark: { width: 50, height: 50, borderWidth: 1, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
-  tileMessage: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2 },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACE.sm },
   title: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '700' },
   description: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 18 },

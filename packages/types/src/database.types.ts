@@ -705,6 +705,11 @@ isOneToOne: false
               "category": Database["public"]['Enums']["product_category"],"id": string,"price_inr": number,"stock_count": number,"title": string,"units_sold": number
             }[]
                            },
+"get_consultation_practitioner_names":
+{ Args: { "p_consultation_ids": (string)[] }; Returns: {
+              "consultation_id": string,"full_name": string
+            }[]
+                           },
 "get_patient_biomarkers":
 { Args: { "p_marker_name"?: string,"p_patient_id": string }; Returns: {
               "created_at": string,
@@ -743,6 +748,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"get_program_dietitian_name":
+{ Args: { "p_enrolment_id": string }; Returns: string
+                           },
 "get_verified_practitioners":
 { Args: Record<PropertyKey, never>; Returns: {
               "avatar_url": string,"bio": string,"consultation_fee_inr": number,"full_name": string,"id": string,"languages_spoken": (string)[],"qualification": string,"slot_duration_minutes": number,"specialization": string,"years_of_experience": number

@@ -8,9 +8,10 @@ import { Button, Card, ErrorBox, Pill, Skeleton, monoStyle } from '../../compone
 import { Sheet } from '../../components/Sheet';
 import { TextField } from '../../components/TextField';
 import { useNow } from '../../hooks/useNow';
-import { DOCUMENT_ACCEPTED_TYPES, DOCUMENT_MAX_BYTES } from '@healthoraa/validation';
+import { DOCUMENT_MAX_BYTES } from '@healthoraa/validation';
 import { daysUntil } from '../../lib/time';
-import { uploadRecordFile, signedRecordUrl, safeFileName } from '../../lib/uploads';
+import { uploadRecordFile, signedRecordUrl } from '../../lib/uploads';
+import { DIET_CHART_BUCKET } from '../../lib/records';
 import { useProgramMessages, useSendProgramMessage, type ProgramMessageRow } from './programChat';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'react-native';
@@ -71,10 +72,15 @@ function ProgramChatBody({ target }: { target: ProgramChatTarget }) {
         setFailure('That photo is larger than 10 MB. Choose a smaller one.');
         return;
       }
+      const contentType = asset.mimeType?.toLowerCase();
+      if (contentType !== 'image/jpeg' && contentType !== 'image/png') {
+        setFailure('Choose a JPEG or PNG photo. HEIC and other image formats are not supported yet.');
+        return;
+      }
       const caption = draft;
-      const extension = (asset.mimeType ?? 'image/jpeg').endsWith('png') ? 'png' : 'jpg';
-      const path = `${userId}/meals/${Date.now()}-${safeFileName(asset.fileName ?? `meal.${extension}`)}`;
-      await uploadRecordFile(path, asset.uri, asset.mimeType ?? 'image/jpeg');
+      const extension = contentType === 'image/png' ? 'png' : 'jpg';
+      const path = `${userId}/meals/${Date.now()}-meal.${extension}`;
+      await uploadRecordFile(path, asset.uri, contentType, DIET_CHART_BUCKET);
       await send.mutateAsync({ text: caption, attachmentPath: path });
       setDraft((current) => current === caption ? '' : current);
     } catch (error) {
@@ -147,7 +153,7 @@ function MessageBubble({ message, mine }: { message: ProgramMessageRow; mine: bo
 function MealPhoto({ path }: { path: string }) {
   const link = useQuery({
     queryKey: ['signed-record', path],
-    queryFn: () => signedRecordUrl(path),
+    queryFn: () => signedRecordUrl(path, DIET_CHART_BUCKET),
     staleTime: 50_000,
     gcTime: 0,
   });

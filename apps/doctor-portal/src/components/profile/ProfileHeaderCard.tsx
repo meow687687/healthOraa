@@ -25,7 +25,7 @@ export function ProfileHeaderCard({ profile }: { profile: PractitionerProfile })
 
   return (
     <section aria-label="Doctor profile" className={cn(PANEL, "flex flex-wrap items-center gap-5 md:flex-nowrap")}>
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-accent-blue to-accent-violet text-xl font-bold text-white ring-4 ring-aura-s2">
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-aura-s3 text-xl font-bold text-text-primary ring-4 ring-aura-s2">
         {profile.avatarUrl ? (
           <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -51,7 +51,7 @@ export function ProfileHeaderCard({ profile }: { profile: PractitionerProfile })
         role="switch"
         aria-checked={isAccepting}
         onClick={toggleAccepting}
-        className="flex items-center gap-3 rounded-full border border-aura-line2 bg-aura-s2 py-2 pl-2 pr-4 transition-colors hover:bg-aura-s3 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-blue/20"
+        className="flex items-center gap-3 rounded-full border border-aura-line2 bg-aura-s2 py-2 pl-2 pr-4 transition-colors hover:bg-aura-s3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
       >
         <span
           aria-hidden="true"

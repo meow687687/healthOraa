@@ -181,15 +181,15 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className={cn("flex items-center gap-3", compact ? "justify-center" : "px-2")}>
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-blue to-accent-emerald shadow-lg">
-        <span className="text-base font-extrabold text-white">H</span>
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-blue">
+        <span className="text-base font-extrabold text-aura-canvas">H</span>
       </div>
       {compact ? null : <span className="text-[15px] font-semibold text-text-primary">Healthoraa</span>}
     </div>
   );
 }
 
-const FOCUS = "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-blue/20";
+const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue";
 
 function NavButton<T extends string>({
   item,

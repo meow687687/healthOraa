@@ -26,12 +26,27 @@ export const useMyConsultations = () => {
       const { data, error } = await supabase
         .from('consultations')
         .select(
-          'id, doctor_id, slot_start, slot_end, status, booking_status, chief_complaint, followup_expires_at, profiles!consultations_doctor_id_fkey(full_name)',
+          'id, doctor_id, slot_start, slot_end, status, booking_status, chief_complaint, followup_expires_at',
         )
         .eq('patient_id', userId)
         .order('slot_start', { ascending: false });
       if (error) throw new Error(error.message);
-      return data;
+      const consultations = data ?? [];
+      if (consultations.length === 0) return [];
+
+      const { data: practitionerNames, error: practitionerNamesError } = await supabase.rpc(
+        'get_consultation_practitioner_names',
+        { p_consultation_ids: consultations.map((row) => row.id) },
+      );
+      if (practitionerNamesError) throw new Error(practitionerNamesError.message);
+      const namesByConsultationId = new Map(
+        (practitionerNames ?? []).map((row) => [row.consultation_id, row.full_name]),
+      );
+
+      return consultations.map((row) => ({
+        ...row,
+        profiles: { full_name: namesByConsultationId.get(row.id) ?? 'Your doctor' },
+      }));
     },
   });
 };

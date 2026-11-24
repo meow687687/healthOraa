@@ -28,7 +28,7 @@ interface ConsultationRow {
   booking_status: Enums<"booking_status">;
   chief_complaint: string | null;
   patient_intake_forms: { id: string }[] | null;
-  profiles: { full_name: string } | null;
+  doctorName: string | null;
   prescriptions: {
     id: string;
     diagnosis: string;
@@ -40,8 +40,8 @@ interface ConsultationRow {
 
 const stateFor = (status: Enums<"consultation_status">, bookingStatus: Enums<"booking_status">): ConsultationState => {
   if (status === "cancelled" || bookingStatus === "cancelled") return "cancelled";
-  if (status === "completed") return "completed";
   if (bookingStatus === "pending_payment") return "awaiting_payment";
+  if (status === "completed") return "completed";
   return "confirmed";
 };
 
@@ -51,7 +51,7 @@ const toItem = (row: ConsultationRow): ConsultationItem => {
   const prescription: PrescriptionRecord | null = latest
     ? {
         id: latest.id,
-        doctorName: row.profiles?.full_name ?? "Your doctor",
+        doctorName: row.doctorName ?? "Your doctor",
         issuedAt: latest.created_at,
         diagnosis: latest.diagnosis,
         followupDays: latest.followup_days,
@@ -68,7 +68,7 @@ const toItem = (row: ConsultationRow): ConsultationItem => {
   return {
     id: row.id,
     state: stateFor(row.status, row.booking_status),
-    doctorName: row.profiles?.full_name ?? "Your doctor",
+    doctorName: row.doctorName ?? "Your doctor",
     startsAt: row.slot_start,
     endsAt: row.slot_end,
     chiefComplaint: row.chief_complaint,
@@ -120,12 +120,26 @@ export const usePatientConsultations = () => {
         const { data, error } = await supabase
           .from("consultations")
           .select(
-            "id, slot_start, slot_end, status, booking_status, chief_complaint, followup_expires_at, patient_intake_forms!patient_intake_forms_consultation_id_fkey(id), profiles!consultations_doctor_id_fkey(full_name), prescriptions(id, diagnosis, followup_days, created_at, prescription_medicines(name, dosage, frequency, duration_days, instructions))",
+            "id, slot_start, slot_end, status, booking_status, chief_complaint, followup_expires_at, patient_intake_forms!patient_intake_forms_consultation_id_fkey(id), prescriptions(id, diagnosis, followup_days, created_at, prescription_medicines(name, dosage, frequency, duration_days, instructions))",
           )
           .eq("patient_id", patient.id)
           .order("slot_start", { ascending: false });
         if (error) throw new Error(error.message);
-        return ((data ?? []) as unknown as ConsultationRow[]).map(toItem);
+        const consultations = data ?? [];
+        if (consultations.length === 0) return [];
+
+        const { data: practitionerNames, error: practitionerNamesError } = await supabase.rpc(
+          "get_consultation_practitioner_names",
+          { p_consultation_ids: consultations.map((row) => row.id) },
+        );
+        if (practitionerNamesError) throw new Error(practitionerNamesError.message);
+        const namesByConsultationId = new Map(
+          (practitionerNames ?? []).map((row) => [row.consultation_id, row.full_name]),
+        );
+
+        return consultations.map((row) =>
+          toItem({ ...row, doctorName: namesByConsultationId.get(row.id) ?? null }),
+        );
       };
       const server = isPrototype
         ? await withSingleFallback(live, buildFallbackConsultations(new Date()), "consultations")

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../lib/supabase';
-import { RECORD_BUCKET, RECORD_LINK_SECONDS } from '../../lib/records';
+import { signedRecordUrl } from '../../lib/uploads';
 import { functionErrorMessage } from '../../lib/functionError';
 import { uploadRecordFile, safeFileName } from '../../lib/uploads';
 import { useAuth } from '../../auth/AuthProvider';
@@ -43,9 +43,8 @@ export const useHealthLocker = () => {
 // Opens a locker file through a link that expires after 60 seconds. A new link is made for each open.
 export const openLockerDocument = async (filePath: string | null): Promise<void> => {
   if (!filePath) throw new Error('No file is attached to this record.');
-  const { data, error } = await supabase.storage.from(RECORD_BUCKET).createSignedUrl(filePath, RECORD_LINK_SECONDS);
-  if (error || !data) throw new Error('The document link could not be created. Try again.');
-  await WebBrowser.openBrowserAsync(data.signedUrl);
+  const signedUrl = await signedRecordUrl(filePath);
+  await WebBrowser.openBrowserAsync(signedUrl);
 };
 
 // Deletes the patient's login, personal details and uploaded records through the delete-account function.

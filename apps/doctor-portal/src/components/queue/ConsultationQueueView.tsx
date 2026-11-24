@@ -80,12 +80,8 @@ export default function ConsultationQueueView() {
     );
   }
 
-  const cardProps = {
-    isStarting: (id: string) => startingId === id,
-    isActiveRoom: (id: string) => activeConsultationId === id,
-    onStart: startAndOpen,
-    onOpenRoom: openRoom,
-  };
+  const isStarting = (id: string): boolean => startingId === id;
+  const isActiveRoom = (id: string): boolean => activeConsultationId === id;
 
   return (
     <div className="space-y-6">
@@ -125,10 +121,10 @@ export default function ConsultationQueueView() {
         <UpNextCard
           now={now}
           consultation={upNext}
-          isActiveRoom={cardProps.isActiveRoom(upNext.id)}
-          isStarting={cardProps.isStarting(upNext.id)}
-          onStart={cardProps.onStart}
-          onOpenRoom={cardProps.onOpenRoom}
+          isActiveRoom={isActiveRoom(upNext.id)}
+          isStarting={isStarting(upNext.id)}
+          onStart={startAndOpen}
+          onOpenRoom={openRoom}
         />
       )}
 
@@ -140,10 +136,10 @@ export default function ConsultationQueueView() {
               <li key={consultation.id}>
                 <QueueCard
                   consultation={consultation}
-                  isActiveRoom={cardProps.isActiveRoom(consultation.id)}
-                  isStarting={cardProps.isStarting(consultation.id)}
-                  onStart={cardProps.onStart}
-                  onOpenRoom={cardProps.onOpenRoom}
+                  isActiveRoom={isActiveRoom(consultation.id)}
+                  isStarting={isStarting(consultation.id)}
+                  onStart={startAndOpen}
+                  onOpenRoom={openRoom}
                 />
               </li>
             ))}
@@ -160,10 +156,10 @@ export default function ConsultationQueueView() {
                 <QueueCard
                   compact
                   consultation={consultation}
-                  isActiveRoom={cardProps.isActiveRoom(consultation.id)}
-                  isStarting={cardProps.isStarting(consultation.id)}
-                  onStart={cardProps.onStart}
-                  onOpenRoom={cardProps.onOpenRoom}
+                  isActiveRoom={isActiveRoom(consultation.id)}
+                  isStarting={isStarting(consultation.id)}
+                  onStart={startAndOpen}
+                  onOpenRoom={openRoom}
                 />
               </li>
             ))}

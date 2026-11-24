@@ -86,8 +86,8 @@ test.describe.serial("review fixes", () => {
       currency: "INR",
       paymentId: `pay_${run}_late`,
     });
-    expect(result.status).toBe(200);
-    expect(result.body.booking_status).toBe("cancelled");
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    expect(result.body.status).toBe("captured");
     expect(result.body.refund_review).toBe(true);
     expect(psql(`select booking_status from consultations where id = '${id}'`)).toBe("cancelled");
     expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(`pay_${run}_late`)}`)).toBe(
@@ -122,7 +122,7 @@ test.describe.serial("review fixes", () => {
     ).toBe(1);
   });
 
-  test("an expired enrolment still marked active fails the webhook instead of reporting success", async () => {
+  test("a stale active enrolment is closed before a new paid enrolment is activated", async () => {
     script(
       `insert into programs (title, category, duration_days, price_inr, is_active)
        values (${lit(`${run} stale program`)}, 'custom', 30, 1999, true);`,
@@ -145,11 +145,17 @@ test.describe.serial("review fixes", () => {
       currency: "INR",
       paymentId: `pay_${run}_stale`,
     });
-    expect(result.status).toBe(500);
-    expect(String(result.body.error)).toContain("expired active enrolment");
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    expect(result.body.status).toBe("captured");
     expect(
-      Number(psql(`select count(*) from program_enrolments where program_id = '${programId}' and status = 'active'`)),
+      Number(psql(`select count(*) from program_enrolments where program_id = '${programId}' and status = 'completed' and expires_at <= now()`)),
     ).toBe(1);
+    expect(
+      Number(psql(`select count(*) from program_enrolments where program_id = '${programId}' and status = 'active' and expires_at > now()`)),
+    ).toBe(1);
+    expect(
+      psql(`select status || '|' || (program_enrolment_id is not null) from razorpay_order_logs where order_id = ${lit(orderId)}`),
+    ).toBe("fulfilled|true");
   });
 
   test("a cancelled consultation cannot receive a prescription", async () => {

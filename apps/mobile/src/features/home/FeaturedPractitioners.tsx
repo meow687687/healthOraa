@@ -33,7 +33,7 @@ export function FeaturedPractitioners() {
       renderItem={({ item: doctor }) => (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Book ${doctor.full_name}`}
+          accessibilityLabel={`Book ${doctor.full_name}, ${doctor.qualification}, ${formatPaise(rupeesToPaise(Number(doctor.consultation_fee_inr)))}, ${doctor.slot_duration_minutes} minute consultation`}
           onPress={() => router.navigate('/(tabs)/consultations')}
           style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
         >

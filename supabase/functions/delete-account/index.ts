@@ -2,13 +2,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Self-service account deletion for patients (App Store and Play Store requirement).
 //
-// Removed: the login, name, phone, avatar, health-locker files and their rows, and saved cart lines.
+// Removed: the login, identity fields, health-locker files, program meal photos, and saved cart lines.
 // Kept, without the patient's name: consultations, prescriptions, intake forms, diagnostic reports and orders.
 // Clinical and tax rules require those records, so they are not deleted here.
 //
 // The login is soft-deleted (GoTrue keeps the row), so the profile foreign keys do not cascade.
 
-const RECORD_BUCKET = "patient-reports";
+const RECORD_BUCKETS = ["medical-records", "patient-reports"] as const;
+const DIET_CHART_BUCKET = "diet-charts";
 
 const json = (body: Record<string, unknown>, status: number): Response =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -77,8 +78,40 @@ Deno.serve(async (request) => {
       return path.split("/").every((part) => part !== "." && part !== "..");
     });
   if (paths.length > 0) {
-    const { error: storageError } = await admin.storage.from(RECORD_BUCKET).remove(paths);
-    if (storageError) return json({ error: "Your files could not be removed. Your account was not deleted." }, 500);
+    for (const bucket of RECORD_BUCKETS) {
+      const { error: storageError } = await admin.storage.from(bucket).remove(paths);
+      if (storageError) return json({ error: "Your files could not be removed. Your account was not deleted." }, 500);
+    }
+  }
+
+  const { data: enrolments, error: enrolmentsError } = await admin
+    .from("program_enrolments")
+    .select("id")
+    .eq("patient_id", userId);
+  if (enrolmentsError) return json({ error: "Your account was not deleted. Try again." }, 500);
+
+  const enrolmentIds = (enrolments ?? []).map((enrolment) => enrolment.id);
+  if (enrolmentIds.length > 0) {
+    const { data: messages, error: messagesError } = await admin
+      .from("program_messages")
+      .select("sender_id, is_meal_photo, attachment_url")
+      .in("enrolment_id", enrolmentIds)
+      .not("attachment_url", "is", null);
+    if (messagesError) return json({ error: "Your account was not deleted. Try again." }, 500);
+
+    const mealPhotoPaths = (messages ?? [])
+      .filter((message) => message.sender_id === userId && message.is_meal_photo)
+      .map((message) => message.attachment_url)
+      .filter((path): path is string => {
+        if (typeof path !== "string" || !path.startsWith(ownerPrefix)) return false;
+        return path.split("/").every((part) => part !== "." && part !== "..");
+      });
+    if (mealPhotoPaths.length > 0) {
+      for (const bucket of [DIET_CHART_BUCKET, "patient-reports"] as const) {
+        const { error: storageError } = await admin.storage.from(bucket).remove(mealPhotoPaths);
+        if (storageError) return json({ error: "Your files could not be removed. Your account was not deleted." }, 500);
+      }
+    }
   }
 
   const cleanup = [

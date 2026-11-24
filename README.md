@@ -54,6 +54,8 @@ pnpm --filter admin-portal dev
 pnpm --filter patient-portal dev
 ```
 
+For the local, non-transactional three-role walkthrough and its reset instructions, see [docs/CLIENT_DEMO.md](docs/CLIENT_DEMO.md).
+
 ## Environment Variables
 
 Each app reads from its own `.env.local`. Copy the example file and fill in your Supabase credentials:
@@ -69,7 +71,7 @@ Use the local Supabase URL and anon key for all four apps. `VITE_DEMO_DATA=true`
 
 ### Razorpay
 
-Payments are disabled by default. A mobile build requires both `EXPO_PUBLIC_RAZORPAY_PAYMENTS_ENABLED=true` and `EXPO_PUBLIC_RAZORPAY_KEY_ID`; the `create-razorpay-order` Edge Function independently requires `RAZORPAY_PAYMENTS_ENABLED=true`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET`. Keep both enable flags unset for Phase 1 demos. Patient sign-in is unavailable in browser builds because the native app uses SecureStore and browser storage cannot protect refresh tokens. The database allows at most three active pending shop reservations per patient. If an enabled gateway captures payment after a booking or stock reservation expires, the webhook requests an idempotent full refund and tracks refund lifecycle events; failed requests remain in the admin refund queue for manual resolution. Enabling checkout requires the Phase 2 payment lifecycle and refund/reconciliation process to be sandbox-verified, approved, and operational.
+Payments are disabled by default. A mobile build requires both `EXPO_PUBLIC_RAZORPAY_PAYMENTS_ENABLED=true` and `EXPO_PUBLIC_RAZORPAY_KEY_ID`; the `create-razorpay-order` Edge Function independently requires `RAZORPAY_PAYMENTS_ENABLED=true`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET`. Keep both enable flags unset for Phase 1 demos. Patient sign-in is unavailable in the Expo web preview because the native app uses SecureStore and browser storage cannot protect refresh tokens; the separate patient web portal remains available for local demos. The database allows at most three active pending shop reservations per patient. If an enabled gateway captures payment after a booking or stock reservation expires, the webhook requests an idempotent full refund and tracks refund lifecycle events; failed requests remain in the admin refund queue for manual resolution. Enabling checkout requires the Phase 2 payment lifecycle and refund/reconciliation process to be sandbox-verified, approved, and operational.
 
 ## Database
 

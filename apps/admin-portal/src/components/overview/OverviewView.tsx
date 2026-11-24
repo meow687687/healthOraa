@@ -1,4 +1,5 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { SkeletonBlock } from "@healthoraa/ui";
 import { ERROR_BOX } from "../ui/tokens";
 import { cn } from "../../lib/cn";
@@ -71,7 +72,18 @@ export function OverviewView({ onNavigate }: { onNavigate: (id: TabId) => void }
 }
 
 function Dashboard({ summary, onNavigate }: { summary: DashboardSummary; onNavigate: (id: TabId) => void }) {
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [isWideViewport, setIsWideViewport] = useState(
+    () => typeof window !== "undefined" && window.matchMedia?.("(min-width: 768px)").matches === true,
+  );
   const last7 = summary.daily.slice(-7);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const updateViewport = () => setIsWideViewport(media.matches);
+    media.addEventListener("change", updateViewport);
+    return () => media.removeEventListener("change", updateViewport);
+  }, []);
   return (
     <>
       <AttentionStrip summary={summary} onNavigate={onNavigate} />
@@ -116,16 +128,35 @@ function Dashboard({ summary, onNavigate }: { summary: DashboardSummary; onNavig
         </div>
       </section>
 
-      <section aria-label="Trends and breakdowns" className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <Suspense fallback={<ChartFallback />}>
-          <RevenueChart summary={summary} />
-        </Suspense>
-        <StatusBars summary={summary} />
-        <ConsultationFunnel summary={summary} />
-        <BookingHeatmap summary={summary} />
+      <button
+        type="button"
+        aria-expanded={showAnalytics}
+        aria-controls="overview-analytics"
+        onClick={() => setShowAnalytics((show) => !show)}
+        className="flex min-h-11 w-full items-center justify-between rounded-2xl border border-aura-line2 bg-aura-s1 px-4 text-left text-sm font-semibold text-text-secondary transition-colors hover:bg-aura-s2 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue md:hidden"
+      >
+        <span>{showAnalytics ? "Hide trends and breakdowns" : "Show trends and breakdowns"}</span>
+        <ChevronDown className={cn("h-4 w-4 transition-transform", showAnalytics && "rotate-180")} aria-hidden="true" />
+      </button>
+
+      <section
+        id="overview-analytics"
+        aria-label="Trends and breakdowns"
+        className={cn("grid grid-cols-1 gap-4 lg:grid-cols-12", !showAnalytics && "hidden md:grid")}
+      >
+        {showAnalytics || isWideViewport ? (
+          <>
+            <Suspense fallback={<ChartFallback />}>
+              <RevenueChart summary={summary} />
+            </Suspense>
+            <StatusBars summary={summary} />
+            <ConsultationFunnel summary={summary} />
+            <BookingHeatmap summary={summary} />
+          </>
+        ) : null}
       </section>
 
-      <section aria-label="Activity and checks" className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+      <section aria-label="Activity and checks" className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
         <ActivityFeed onOpen={(kind) => onNavigate(ACTIVITY_TARGET[kind])} />
         <TopProducts summary={summary} />
         <SignalsCard summary={summary} />

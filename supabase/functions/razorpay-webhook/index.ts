@@ -267,7 +267,7 @@ Deno.serve(async (request) => {
     const { data: updatedLog, error: logError } = await supabase.from("razorpay_order_logs")
       .update({ status: "refund_review" })
       .eq("order_id", orderId)
-      .in("status", ["superseded", "failed", "captured", "refund_review"])
+      .in("status", ["created", "superseded", "failed", "captured", "refund_review"])
       .select("status")
       .maybeSingle();
     if (logError) return "error";

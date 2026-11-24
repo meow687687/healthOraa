@@ -23,7 +23,7 @@ export function QueueAction({ consultation, isActiveRoom, isStarting, onStart, o
           type="button"
           onClick={() => onOpenRoom(consultation, "rx")}
           aria-pressed={isActiveRoom}
-          className="inline-flex items-center gap-2 bg-accent-blue hover:bg-accent-blue/90 text-aura-canvas rounded-full font-semibold px-4 py-2 shadow-lg shadow-accent-blue-glow transition-all active:scale-[0.98]"
+          className="inline-flex items-center gap-2 bg-accent-blue hover:bg-accent-blue/90 text-aura-canvas rounded-xl font-semibold px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
         >
           Enter Telemedicine Room
         </button>

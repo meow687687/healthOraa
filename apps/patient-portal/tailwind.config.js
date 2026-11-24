@@ -12,6 +12,7 @@ export default {
           s3: '#1D2130',
           line: 'rgba(255, 255, 255, 0.08)',
           line2: 'rgba(255, 255, 255, 0.14)',
+          line3: '#626879',
         },
         accent: {
           blue: '#6EA7FF',

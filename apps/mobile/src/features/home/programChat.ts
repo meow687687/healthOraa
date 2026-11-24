@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { programMessageSchema } from '@healthoraa/validation';
 import { supabase } from '../../lib/supabase';
+import { DIET_CHART_BUCKET } from '../../lib/records';
 import { useAuth } from '../../auth/AuthProvider';
 
 export interface ProgramMessageRow {
@@ -12,6 +13,26 @@ export interface ProgramMessageRow {
   is_meal_photo: boolean;
   created_at: string;
 }
+
+const cleanupUnsentMealPhoto = async (path: string, enrolmentId: string, userId: string): Promise<void> => {
+  if (!path.startsWith(`${userId}/meals/`)) return;
+  try {
+    const { data: savedMessage, error: lookupError } = await supabase
+      .from('program_messages')
+      .select('id')
+      .eq('enrolment_id', enrolmentId)
+      .eq('sender_id', userId)
+      .eq('attachment_url', path)
+      .maybeSingle();
+    if (lookupError || savedMessage) return;
+
+    const { error: removeError } = await supabase.storage.from(DIET_CHART_BUCKET).remove([path]);
+    if (removeError) console.warn('An unsent meal photo could not be removed from private storage.');
+  } catch {
+    // Keep the original message error visible; a failed cleanup must not look like a successful send.
+    console.warn('An unsent meal photo could not be removed from private storage.');
+  }
+};
 
 export const useProgramMessages = (enrolmentId: string) => {
   const queryClient = useQueryClient();
@@ -56,14 +77,19 @@ export const useSendProgramMessage = (enrolmentId: string) => {
         const parsed = programMessageSchema.safeParse({ content: trimmed });
         if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'Check your message.');
       }
-      const { error } = await supabase.from('program_messages').insert({
-        enrolment_id: enrolmentId,
-        sender_id: userId,
-        content: trimmed.length > 0 ? trimmed : null,
-        attachment_url: input.attachmentPath,
-        is_meal_photo: input.attachmentPath !== null,
-      });
-      if (error) throw new Error(error.message);
+      try {
+        const { error } = await supabase.from('program_messages').insert({
+          enrolment_id: enrolmentId,
+          sender_id: userId,
+          content: trimmed.length > 0 ? trimmed : null,
+          attachment_url: input.attachmentPath,
+          is_meal_photo: input.attachmentPath !== null,
+        });
+        if (error) throw new Error(error.message);
+      } catch (error) {
+        if (input.attachmentPath) await cleanupUnsentMealPhoto(input.attachmentPath, enrolmentId, userId);
+        throw error instanceof Error ? error : new Error('Message not sent. Try again.');
+      }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['program-messages', enrolmentId] });

@@ -87,7 +87,7 @@ export default function App() {
         </main>
       </div>
 
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSelect={select} />
+      {paletteOpen ? <CommandPalette open onClose={() => setPaletteOpen(false)} onSelect={select} /> : null}
     </div>
   );
 }

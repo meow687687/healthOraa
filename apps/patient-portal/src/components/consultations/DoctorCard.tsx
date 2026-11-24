@@ -15,7 +15,7 @@ export function DoctorCard({ doctor, onBook }: { doctor: DoctorOption; onBook: (
   return (
     <article className={cn(PANEL, "flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between")}>
       <div className="flex min-w-0 items-center gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-accent-blue to-accent-violet text-sm font-bold text-white">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-aura-s3 text-sm font-bold text-text-primary">
           {initialsOf(doctor.displayName)}
         </div>
         <div className="min-w-0 space-y-1.5">
@@ -32,7 +32,7 @@ export function DoctorCard({ doctor, onBook }: { doctor: DoctorOption; onBook: (
       <button
         type="button"
         onClick={onBook}
-        className="inline-flex shrink-0 items-center justify-center rounded-full bg-accent-blue px-5 py-2.5 text-xs font-semibold text-aura-canvas shadow-lg shadow-accent-blue-glow transition-all hover:bg-accent-blue/90 active:scale-[0.98]"
+        className="inline-flex shrink-0 items-center justify-center rounded-xl bg-accent-blue px-5 py-2.5 text-xs font-semibold text-aura-canvas transition-colors hover:bg-accent-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
       >
         Book consultation
       </button>

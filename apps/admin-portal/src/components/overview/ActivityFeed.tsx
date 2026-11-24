@@ -21,7 +21,7 @@ export function ActivityFeed({ onOpen }: { onOpen: (kind: ActivityEvent["kind"])
   const feed = useRecentActivity();
 
   return (
-    <section aria-labelledby="activity-title" className="rounded-3xl border border-aura-line bg-aura-s1 p-5 shadow-aura-card md:p-6 lg:col-span-6">
+    <section aria-labelledby="activity-title" className="border-t border-aura-line pt-5 md:pt-6 lg:col-span-6">
       <h2 id="activity-title" className="text-base font-semibold text-text-primary">
         Recent activity
       </h2>

@@ -2,7 +2,7 @@ import { EmptyState } from "@healthoraa/ui";
 import { useState } from "react";
 import { Loader2, Pencil, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import type { Product } from "@healthoraa/types";
-import { useProducts, useToggleProductActive } from "../../hooks/useProducts";
+import { useDeleteProduct, useProducts, useToggleProductActive } from "../../hooks/useProducts";
 import { formatInr } from "../programs/programMeta";
 import CreateProductDrawer from "./CreateProductDrawer";
 import { LOW_STOCK_THRESHOLD, PRODUCT_CATEGORY_META } from "./productMeta";
@@ -16,10 +16,16 @@ import { cn } from "../../lib/cn";
 export default function ShopView() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { data: products, isLoading, isError, error } = useProducts();
   const toggleActive = useToggleProductActive();
+  const deleteProduct = useDeleteProduct();
 
-  const busyId = toggleActive.isPending ? toggleActive.variables?.id : undefined;
+  const busyId = toggleActive.isPending
+    ? toggleActive.variables?.id
+    : deleteProduct.isPending
+      ? deleteProduct.variables
+      : undefined;
   const lowStockCount = products?.filter((p) => p.stock_count < LOW_STOCK_THRESHOLD).length ?? 0;
 
   return (
@@ -34,7 +40,14 @@ export default function ShopView() {
             : "Loading catalog..."
         }
         action={
-          <button type="button" onClick={() => setIsDrawerOpen(true)} className={BTN_PRIMARY}>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingProduct(null);
+              setIsDrawerOpen(true);
+            }}
+            className={BTN_PRIMARY}
+          >
             <Plus className="w-4 h-4" />
             Create Product
           </button>
@@ -118,10 +131,32 @@ export default function ShopView() {
                       </td>
                       <td className="px-6 py-4">
                         <RowActions active={isSelected}>
-                          <button type="button" disabled title="Edit (coming soon)" aria-label="Edit product" className={ROW_MICRO}>
+                          <button
+                            type="button"
+                            title="Edit product"
+                            aria-label={`Edit ${product.title}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setEditingProduct(product);
+                              setIsDrawerOpen(true);
+                            }}
+                            className={ROW_MICRO}
+                          >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button type="button" disabled title="Delete (coming soon)" aria-label="Delete product" className={ROW_MICRO}>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            title="Delete product"
+                            aria-label={`Delete ${product.title}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (window.confirm(`Delete ${product.title}? Products in customer carts or order history will be protected.`)) {
+                                deleteProduct.mutate(product.id);
+                              }
+                            }}
+                            className={ROW_MICRO}
+                          >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </RowActions>
@@ -131,16 +166,26 @@ export default function ShopView() {
                 })}
               </tbody>
             </table>
-            {toggleActive.isError && (
+            {(toggleActive.isError || deleteProduct.isError) && (
               <p className="px-6 py-3 text-xs text-accent-red border-t border-aura-line">
-                Could not update status: {toggleActive.error.message}
+                {deleteProduct.isError
+                  ? deleteProduct.error.message
+                  : `Could not update status: ${toggleActive.error?.message ?? "Try again."}`}
               </p>
             )}
           </div>
         )}
       </div>
 
-      <CreateProductDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+      <CreateProductDrawer
+        key={editingProduct?.id ?? "new-product"}
+        isOpen={isDrawerOpen}
+        product={editingProduct}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setEditingProduct(null);
+        }}
+      />
     </div>
   );
 }

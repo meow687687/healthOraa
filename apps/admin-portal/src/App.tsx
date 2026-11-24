@@ -1,11 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
-import ProgramsView from "./components/programs/ProgramsView";
-import PractitionersView from "./components/practitioners/PractitionersView";
-import ShopView from "./components/shop/ShopView";
-import OrdersView from "./components/orders/OrdersView";
-import BannersView from "./components/banners/BannersView";
-import PaymentsAuditView from "./components/payments/PaymentsAuditView";
-import ComplianceView from "./components/compliance/ComplianceView";
+import { lazy, Suspense, useEffect, useState, useTransition } from "react";
+import type { ComponentType, LazyExoticComponent } from "react";
+import { SkeletonBlock } from "@healthoraa/ui";
 import { OverviewView } from "./components/overview/OverviewView";
 import { AdminHeader } from "./components/shell/AdminHeader";
 import { AdminRail } from "./components/shell/AdminRail";
@@ -14,18 +9,21 @@ import { findNav, type TabId } from "./components/shell/navConfig";
 import { useAuth } from "./context/AuthContext";
 import { cn } from "./lib/cn";
 
-const VIEWS: Record<Exclude<TabId, "overview">, ReactNode> = {
-  practitioners: <PractitionersView />,
-  programs: <ProgramsView />,
-  shop: <ShopView />,
-  orders: <OrdersView />,
-  banners: <BannersView />,
-  finance: <PaymentsAuditView />,
-  compliance: <ComplianceView />,
+type PortalView = LazyExoticComponent<ComponentType>;
+
+const VIEWS: Record<Exclude<TabId, "overview">, PortalView> = {
+  practitioners: lazy(() => import("./components/practitioners/PractitionersView")),
+  programs: lazy(() => import("./components/programs/ProgramsView")),
+  shop: lazy(() => import("./components/shop/ShopView")),
+  orders: lazy(() => import("./components/orders/OrdersView")),
+  banners: lazy(() => import("./components/banners/BannersView")),
+  finance: lazy(() => import("./components/payments/PaymentsAuditView")),
+  compliance: lazy(() => import("./components/compliance/ComplianceView")),
 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [isPending, startTransition] = useTransition();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { user, isPrototype, signOut } = useAuth();
   const { item, group } = findNav(activeTab);
@@ -43,7 +41,7 @@ export default function App() {
   }, []);
 
   const select = (id: TabId) => {
-    setActiveTab(id);
+    startTransition(() => setActiveTab(id));
     setPaletteOpen(false);
   };
 
@@ -62,9 +60,29 @@ export default function App() {
           onOpenSearch={() => setPaletteOpen(true)}
         />
 
-        <main className={cn("flex-1 p-4 pb-24 md:p-6 md:pb-8 lg:p-8")}>
-          <div className="mx-auto w-full max-w-7xl">
-            {activeTab === "overview" ? <OverviewView onNavigate={select} /> : VIEWS[activeTab]}
+        <main aria-busy={isPending} className={cn("flex-1 p-4 pb-24 md:p-6 md:pb-8 lg:p-8")}>
+          <div key={activeTab} className="portal-view-enter mx-auto w-full max-w-7xl">
+            {activeTab === "overview" ? (
+              <OverviewView onNavigate={select} />
+            ) : (
+              <Suspense
+                fallback={
+                  <div aria-busy="true" aria-label={`Loading ${item.label}`} className="space-y-5">
+                    <SkeletonBlock className="h-8 w-48" />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <SkeletonBlock className="h-36" />
+                      <SkeletonBlock className="h-36" />
+                    </div>
+                    <SkeletonBlock className="h-56" />
+                  </div>
+                }
+              >
+                {(() => {
+                  const View = VIEWS[activeTab];
+                  return <View />;
+                })()}
+              </Suspense>
+            )}
           </div>
         </main>
       </div>

@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ComplianceRequest, Profile, UpdateTables } from "@healthoraa/types";
 import { supabase } from "../lib/supabase";
-import { FALLBACK_COMPLIANCE_REQUESTS, withFallback } from "../lib/fallbackData";
 
 export type ComplianceRequestWithUser = ComplianceRequest & {
   profiles: Pick<Profile, "full_name" | "role"> | null;
@@ -15,19 +14,14 @@ export const complianceKeys = {
 export const useComplianceRequests = () => {
   return useQuery<ComplianceRequestWithUser[], Error>({
     queryKey: complianceKeys.list(),
-    queryFn: (): Promise<ComplianceRequestWithUser[]> =>
-      withFallback(
-        async () => {
-          const { data, error } = await supabase
-            .from("compliance_requests")
-            .select("*, profiles!compliance_requests_user_id_fkey(full_name, role)")
-            .order("created_at", { ascending: false });
-          if (error) throw new Error(error.message);
-          return (data ?? []) as ComplianceRequestWithUser[];
-        },
-        FALLBACK_COMPLIANCE_REQUESTS,
-        "compliance requests",
-      ),
+    queryFn: async (): Promise<ComplianceRequestWithUser[]> => {
+      const { data, error } = await supabase
+        .from("compliance_requests")
+        .select("*, profiles!compliance_requests_user_id_fkey(full_name, role)")
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as ComplianceRequestWithUser[];
+    },
   });
 };
 

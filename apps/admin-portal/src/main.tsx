@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App.tsx";
 import { AuthProvider } from "./context/AuthContext";
+import "@healthoraa/ui/portal-motion.css";
 import "./index.css";
 
 const queryClient = new QueryClient({

@@ -8,7 +8,8 @@ export function CartPill({ units, subtotalPaise, onOpen }: { units: number; subt
     <button
       type="button"
       onClick={onOpen}
-      className={`${BTN_PRIMARY} fixed bottom-24 left-1/2 z-30 -translate-x-1/2 tabular-nums shadow-aura-elevated`}
+      className={`${BTN_PRIMARY} fixed bottom-24 left-1/2 z-30 tabular-nums shadow-aura-elevated`}
+      style={{ translate: "-50% 0" }}
     >
       <ShoppingBag className="h-4 w-4" />
       <span>

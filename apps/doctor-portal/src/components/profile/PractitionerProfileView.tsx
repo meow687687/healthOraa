@@ -49,6 +49,12 @@ function ProfileEditor({ profile }: { profile: PractitionerProfile }) {
     }
   };
 
+  const showSaveBar =
+    form.formState.isDirty ||
+    save.isPending ||
+    form.formState.isSubmitting ||
+    save.isError;
+
   return (
     <div className="space-y-6">
       <ProfileHeaderCard profile={profile} />
@@ -63,11 +69,13 @@ function ProfileEditor({ profile }: { profile: PractitionerProfile }) {
 
         <DigitalSignatureCard />
 
-        <SaveSettingsBar
-          isDirty={form.formState.isDirty}
-          isSaving={save.isPending || form.formState.isSubmitting}
-          errorMessage={save.isError ? save.error.message : null}
-        />
+        {showSaveBar && (
+          <SaveSettingsBar
+            isDirty={form.formState.isDirty}
+            isSaving={save.isPending || form.formState.isSubmitting}
+            errorMessage={save.isError ? save.error.message : null}
+          />
+        )}
       </form>
     </div>
   );

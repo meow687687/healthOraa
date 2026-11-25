@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useTransition } from "react";
-import { SkeletonBlock } from "@healthoraa/ui";
+import { SkeletonBlock, SkipLink } from "@healthoraa/ui";
 import { TopBar } from "./components/shell/TopBar";
 import { PatientNav } from "./components/shell/PatientNav";
 import type { PatientView } from "./components/shell/PatientNav";
@@ -36,11 +36,14 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-aura-canvas font-sans text-text-primary antialiased">
+      <SkipLink />
       <TopBar />
       <PatientNav active={view} onSelect={selectView} />
 
       {/* Leave room for phone navigation; wide screens use the navigation row above the page. */}
       <main
+        id="main-content"
+        tabIndex={-1}
         aria-busy={isPending}
         className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-28 md:px-6 md:pt-6 lg:px-8 lg:pt-8 lg:pb-8"
       >

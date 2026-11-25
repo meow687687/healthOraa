@@ -6,9 +6,9 @@ import { nextSevenDayKeys } from "../../../lib/slotPlanner";
 import type { DoctorOption, SlotOption } from "../../../types/consultations";
 
 const CHIP =
-  "rounded-xl border px-4 py-2 text-xs font-mono tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue";
+  "inline-flex min-h-[44px] items-center rounded-xl border px-4 py-2 text-xs font-mono tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue";
 
-// Date carousel for the next seven days, then morning and evening slot blocks for the chosen day.
+// Date carousel for the next seven days, then morning, afternoon and evening slots.
 export function SlotPicker({
   doctor,
   slots,
@@ -33,7 +33,11 @@ export function SlotPicker({
   const dayKey = chosenDay ?? days.find((key) => onDay(key).length > 0) ?? days[0];
   const daySlots = onDay(dayKey);
   const morning = daySlots.filter((slot) => istHour(new Date(slot.startsAt)) < 12);
-  const evening = daySlots.filter((slot) => istHour(new Date(slot.startsAt)) >= 12);
+  const afternoon = daySlots.filter((slot) => {
+    const hour = istHour(new Date(slot.startsAt));
+    return hour >= 12 && hour < 17;
+  });
+  const evening = daySlots.filter((slot) => istHour(new Date(slot.startsAt)) >= 17);
 
   const renderBlock = (title: string, block: SlotOption[]) => (
     <div className="space-y-3">
@@ -112,6 +116,7 @@ export function SlotPicker({
         ) : (
           <>
             {renderBlock("Morning", morning)}
+            {renderBlock("Afternoon", afternoon)}
             {renderBlock("Evening", evening)}
           </>
         )}

@@ -76,8 +76,8 @@ export function QueueCard(props: QueueCardProps & { compact?: boolean }) {
       className={cn(
         PANEL,
         compact
-          ? "flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between"
-          : "flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6",
+          ? "flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between"
+          : "flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between lg:p-6",
         isActiveRoom && "border-accent-emerald/40",
       )}
     >

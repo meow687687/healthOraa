@@ -34,9 +34,15 @@ export function AdminHeader({ title, groupLabel, email, role, isDemoData, onSign
 
         {isDemoData ? (
           <Badge tone="violet" className="text-xs">
-            <span className="sm:hidden">Demo · synthetic</span>
-            <span className="hidden sm:inline">Demo data · synthetic records</span>
-            <span className="sr-only sm:hidden">Demo data · synthetic records</span>
+            <span aria-hidden="true" className="sm:hidden">
+              Demo
+            </span>
+            <span className="hidden sm:inline">
+              Demo data · synthetic records
+            </span>
+            <span className="sr-only sm:hidden">
+              Demo data · synthetic records
+            </span>
           </Badge>
         ) : null}
 

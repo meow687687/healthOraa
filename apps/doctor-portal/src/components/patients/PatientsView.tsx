@@ -38,7 +38,7 @@ export default function PatientsView() {
     <div className="space-y-6">
       <section className={cn(PANEL, "flex flex-wrap items-center justify-between gap-4")}>
         <div>
-          <h2 className="text-lg font-bold tracking-tight text-white">Patients</h2>
+          <h2 className="text-lg font-bold tracking-tight text-white">Patient list</h2>
           <p className="mt-0.5 text-xs text-text-secondary">
             {query.isPending ? "Loading patients..." : `${patients.length} patient${patients.length === 1 ? "" : "s"} seen by you`}
           </p>

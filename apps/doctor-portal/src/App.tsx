@@ -10,6 +10,13 @@ const ScheduleView = lazy(() => import("./components/schedule/ScheduleView"));
 
 export type DoctorView = "queue" | "schedule" | "patients" | "profile";
 
+const PAGE_TITLES: Record<DoctorView, string> = {
+  queue: "Queue",
+  schedule: "Schedule",
+  patients: "Patients",
+  profile: "Profile",
+};
+
 const GROUPS = [
   {
     id: "main",
@@ -36,7 +43,7 @@ export default function App() {
       <PortalRail groups={GROUPS} active={view} onSelect={selectView} />
 
       <div className="flex min-h-screen min-w-0 flex-col md:pl-16 xl:pl-[232px]">
-        <TopBar />
+        <TopBar pageTitle={PAGE_TITLES[view]} />
         <main aria-busy={isPending} className="mx-auto w-full max-w-5xl flex-1 p-4 pb-32 md:p-6 md:pb-8 lg:p-8">
           <Suspense
             fallback={

@@ -18,18 +18,34 @@ export function TopBar({ pageTitle }: { pageTitle: string }) {
 
   return (
     <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-aura-line bg-aura-s1/90 px-4 py-3 backdrop-blur-md lg:h-20 lg:flex-nowrap lg:px-8 lg:py-0">
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-aura-s3 text-xs font-bold text-text-primary">
           {initialsOf(doctor.displayName)}
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold tracking-tight text-white lg:text-xl">{pageTitle}</h1>
-          <p className="truncate text-sm text-text-secondary">{doctor.displayName}</p>
-          <p className="truncate font-mono text-xs text-text-muted">{doctor.registrationNumber}</p>
+          <h1 className="truncate text-lg font-bold tracking-tight text-white lg:text-xl">
+            {pageTitle}
+          </h1>
+          <p className="truncate text-sm text-text-secondary">
+            {doctor.displayName}
+          </p>
+          {doctor.registrationNumber && (
+            <p className="truncate font-mono text-xs text-text-muted">
+              {doctor.registrationNumber}
+            </p>
+          )}
         </div>
+        {!isPrototype ? (
+          <AccountMenu
+            email={user.email}
+            role={user.role}
+            displayName={doctor.displayName}
+            onSignOut={() => void signOut()}
+          />
+        ) : null}
       </div>
 
-      <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto lg:flex-nowrap">
+      <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap">
         <button
           type="button"
           onClick={toggleAccepting}
@@ -38,14 +54,21 @@ export function TopBar({ pageTitle }: { pageTitle: string }) {
           className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
         >
           <Badge tone={isAccepting ? "emerald" : "neutral"}>
-            {isAccepting ? "Accepting Consultations" : "Consultations Paused"}
+            <span className="sm:hidden">
+              {isAccepting ? "Accepting" : "Paused"}
+            </span>
+            <span className="hidden sm:inline">
+              {isAccepting ? "Accepting Consultations" : "Consultations Paused"}
+            </span>
           </Badge>
         </button>
         {isDemoData ? (
-          <Badge tone="violet" className="text-xs">Demo data · synthetic records</Badge>
-        ) : null}
-        {!isPrototype ? (
-          <AccountMenu email={user.email} role={user.role} displayName={doctor.displayName} onSignOut={() => void signOut()} />
+          <Badge tone="violet" className="text-xs">
+            <span className="sm:hidden">Demo records</span>
+            <span className="hidden sm:inline">
+              Demo data · synthetic records
+            </span>
+          </Badge>
         ) : null}
       </div>
     </header>

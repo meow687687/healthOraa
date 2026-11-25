@@ -8,13 +8,13 @@ export interface LockerDocument {
   documentDate: string;
   fileType: "pdf" | "image";
   fileSizeBytes: number | null;
-  // "record" is a row in patient_documents, "upload" lives in this session only, "demo" is sample data.
+  // "record" is a live database row, "upload" is session-only, and "demo" is clearly marked synthetic data.
   source: "record" | "upload" | "demo";
-  // Demo summary shown in preview, since demo documents have no real file.
+  // Optional synthetic summary used when a local demo record has no file attached.
   summary: string | null;
   // The file for uploads made in this session.
   file: File | null;
-  // Storage path for database records. Opened through a short-lived signed link.
+  // Storage path for persisted records, opened through a short-lived signed link.
   filePath: string | null;
   canOpen: boolean;
 }

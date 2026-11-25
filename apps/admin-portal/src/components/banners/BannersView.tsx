@@ -1,6 +1,13 @@
 import { EmptyState } from "@healthoraa/ui";
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Loader2, Megaphone, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Loader2,
+  Megaphone,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import type { AppBanner } from "@healthoraa/types";
 import {
   useBanners,
@@ -40,22 +47,41 @@ function BannerCard({
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const meta = BANNER_TARGET_META[banner.target_type];
+  const isSampleBanner = banner.title.startsWith("Sample ·");
+  const isUnpublishedSample = !banner.is_active && isSampleBanner;
+  const showArtworkFallback = isUnpublishedSample || imageFailed;
 
   return (
     <article className="group relative bg-aura-s2 border border-aura-line rounded-2xl overflow-hidden shadow-aura-card">
       <div className="relative aspect-video bg-aura-s3">
-        {imageFailed ? (
-          <div role="img" aria-label={`${banner.title} campaign artwork is unavailable`} className="absolute inset-0 flex flex-col justify-between bg-aura-s3 p-5">
+        {showArtworkFallback ? (
+          <div
+            role="img"
+            aria-label={
+              isUnpublishedSample
+                ? `${banner.title}, sample banner without approved artwork`
+                : `${banner.title} campaign artwork is unavailable`
+            }
+            className="absolute inset-0 flex flex-col justify-between bg-gradient-to-br from-aura-s2 via-aura-s3 to-accent-blue/20 p-5"
+          >
             <div className="flex items-center gap-2 pl-12 text-text-secondary">
               <Megaphone className="h-4 w-4" aria-hidden="true" />
-              <span className="text-xs font-semibold">Artwork unavailable · {meta.label}</span>
+              <span className="text-xs font-semibold">
+                {isUnpublishedSample
+                  ? `Sample preview · ${meta.label}`
+                  : `Artwork unavailable · ${meta.label}`}
+              </span>
             </div>
             <div className="max-w-[80%]">
-              <p className="text-2xl font-semibold leading-tight tracking-tight text-text-primary">{banner.title}</p>
+              <p className="text-2xl font-semibold leading-tight tracking-tight text-text-primary">
+                {banner.title}
+              </p>
               <p className="mt-2 text-xs text-text-secondary">
-                {banner.is_active
-                  ? "The live banner image could not load. Replace it to restore the carousel artwork."
-                  : "Add approved campaign artwork before activating this banner."}
+                {isUnpublishedSample
+                  ? "Demo content only. Add client-approved copy and artwork before activating."
+                  : banner.is_active
+                    ? "The live banner image could not load. Replace it to restore the carousel artwork."
+                    : "Add approved campaign artwork before activating this banner."}
               </p>
             </div>
           </div>
@@ -64,7 +90,10 @@ function BannerCard({
             src={banner.image_url}
             alt={banner.title}
             onError={() => setImageFailed(true)}
-            className={cn("h-full w-full object-cover transition-opacity", !banner.is_active && "opacity-40")}
+            className={cn(
+              "h-full w-full object-cover transition-opacity",
+              !banner.is_active && "opacity-40",
+            )}
           />
         )}
 
@@ -111,13 +140,21 @@ function BannerCard({
       <div className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-semibold text-text-primary truncate">{banner.title}</p>
-            <p className="text-xs font-mono text-text-muted truncate">{banner.target_id ?? "No target set"}</p>
+            <p className="font-semibold text-text-primary truncate">
+              {banner.title}
+            </p>
+            <p className="text-xs font-mono text-text-muted truncate">
+              {banner.target_id ?? "No target set"}
+            </p>
           </div>
           <ActiveSwitch
             checked={banner.is_active}
-            disabled={busy}
-            label={`Toggle ${banner.title} active`}
+            disabled={busy || (isSampleBanner && !banner.is_active)}
+            label={
+              isSampleBanner && !banner.is_active
+                ? `Toggle ${banner.title} active; disabled until approved copy and artwork are added`
+                : `Toggle ${banner.title} active`
+            }
             onChange={onToggle}
           />
         </div>
@@ -150,11 +187,18 @@ export default function BannersView() {
     const current = banners[index];
     const neighbour = banners[index + direction];
     if (!current || !neighbour) return;
-    updateOrder.mutate({ id: current.id, displayOrder: neighbour.display_order });
-    updateOrder.mutate({ id: neighbour.id, displayOrder: current.display_order });
+    updateOrder.mutate({
+      id: current.id,
+      displayOrder: neighbour.display_order,
+    });
+    updateOrder.mutate({
+      id: neighbour.id,
+      displayOrder: current.display_order,
+    });
   };
 
-  const mutationError = toggleActive.error ?? updateOrder.error ?? deleteBanner.error;
+  const mutationError =
+    toggleActive.error ?? updateOrder.error ?? deleteBanner.error;
 
   return (
     <div className="space-y-6">
@@ -168,7 +212,11 @@ export default function BannersView() {
             : "Loading banners..."
         }
         action={
-          <button type="button" onClick={() => setIsDrawerOpen(true)} className={BTN_PRIMARY}>
+          <button
+            type="button"
+            onClick={() => setIsDrawerOpen(true)}
+            className={BTN_PRIMARY}
+          >
             <Plus className="w-4 h-4" />
             Create Banner
           </button>
@@ -182,14 +230,21 @@ export default function BannersView() {
           </div>
         )}
 
-        {isError && <div className={ERROR_BOX}>Could not load banners: {error.message}</div>}
+        {isError && (
+          <div className={ERROR_BOX}>
+            Could not load banners: {error.message}
+          </div>
+        )}
 
         {!isLoading && !isError && banners?.length === 0 && (
           <EmptyState
             icon={Megaphone}
             title="No banners yet"
             description="Create a banner to feature a program, doctor or product on the home carousel."
-            action={{ label: "Create Banner", onClick: () => setIsDrawerOpen(true) }}
+            action={{
+              label: "Create Banner",
+              onClick: () => setIsDrawerOpen(true),
+            }}
             className="border-0 bg-transparent shadow-none"
           />
         )}
@@ -198,7 +253,11 @@ export default function BannersView() {
           <div
             className={cn(
               "grid grid-cols-1 gap-6",
-              banners.length === 1 ? "max-w-xl" : banners.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3",
+              banners.length === 1
+                ? "max-w-xl"
+                : banners.length === 2
+                  ? "sm:grid-cols-2"
+                  : "sm:grid-cols-2 xl:grid-cols-3",
             )}
           >
             {banners.map((banner, index) => (
@@ -209,7 +268,9 @@ export default function BannersView() {
                 isFirst={index === 0}
                 isLast={index === banners.length - 1}
                 busy={busyId === banner.id}
-                onToggle={(next) => toggleActive.mutate({ id: banner.id, isActive: next })}
+                onToggle={(next) =>
+                  toggleActive.mutate({ id: banner.id, isActive: next })
+                }
                 onMoveUp={() => move(index, -1)}
                 onMoveDown={() => move(index, 1)}
                 onDelete={() => deleteBanner.mutate({ id: banner.id })}
@@ -218,10 +279,15 @@ export default function BannersView() {
           </div>
         )}
 
-        {mutationError && <p className={cn(ERROR_BOX, "mt-6")}>{mutationError.message}</p>}
+        {mutationError && (
+          <p className={cn(ERROR_BOX, "mt-6")}>{mutationError.message}</p>
+        )}
       </div>
 
-      <CreateBannerDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+      <CreateBannerDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+      />
     </div>
   );
 }

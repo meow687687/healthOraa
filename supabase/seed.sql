@@ -129,10 +129,10 @@ ON CONFLICT (id) DO NOTHING;
 -- Program target is resolved by title because program UUIDs are generated per reset.
 INSERT INTO public.app_banners (id, title, image_url, target_type, target_id, display_order, is_active)
 VALUES
-  ('bbbbbbb1-0000-4000-8000-000000000001', '60-Day PCOD Reset: Launch Offer', 'https://images.example.com/banners/pcod-reset.jpg', 'program',
-    (SELECT id::text FROM public.programs WHERE title = 'PCOD/PCOS Nutrition Program (Sample)' LIMIT 1), 0, TRUE),
-  ('bbbbbbb2-0000-4000-8000-000000000002', 'Book a Certified Doctor Consultation', 'https://images.example.com/banners/doctor-consult.jpg', 'doctor',
-    '11111111-1111-1111-1111-111111111111', 1, TRUE)
+  ('bbbbbbb1-0000-4000-8000-000000000001', 'Sample · PCOD nutrition support', 'https://images.example.com/banners/pcod-reset.jpg', 'program',
+    (SELECT id::text FROM public.programs WHERE title = 'PCOD/PCOS Nutrition Program (Sample)' LIMIT 1), 0, FALSE),
+  ('bbbbbbb2-0000-4000-8000-000000000002', 'Sample · Practitioner consultation', 'https://images.example.com/banners/doctor-consult.jpg', 'doctor',
+    '11111111-1111-1111-1111-111111111111', 1, FALSE)
 ON CONFLICT (id) DO NOTHING;
 
 -- 5. Mock consultation so one payment can reference a doctor booking
@@ -188,13 +188,13 @@ VALUES
   ('abababab-0000-4000-8000-000000000011', '22222222-2222-2222-2222-222222222222',
     'Comprehensive Metabolic Panel & HbA1c', 'blood_panel', DATE '2026-10-15',
     '22222222-2222-2222-2222-222222222222/health-locker/metabolic-panel-2026-10-15.pdf',
-    '{"hba1c": 6.1, "fasting_glucose": 104, "tsh": 3.8, "ldl_cholesterol": 128}'::JSONB),
+    '{"demo_only": true, "hba1c": 6.1, "fasting_glucose": 104, "tsh": 3.8, "ldl_cholesterol": 128}'::JSONB),
   ('abababab-0000-4000-8000-000000000012', '22222222-2222-2222-2222-222222222222',
     'Pelvic Ultrasound Report', 'imaging_radiology', DATE '2026-09-20',
-    '22222222-2222-2222-2222-222222222222/health-locker/pelvic-ultrasound-2026-09-20.pdf', '{}'::JSONB),
+    '22222222-2222-2222-2222-222222222222/health-locker/pelvic-ultrasound-2026-09-20.pdf', '{"demo_only": true}'::JSONB),
   ('abababab-0000-4000-8000-000000000013', '22222222-2222-2222-2222-222222222222',
     'Signed Dermatology Prescription', 'prescription', DATE '2026-11-02',
-    '22222222-2222-2222-2222-222222222222/health-locker/dermatology-prescription-2026-11-02.pdf', '{}'::JSONB)
+    '22222222-2222-2222-2222-222222222222/health-locker/dermatology-prescription-2026-11-02.pdf', '{"demo_only": true}'::JSONB)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.patient_biomarkers

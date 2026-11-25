@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { withSingleFallback } from "@healthoraa/ui";
 import { updatePractitionerProfileSchema } from "@healthoraa/validation";
 import type { UpdatePractitionerProfileInput } from "@healthoraa/validation";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 import { useDoctor } from "../context/DoctorContext";
 import { FALLBACK_PRACTITIONER_PROFILE } from "../lib/profileFallback";
 import type { PractitionerProfile, VerificationStatus } from "../types/profile";
 
-export const practitionerKey = (doctorId: string) => ["practitioner", doctorId] as const;
+export const practitionerKey = (doctorId: string) =>
+  ["practitioner", doctorId] as const;
 
 // Profile fields come from practitioner_details; the name and phone are embedded from profiles.
 const PRACTITIONER_SELECT =
@@ -27,7 +28,9 @@ interface PractitionerRow {
   profiles: { full_name: string; phone: string | null } | null;
 }
 
-export const toPractitionerProfile = (row: PractitionerRow): PractitionerProfile => ({
+export const toPractitionerProfile = (
+  row: PractitionerRow,
+): PractitionerProfile => ({
   id: row.id,
   displayName: row.profiles?.full_name ?? "Unnamed practitioner",
   avatarUrl: row.avatar_url,
@@ -44,27 +47,35 @@ export const toPractitionerProfile = (row: PractitionerRow): PractitionerProfile
   dataSource: "live",
 });
 
-// The logged-in doctor's profile. Falls back to the seeded profile when the read fails or the row is missing.
+// Only the seeded demo identity may use demo profile data when the read fails.
 export const usePractitionerProfile = () => {
   const { doctor } = useDoctor();
+  const { isDemoData } = useAuth();
 
   return useQuery<PractitionerProfile, Error>({
     queryKey: practitionerKey(doctor.id),
-    queryFn: () =>
-      withSingleFallback(
-        async () => {
-          const { data, error } = await supabase
-            .from("practitioner_details")
-            .select(PRACTITIONER_SELECT)
-            .eq("id", doctor.id)
-            .maybeSingle();
-          if (error) throw new Error(error.message);
-          if (!data) throw new Error("No practitioner profile found for this doctor.");
-          return toPractitionerProfile(data as PractitionerRow);
-        },
-        FALLBACK_PRACTITIONER_PROFILE,
-        "practitioner profile",
-      ),
+    queryFn: async (): Promise<PractitionerProfile> => {
+      try {
+        const { data, error } = await supabase
+          .from("practitioner_details")
+          .select(PRACTITIONER_SELECT)
+          .eq("id", doctor.id)
+          .maybeSingle();
+        if (error) throw new Error(error.message);
+        if (!data)
+          throw new Error("No practitioner profile found for this doctor.");
+        return toPractitionerProfile(data as PractitionerRow);
+      } catch (error) {
+        if (!isDemoData || doctor.id !== FALLBACK_PRACTITIONER_PROFILE.id) {
+          throw error;
+        }
+        console.warn(
+          "[doctor-portal] practitioner profile: query failed, using demo profile",
+          error,
+        );
+        return FALLBACK_PRACTITIONER_PROFILE;
+      }
+    },
   });
 };
 
@@ -74,11 +85,17 @@ export const useUpdatePractitionerProfile = () => {
   const { doctor } = useDoctor();
   const queryClient = useQueryClient();
 
-  return useMutation<UpdatePractitionerProfileInput, Error, UpdatePractitionerProfileInput>({
+  return useMutation<
+    UpdatePractitionerProfileInput,
+    Error,
+    UpdatePractitionerProfileInput
+  >({
     mutationFn: async (input) => {
       const parsed = updatePractitionerProfileSchema.safeParse(input);
       if (!parsed.success) {
-        throw new Error(parsed.error.issues[0]?.message ?? "Check the highlighted fields.");
+        throw new Error(
+          parsed.error.issues[0]?.message ?? "Check the highlighted fields.",
+        );
       }
       const values = parsed.data;
 
@@ -97,10 +114,14 @@ export const useUpdatePractitionerProfile = () => {
         .select("id");
       if (error) throw new Error(error.message);
       // An update that matches no row succeeds silently, so check that something changed.
-      if (!data || data.length === 0) throw new Error("No practitioner profile was updated. Nothing was saved.");
+      if (!data || data.length === 0)
+        throw new Error(
+          "No practitioner profile was updated. Nothing was saved.",
+        );
 
       return values;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: practitionerKey(doctor.id) }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: practitionerKey(doctor.id) }),
   });
 };

@@ -26,7 +26,7 @@ export function TopBar() {
         </div>
         <div className="min-w-0">
           <p className="text-xs font-semibold text-text-muted">
-            Patient account
+            Healthoraa · Patient
           </p>
           <p className="truncate text-base font-bold tracking-tight text-white lg:text-lg">
             {patient.displayName}

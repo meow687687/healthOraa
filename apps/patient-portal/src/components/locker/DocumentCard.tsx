@@ -34,6 +34,9 @@ export function DocumentCard({
           {document.source === "upload" && (
             <Badge tone="amber">Session only</Badge>
           )}
+          {document.source === "demo" && (
+            <Badge tone="neutral">Demo sample</Badge>
+          )}
         </div>
       </div>
 

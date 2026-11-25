@@ -1,10 +1,11 @@
 import { Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { BTN_PRIMARY, LABEL, Modal } from "@healthoraa/ui";
+import { BTN_PRIMARY, Modal } from "@healthoraa/ui";
 import { useObjectUrl } from "../../hooks/useObjectUrl";
 import { downloadLocalDocument, downloadRecord } from "../../lib/download";
 import { createRecordLink } from "../../lib/recordFiles";
-import { formatDocumentDate, formatFileSize } from "../../lib/fileFormat";
+import { DocumentPreviewHeader } from "./DocumentPreviewHeader";
+import { DemoPdfPreview } from "./DemoPdfPreview";
 import type { LockerDocument } from "../../types/locker";
 
 // Uploads preview their own file. Records open through a fresh signed link. Demo documents show their summary.
@@ -72,27 +73,7 @@ function PreviewBody({
 
   return (
     <div className="flex min-h-0 flex-col gap-5">
-      <header className="space-y-2 border-b border-aura-line pb-5">
-        <p className={LABEL}>
-          Preview · {formatDocumentDate(document.documentDate)} ·{" "}
-          {formatFileSize(document.fileSizeBytes)}
-        </p>
-        <h2
-          id="preview-title"
-          className="text-lg font-bold tracking-tight text-white"
-        >
-          {document.title}
-        </h2>
-        {document.source === "upload" && (
-          <p
-            role="note"
-            className="rounded-xl border border-accent-amber/30 bg-accent-amber/10 px-4 py-3 text-xs leading-relaxed text-text-primary"
-          >
-            Session only. This file has not been saved to your medical vault and
-            will be removed when you reload the page.
-          </p>
-        )}
-      </header>
+      <DocumentPreviewHeader document={document} />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {url && document.fileType === "image" && (
@@ -102,7 +83,10 @@ function PreviewBody({
             className="mx-auto max-h-[60vh] rounded-xl border border-aura-line object-contain"
           />
         )}
-        {url && document.fileType === "pdf" && (
+        {url && document.source === "demo" && document.fileType === "pdf" && (
+          <DemoPdfPreview document={document} />
+        )}
+        {url && document.source !== "demo" && document.fileType === "pdf" && (
           <iframe
             title={document.title}
             src={url}
@@ -116,8 +100,8 @@ function PreviewBody({
         )}
         {isRecord && link.isError && (
           <p className="rounded-xl border border-accent-red/30 bg-accent-red/10 px-4 py-3 text-xs text-accent-red">
-            This file could not be opened. Records need a signed-in session.{" "}
-            {link.error.message}
+            The secure file could not be opened. Check your connection and try
+            again. {link.error.message}
           </p>
         )}
         {!isRecord && !url && document.summary && (

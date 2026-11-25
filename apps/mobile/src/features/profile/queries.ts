@@ -76,6 +76,23 @@ export const useOrders = () => {
   });
 };
 
+export const useCancelPendingShopOrder = () => {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderId: string): Promise<void> => {
+      if (!userId) throw new Error('Not signed in');
+      const { data, error } = await supabase.rpc('cancel_pending_shop_order', { p_order_id: orderId });
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('This order can no longer be cancelled. Refresh and check its status.');
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['orders', userId] });
+    },
+  });
+};
+
 export interface LockerUpload {
   title: string;
   category: 'blood_panel' | 'imaging_radiology' | 'prescription' | 'discharge_summary' | 'other';

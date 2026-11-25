@@ -35,6 +35,36 @@ export const sendPaymentCaptured = async (input: {
   return { status: response.status, body };
 };
 
+export const sendPaymentFailed = async (input: {
+  orderId: string;
+  amountPaise: number;
+  currency: string;
+  paymentId: string;
+}): Promise<WebhookResult> => {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/razorpay-webhook`, {
+    method: "POST",
+    headers: { "content-type": "application/json", apikey: PUBLISHABLE_KEY },
+    body: JSON.stringify({
+      event: "payment.failed",
+      payload: {
+        payment: {
+          entity: {
+            id: input.paymentId,
+            order_id: input.orderId,
+            amount: input.amountPaise,
+            currency: input.currency,
+            status: "failed",
+            error_code: "BAD_REQUEST_ERROR",
+            error_description: "Payment failed",
+          },
+        },
+      },
+    }),
+  });
+  const body = (await response.json()) as Record<string, unknown>;
+  return { status: response.status, body };
+};
+
 export const sendRefundProcessed = async (input: {
   orderId: string;
   paymentId: string;

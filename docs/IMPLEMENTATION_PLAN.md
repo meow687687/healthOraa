@@ -10,7 +10,7 @@ Bring the existing work to a reviewable, repeatable client demo, then prepare a 
 
 - The project PDF describes a ₹70,000 turnkey delivery through contract milestones M1–M4. Its acceptance signature line is blank in the copy reviewed here; do not describe the document as signed or accepted without confirmation.
 - The PDF separately labels optional post-launch support retainers “Phase 2” (₹8,000/month) and “Phase 3” (₹14,000/month). This roadmap uses **engineering Phase 1/2/3** for demo readiness, paid-pilot readiness, and broader-launch readiness. These are not contract amendments, additional paid build phases, or retainer selections.
-- The contract names Razorpay **or** Cashfree. The current code is Razorpay-specific. Keep all payments disabled until the client confirms the gateway and owns the provider accounts. Do not add Cashfree or quote a new phase without approval.
+- The contract names Razorpay **or** Cashfree. The user confirmed on 2026-11-26 that the client selected Razorpay and the Healthoraa-owned sandbox account is ready. Sandbox credentials are not configured in this isolated workspace; payment stays disabled until the sandbox lifecycle is verified. Do not add Cashfree or quote a new phase without approval.
 - Client data, prices, credentials, program copy, video, product/legal metadata, and compliance decisions remain client inputs. Use synthetic demo data and explicitly identified examples until those inputs are approved.
 
 ## Current baseline
@@ -65,7 +65,7 @@ The presenter should show each surface only where its journey works end to end. 
 | C1 | Program chat, meal photos, charts, nutritionist assignment and expiry | Demonstrate seeded history; enable writes only where entitlement/RLS is verified | Paid entitlement, assigned nutritionist, private files, push and server-enforced expiry | Expand progression and content delivery | Real program writes require paid entitlement, assigned staff, and approved content. |
 | C2 | Practitioner auth, calendar, patients, clinical history, prescriptions and split inbox | Show synthetic queue and supported workflow only | Operate approved practitioners with verified credentials and access boundaries | Scale staffing, schedules and clinical reporting | Real clinical work requires verified practitioner identities and accountable operations. |
 | A1 | Admin verification, catalog/program CRUD, inventory, banners and deep links | Use synthetic records; no real fulfillment or financial action | Operate verification, approved content, refunds and support ownership | Add broader controls and reporting from pilot needs | Operational actions need approved content and named support/refund owners. |
-| A2 | Razorpay/Cashfree gateway and payment/webhook audit | Gateway calls disabled; distinguish unpaid from captured/refunded | Confirm provider choice; sandbox signature/webhook, exact-once fulfillment, refunds and reconciliation | Cohort rollout, monitoring, rollback and incident response | The contract permits either provider; the client has not selected one or supplied an owned account. |
+| A2 | Razorpay/Cashfree gateway and payment/webhook audit | Gateway calls disabled; distinguish unpaid from captured/refunded | Razorpay selected and Healthoraa-owned sandbox account reported ready; verify signed webhooks, exact-once fulfillment, refunds and reconciliation | Cohort rollout, monitoring, rollback and incident response | Sandbox proof, payment/reservation policy, operators and live-use approval remain open. |
 | D1 | Roles, RLS, chat boundaries, secure storage, deletion and push-token privacy | Review database enforcement for paths shown; use demo data only | Qualified privacy/security/clinical/product review before real users | Repeat audits, incident drills and access reviews | A code review cannot replace qualified legal, clinical, and privacy approval for real users. |
 | D2 | Private 60-second signed URLs, deletion and data minimization | Verify synthetic records and short-lived links | Apply approved retention/consent and support procedures | Audit retention, erasure and access operations | Retention and real-data deletion behavior need an approved policy and responsible operator. |
 | D3 | Primary/standby replication, PITR and encrypted Cloudflare R2 copies | Document as not deployed; never imply HA from code | Approve provider setup, ownership, cost and restore objectives | Configure, monitor and prove failover, restore and R2 recovery drills | Provider accounts, cost, and recovery objectives are client-owned. |
@@ -79,7 +79,7 @@ Recorded client requests also require enough program detail to choose without ca
 | Input / approval | Required before | Current handling |
 |---|---|---|
 | Confirm agreement status, milestone acceptance and whether next work is M2/M3/M4 or an optional retainer | Client acceptance or commercial quote | Signature and milestone clearance are unverified; do not contact the client on the user’s behalf |
-| Gateway choice and Healthoraa-owned provider account | Any sandbox/live gateway setup | Razorpay implementation stays disabled; no Cashfree work without scope approval |
+| Gateway choice and Healthoraa-owned provider account | Any sandbox/live gateway setup | Razorpay and Healthoraa-owned sandbox account reported ready by the user on 2026-11-26; local sandbox credentials and written operating policy are still missing; payment remains disabled |
 | Brand guide, Figma source, approved logos, photos and product assets | Final visual/content approval and store submission | Keep Aura Dark / Manrope; label demo/sample imagery; do not present generated placeholders as real |
 | Program names, prices, duration, inclusions, approved claims, CTA/contact route and video files | Client-facing program journey | Build only the structure; mark missing values as demo content until supplied |
 | Practitioner identity, qualification, registration and status | Any real clinical workflow | Use synthetic records in demo; verify before activation |
@@ -101,7 +101,7 @@ Recorded client requests also require enough program detail to choose without ca
 | 0 | Reconcile signed scope, client requests, role journeys and deferred items | Product lead + client contact | Approved script/content/input list; no unapproved scope or claim |
 | 1 | Close PR #3 payment, security, idempotency and UI defects | App + Supabase engineer + reviewer | Complete: PR #3 merged as `52086dd`; build, clean reset/type generation, 31 E2E checks and Luna reviews passed |
 | 2 | Complete the client-facing program discovery/detail/video path | Product + app engineers | Structure and synthetic rehearsal merged in PR #8; client copy, video, price, CTA, and contact route remain pending |
-| 3 | Make local demo data and startup/reset repeatable; close three role journeys | Full-stack engineer | Two clean reset/type-generation and 33-test E2E rehearsals pass; the manual three-role walkthrough and native patient runtime remain open |
+| 3 | Make local demo data and startup/reset repeatable; close three role journeys | Full-stack engineer | The current clean reset/type-generation and 37-test E2E run pass; the manual three-role walkthrough and native patient runtime remain open |
 | 4 | Polish shown screens to the existing brand and accessibility bar | Product designer + app engineers | Four-surface rendered review, responsive/accessibility evidence, no high-impact UI defect |
 | 5 | Rehearse security, data isolation, errors and recovery on a fresh local database | Supabase engineer + independent reviewer | Reset/type/build and role/RLS checks pass; no unresolved high-severity issue |
 | 6 | Rehearse the client demo and prepare the acceptance handout | Demo owner | Evidence mapped to M1–M4, known limitations, commercial terminology and open inputs |
@@ -109,7 +109,7 @@ Recorded client requests also require enough program detail to choose without ca
 | 8 | Implement sandbox payment and controlled pilot readiness | Payments engineer + operations | Webhook/refund/reconciliation evidence; live mode stays off until written approval |
 | 9 | Prove broader-launch operations | Platform + security + operations | Backup/restore, failover, R2 recovery, monitoring, incident, capacity and rollback evidence |
 
-Step 1 is complete. Step 2 has the catalog/detail structure and synthetic rehearsal merged, but remains open until client-owned copy, video, price, CTA, and contact inputs are resolved. The reset and automated E2E checks for Step 3 passed twice from clean local resets, but the step remains open until the manual three-role walkthrough—including the native patient runtime—passes without manual SQL edits. Client-facing claims, payment enablement, real-user data, app-store releases and production infrastructure cannot be completed without the listed owner approvals and account access.
+Step 1 is complete. Step 2 has the catalog/detail structure and synthetic rehearsal merged, but remains open until client-owned copy, video, price, CTA, and contact inputs are resolved. Step 3's earlier reset and E2E checks passed twice, and the current clean reset/type-generation and 37-test suite also pass; the step remains open until the manual three-role walkthrough—including the native patient runtime—passes without manual SQL edits. Client-facing claims, payment enablement, real-user data, app-store releases and production infrastructure cannot be completed without the listed owner approvals and account access.
 
 ## Phase 1 work detail and acceptance
 
@@ -165,14 +165,14 @@ Score each dimension 0, 1, or 2 using the evidence named below. **The client-rea
 
 ### Current engineering evidence score: 8/10
 
-This is a provisional engineering-readiness assessment, not client approval, and is separate from the UI-specific rating. The earlier 33-test suite passed twice after separate clean resets; the current Phase 1 candidate passes a full build and 34/34 E2E suite. The last full-surface UI review scored the web portals 6.3/10 overall. A later representative review scored 6.8/10 across the screens it rendered; this is not a refreshed full-portal score. The focused admin overview review after PR #26 scored 8.5/10. A presenter-led walkthrough, keyboard/screen-reader review, native device review, and client approval of copy/assets are still outstanding.
+This is a provisional engineering-readiness assessment, not client approval, and is separate from the UI-specific rating. Earlier clean-reset rehearsals passed twice; the current candidate passes a clean reset, type generation, full build and 37/37 E2E tests. The last full-surface UI review scored the web portals 6.3/10 overall. A later representative review scored 6.8/10 across the screens it rendered; this is not a refreshed full-portal score. The focused admin overview review after PR #26 scored 8.5/10. A presenter-led walkthrough, keyboard/screen-reader review, native device review, and client approval of copy/assets are still outstanding.
 
 | Dimension | Current | Evidence and remaining gap |
 |---|---:|---|
 | Scope and honesty | 2/2 | Payment stays disabled, unpaid bookings remain unconfirmed, and synthetic data is labeled in demo mode. Client-owned content and assets still need approval. |
-| Complete journeys | 1/2 | The current 34-test lifecycle/regression/security suite passes; earlier clean-reset rehearsals also passed twice. The presenter has not completed the three-role runbook unaided. |
+| Complete journeys | 1/2 | The current 37-test lifecycle/regression/security suite passes after a clean reset; earlier clean-reset rehearsals also passed twice. The presenter has not completed the three-role runbook unaided. |
 | UI and accessibility | 1/2 | Last full-surface GPT-6 Luna UI review scored the web portals 6.3/10; a newer representative review averaged 6.8/10 for the screens it covered. The focused admin overview review scored 8.5/10. Keyboard, screen-reader, native-device, and client visual-direction evidence remain open. |
-| Reliability and data | 2/2 | Earlier clean reset/type generations and 33-test runs passed twice; the current candidate build and 34-test suite pass, with post-run E2E data cleanup verified. |
+| Reliability and data | 2/2 | The current candidate passes clean reset, type generation, build and 37-test E2E verification, with post-run E2E data cleanup verified. |
 | Security and operations | 2/2 | RLS and private-file boundaries are exercised; payment is fail-closed. Production operator, restore, and live-gateway evidence are explicitly deferred. |
 
 | Dimension | 2 points requires | Evidence |
@@ -210,6 +210,8 @@ Show the current work to the client only when all are true:
 4. Operate sandbox reconciliation and alerting. Keep live keys disabled until a named operator owns the refund queue and the late-capture runbook has been rehearsed.
 5. Enable a limited live cohort only after written business approval, Healthoraa-owned accounts, operational runbooks, support coverage, qualified privacy/clinical/product compliance review and rollback readiness.
 6. Track booking/order completion, abandonment, payment failures, refunds, late captures and support contacts; review weekly before widening access.
+
+**Current evidence:** Razorpay and a Healthoraa-owned sandbox account were confirmed by the user on 2026-11-26. The local E2E suite passes 37/37, including failed-payment diagnostics, repeat-safe booking/stock cancellation, and late-capture handling. It exercises unsigned Razorpay-shaped events only against local Supabase; it is not evidence of a real sandbox transaction or signed provider webhook. Local sandbox credentials, payment/reservation policy, named refund/reconciliation/support owners, and compliance review are still required. Keep both payment switches disabled.
 
 ## Phase 3: broader-launch readiness
 

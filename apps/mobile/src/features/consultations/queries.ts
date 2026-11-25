@@ -112,6 +112,26 @@ export const useBookConsultation = () => {
   });
 };
 
+export const useCancelPendingConsultation = () => {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (consultationId: string): Promise<void> => {
+      if (!userId) throw new Error('Not signed in');
+      const { data, error } = await supabase.rpc('cancel_pending_consultation_booking', {
+        p_consultation_id: consultationId,
+      });
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('This booking can no longer be cancelled. Refresh and check its status.');
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['consultations', userId] });
+      void queryClient.invalidateQueries({ queryKey: ['slots'] });
+    },
+  });
+};
+
 export const useConsultationMessages = (consultationId: string) => {
   const queryClient = useQueryClient();
   const query = useQuery({

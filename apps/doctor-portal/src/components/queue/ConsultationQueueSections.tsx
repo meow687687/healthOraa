@@ -12,8 +12,12 @@ interface ConsultationQueueSectionsProps {
   now: number;
   isActiveRoom: (id: string) => boolean;
   isStarting: (id: string) => boolean;
-  onStart: (consultation: QueueConsultation) => void;
-  onOpenRoom: (consultation: QueueConsultation, pane: RoomPane) => void;
+  onStart: (consultation: QueueConsultation, trigger?: HTMLButtonElement) => void;
+  onOpenRoom: (
+    consultation: QueueConsultation,
+    pane: RoomPane,
+    trigger?: HTMLButtonElement,
+  ) => void;
   onRefresh: () => void;
 }
 

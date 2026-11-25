@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { BTN_TEXT, ERROR_BOX, PANEL, cn } from "@healthoraa/ui";
 import type { QueueConsultation, RoomPane } from "../../types/queue";
@@ -30,11 +30,16 @@ export function ConsultationRoom({
   onSigned,
 }: ConsultationRoomProps) {
   const [pane, setPane] = useState<RoomPane>(initialPane);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
   const live = !isMockConsultation(consultation.id);
   const canWritePrescription =
     consultation.status === "in_progress" ||
     consultation.status === "completed";
   const saved = useLatestPrescription(consultation.id);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
 
   // Live visits start from the saved prescription. The form waits for it, so it never opens blank over a saved one.
   const rxBody = (() => {
@@ -93,14 +98,26 @@ export function ConsultationRoom({
         <button
           type="button"
           onClick={onExit}
-          className={cn(BTN_TEXT, "inline-flex items-center gap-2")}
+          className={cn(
+            BTN_TEXT,
+            "inline-flex min-h-[44px] items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue",
+          )}
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to queue
         </button>
-        <p className="text-sm text-text-secondary">
-          {consultation.patientName} · {timingLine(consultation, now)}
-        </p>
+        <div>
+          <h2
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-lg font-semibold text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue focus-visible:ring-offset-2"
+          >
+            Consultation with {consultation.patientName}
+          </h2>
+          <p className="text-sm text-text-secondary">
+            {timingLine(consultation, now)}
+          </p>
+        </div>
       </div>
 
       <RoomSectionTabs pane={pane} onChange={setPane} />

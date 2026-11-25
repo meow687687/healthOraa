@@ -78,7 +78,7 @@ function ProgramDashboard({ patientId, data }: { patientId: string; data: Active
           <WaterCard waterMl={today.waterMl} onAdd={addWater} />
           <MealComplianceCard meals={today.meals} onToggle={toggleMeal} />
         </div>
-        {save.isError && <p className={ERROR_TEXT}>Could not save today&apos;s log: {save.error.message}</p>}
+        {save.isError && <p role="alert" className={ERROR_TEXT}>Could not save today&apos;s log: {save.error.message}</p>}
       </section>
 
       <DietitianNoteBanner note={program.latestNote} nutritionistName={program.nutritionist?.name ?? null} />

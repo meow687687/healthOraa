@@ -30,7 +30,7 @@ export function ChartCard({
             type="button"
             aria-pressed={showTable}
             onClick={() => setShowTable((value) => !value)}
-            className="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border border-aura-line2 px-3 text-[13px] font-semibold text-text-secondary transition-colors duration-150 hover:text-text-primary cursor-pointer"
+            className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border border-aura-line2 px-3 text-[13px] font-semibold text-text-secondary transition-colors duration-150 hover:text-text-primary cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
           >
             {showTable ? <BarChart3 className="h-4 w-4" aria-hidden="true" /> : <Table2 className="h-4 w-4" aria-hidden="true" />}
             {showTable ? "View as chart" : "View as table"}

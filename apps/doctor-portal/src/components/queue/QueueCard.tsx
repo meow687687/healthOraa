@@ -6,12 +6,12 @@ export interface QueueCardProps {
   consultation: QueueConsultation;
   isActiveRoom: boolean;
   isStarting: boolean;
-  onStart: (consultation: QueueConsultation) => void;
-  onOpenRoom: (consultation: QueueConsultation, pane: RoomPane) => void;
+  onStart: (consultation: QueueConsultation, trigger?: HTMLButtonElement) => void;
+  onOpenRoom: (consultation: QueueConsultation, pane: RoomPane, trigger?: HTMLButtonElement) => void;
 }
 
 const SECONDARY_PILL =
-  "inline-flex items-center gap-2 bg-aura-s2 hover:bg-aura-s3 border border-aura-line text-text-secondary font-medium px-4 py-2 rounded-full transition-colors";
+  "inline-flex min-h-[44px] items-center gap-2 bg-aura-s2 hover:bg-aura-s3 border border-aura-line text-text-secondary font-medium px-4 py-2 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue";
 
 // Every actionable state opens the consultation room on the matching pane.
 // Starting a scheduled consultation moves it to in_progress first, then opens the same drawer.
@@ -21,9 +21,9 @@ export function QueueAction({ consultation, isActiveRoom, isStarting, onStart, o
       return (
         <button
           type="button"
-          onClick={() => onOpenRoom(consultation, "rx")}
+          onClick={(event) => onOpenRoom(consultation, "rx", event.currentTarget)}
           aria-pressed={isActiveRoom}
-          className="inline-flex items-center gap-2 bg-accent-blue hover:bg-accent-blue/90 text-aura-canvas rounded-xl font-semibold px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
+          className="inline-flex min-h-[44px] items-center gap-2 bg-accent-blue hover:bg-accent-blue/90 text-aura-canvas rounded-xl font-semibold px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
         >
           Enter Telemedicine Room
         </button>
@@ -33,14 +33,14 @@ export function QueueAction({ consultation, isActiveRoom, isStarting, onStart, o
         <>
           <button
             type="button"
-            onClick={() => onStart(consultation)}
+            onClick={(event) => onStart(consultation, event.currentTarget)}
             disabled={isStarting}
             aria-busy={isStarting}
-            className={cn(BTN_PRIMARY, "px-4 py-2")}
+            className={cn(BTN_PRIMARY, "min-h-[44px] px-4 py-2")}
           >
             {isStarting ? "Starting..." : "Start Consultation"}
           </button>
-          <button type="button" onClick={() => onOpenRoom(consultation, "intake")} className={SECONDARY_PILL}>
+          <button type="button" onClick={(event) => onOpenRoom(consultation, "intake", event.currentTarget)} className={SECONDARY_PILL}>
             Review Intake Form
           </button>
         </>
@@ -48,10 +48,10 @@ export function QueueAction({ consultation, isActiveRoom, isStarting, onStart, o
     case "completed":
       return (
         <>
-          <button type="button" onClick={() => onOpenRoom(consultation, "rx")} className={SECONDARY_PILL}>
+          <button type="button" onClick={(event) => onOpenRoom(consultation, "rx", event.currentTarget)} className={SECONDARY_PILL}>
             Write Prescription / View Notes
           </button>
-          <button type="button" onClick={() => onOpenRoom(consultation, "chat")} className={SECONDARY_PILL}>
+          <button type="button" onClick={(event) => onOpenRoom(consultation, "chat", event.currentTarget)} className={SECONDARY_PILL}>
             Open Follow-up Chat
           </button>
         </>
@@ -93,7 +93,7 @@ export function QueueCard(props: QueueCardProps & { compact?: boolean }) {
 
         <div className="min-w-0 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 id={`consultation-${consultation.id}`} className="text-base font-semibold text-text-primary">
+            <h3 id={`consultation-${consultation.id}`} tabIndex={-1} className="rounded-sm text-base font-semibold text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue">
               {consultation.patientName}
             </h3>
             <Badge tone={meta.tone}>{meta.label}</Badge>

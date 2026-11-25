@@ -23,7 +23,12 @@ export function LanguageChips({ form }: { form: UseFormReturn<UpdatePractitioner
         };
 
         return (
-          <div role="group" aria-labelledby="languages-label" className="space-y-2">
+          <div
+            role="group"
+            aria-labelledby="languages-label"
+            aria-describedby={fieldState.error ? "profile-languages-error" : undefined}
+            className="space-y-2"
+          >
             <p id="languages-label" className={LABEL}>
               Languages spoken
             </p>
@@ -34,10 +39,16 @@ export function LanguageChips({ form }: { form: UseFormReturn<UpdatePractitioner
                   <button
                     key={language}
                     type="button"
+                    ref={language === LANGUAGE_OPTIONS[0] ? field.ref : undefined}
                     aria-pressed={on}
+                    aria-describedby={
+                      fieldState.error && language === LANGUAGE_OPTIONS[0]
+                        ? "profile-languages-error"
+                        : undefined
+                    }
                     onClick={() => toggle(language)}
                     className={cn(
-                      "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue",
+                      "min-h-[44px] rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue",
                       on
                         ? "border-accent-blue/40 bg-accent-blue/15 text-accent-blue"
                         : "border-aura-line2 bg-aura-s2 text-text-secondary hover:text-text-primary",
@@ -48,7 +59,11 @@ export function LanguageChips({ form }: { form: UseFormReturn<UpdatePractitioner
                 );
               })}
             </div>
-            {fieldState.error && <p className={ERROR_TEXT}>{fieldState.error.message}</p>}
+            {fieldState.error && (
+              <p id="profile-languages-error" className={ERROR_TEXT}>
+                {fieldState.error.message}
+              </p>
+            )}
           </div>
         );
       }}

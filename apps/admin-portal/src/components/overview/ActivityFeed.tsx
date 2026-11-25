@@ -52,7 +52,7 @@ export function ActivityFeed({ onOpen }: { onOpen: (kind: ActivityEvent["kind"])
                   <button
                     type="button"
                     onClick={() => onOpen(event.kind)}
-                    className="flex min-h-[56px] w-full items-center gap-4 py-3 text-left transition-colors duration-150 hover:bg-aura-s2/60 cursor-pointer"
+                    className="flex min-h-[56px] w-full items-center gap-4 py-3 text-left transition-colors duration-150 hover:bg-aura-s2/60 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
                   >
                     <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", TONE[event.kind])}>
                       <Icon className="h-4 w-4" aria-hidden="true" />

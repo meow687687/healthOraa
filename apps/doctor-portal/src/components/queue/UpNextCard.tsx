@@ -15,7 +15,7 @@ export function UpNextCard({ now, ...props }: QueueCardProps & { now: number }) 
     >
       <header className="space-y-1">
         <p className="text-[13px] font-semibold text-accent-blue">{heading}</p>
-        <h2 id={`consultation-${consultation.id}`} className="text-2xl font-bold tracking-tight text-text-primary">
+        <h2 id={`consultation-${consultation.id}`} tabIndex={-1} className="rounded-sm text-2xl font-bold tracking-tight text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue">
           {consultation.patientName}
         </h2>
         <p className="text-sm text-text-secondary">

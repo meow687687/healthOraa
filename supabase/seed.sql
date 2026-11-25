@@ -59,9 +59,9 @@ ON CONFLICT (id) DO NOTHING;
 -- 2. Insert sample nutrition programs
 INSERT INTO public.programs (title, category, description, duration_days, price_inr, is_active)
 VALUES
-  ('PCOD/PCOS Nutrition Program (Sample)', 'pcod_pcos', 'Sample listing. Replace with client-approved program information before a client presentation or launch.', 60, 4999.00, TRUE),
-  ('Weight Management Program (Sample)', 'weight_management', 'Sample listing. Replace with client-approved program information before a client presentation or launch.', 60, 3999.00, TRUE),
-  ('Dermato-Nutrition Program (Sample)', 'dermato_nutrition', 'Sample listing. Replace with client-approved program information before a client presentation or launch.', 60, 5499.00, TRUE)
+  ('PCOD/PCOS Nutrition Program (Sample)', 'pcod_pcos', 'This is a sample listing. Specific services and program details are not provided in this preview.', 60, 4999.00, TRUE),
+  ('Weight Management Program (Sample)', 'weight_management', 'This is a sample listing. Specific services and program details are not provided in this preview.', 60, 3999.00, TRUE),
+  ('Dermato-Nutrition Program (Sample)', 'dermato_nutrition', 'This is a sample listing. Specific services and program details are not provided in this preview.', 60, 5499.00, TRUE)
 ON CONFLICT DO NOTHING;
 
 -- 2b. Mock active program enrolments and day 18/day 42 progress logs.

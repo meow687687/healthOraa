@@ -8,7 +8,7 @@ The walkthrough covers three web roles against a freshly seeded local Supabase d
 
 1. **Admin:** review the verified synthetic practitioner and sample program, catalog, banner, and order records.
 2. **Practitioner:** review the synthetic schedule and patient history, then publish future availability.
-3. **Patient:** browse sample programs and products, view the seeded prescription/history, and submit a consultation request.
+3. **Patient:** browse the sample program catalog, open a program overview, browse products, view the seeded prescription/history, and submit a consultation request.
 
 The consultation request intentionally ends as **Pending payment · not confirmed**. No payment provider is called, no gateway order is created, and no charge or refund occurs. The automated test suite has a separate test-only callback to exercise post-payment clinical transitions; do not use that callback as part of a client presentation or describe its result as a real payment.
 
@@ -52,6 +52,7 @@ Open the local URLs printed by Vite (default ports: admin `5180`, practitioner `
 - Open the admin portal and sign in as Demo Admin.
 - Open **Doctors** and show Dr. Arishta Sharma with the seeded verified status.
 - Open **Programs**, **Shop**, **Orders**, and **Banners** to show the sample catalog and operational states. Identify the records as examples; do not imply that prices, labels, inventory, fulfillment, or provider transactions are client-approved or real.
+- The admin program editor supports an optional HTTPS introduction-video link. Do not add a placeholder link to the presenter dataset; show a video only after the client supplies and approves the actual asset.
 - Keep the demo read-only in these sections. The patient flow below creates a pending booking request; it does not require a payment action from admin.
 
 ### 2. Practitioner portal
@@ -64,7 +65,8 @@ Open the local URLs printed by Vite (default ports: admin `5180`, practitioner `
 ### 3. Patient portal
 
 - Open the patient portal and sign in as Demo Patient.
-- Show the synthetic program/product catalog and the existing seeded history/prescription. Explain that sample content and assets need client approval before release.
+- Open **Programs**, browse the sample listings, and open a detail page. The page omits price and explains that enrollment/payment are unavailable; no video is seeded, so do not imply an introduction video exists.
+- Browse the product catalog and show the existing seeded history/prescription. Explain that sample content and assets need client approval before release.
 - Open **Consultations**, choose an available slot, complete the intake, and review the summary.
 - Confirm the page says **No payment will be taken** before submitting.
 - Submit **Booking request**. Confirm the visible state says **Pending payment · not confirmed**. This is the end of the booking journey for Phase 1; do not call it paid, confirmed, or scheduled with the practitioner.
@@ -83,7 +85,7 @@ Then reopen the portals. Repeat the same three role steps from the beginning. No
 
 - The native iOS/Android app has not been rehearsed on a device. The Expo web preview is not a substitute for the native patient sign-in journey; omit it from the client demo until a device rehearsal passes.
 - Razorpay checkout, order creation, capture, refund, reconciliation, and real charges are outside this demo. The database may contain seeded payment examples; those rows are synthetic and are not evidence of transactions.
-- Practitioner identity, product facts, clinical copy, program pricing/content, images, legal disclosures, and payment/reservation policy need client confirmation. Do not invent or imply approval.
+- Practitioner identity, product facts, clinical copy, program pricing/content/video, enrollment CTA, contact route, images, legal disclosures, and payment/reservation policy need client confirmation. Do not invent or imply approval.
 - If a portal cannot connect, first confirm the local Supabase stack is running and the portal `.env.local` contains the local URL and publishable key. Restart the affected Vite server after changing environment files.
 - If accounts or sample records are missing, run the clean reset above and check that the repository's seed completed. Do not hand-edit the database to prepare the presentation.
 - If a request fails, show the visible error and stop that step. Do not replace it with a fabricated success state.
@@ -95,8 +97,8 @@ Record each rehearsal with the date, commit SHA, reset result, three role outcom
 | Check | Result |
 |---|---|
 | Payment enable flags/credentials absent in the local demo environment | Verified 2026-11-24 by a redacted name-only check of the portal and function env files plus the current process environment; no values were printed. |
-| Clean database reset and type generation | Verified 2026-11-24; all migrations applied and generated DB types had no diff. |
-| Full 22-test lifecycle, regression, and security run, rehearsal 1 | Passed 2026-11-24 after clean reset; includes payment-expiry, partial-refund, storage-RLS, push-token ownership, account-deletion retry, and cleanup of 1,001-record batches. |
-| Full 22-test lifecycle, regression, and security run, rehearsal 2 | Passed 2026-11-24 after a second independent clean reset. |
-| Responsive web review | Passed 2026-11-24 across patient, practitioner, and admin at 375×812, 768×1024, and 1280×720; final browser consoles showed no errors. Screenshots are in ignored `.audit/evidence/phase1/`. |
+| Clean database reset and type generation | Verified 2026-11-25 on merged commit `42a7eb2`; all migrations applied and generated DB types had no diff. |
+| Full 33-test lifecycle, regression, and security run, rehearsal 1 | Passed after a clean reset on the PR #8 code; includes program discovery/video, inactive-program RLS, HTTPS validation, payment/refund recovery, private storage, push-token ownership, account-deletion retry, and cleanup of 1,001-record batches. |
+| Full 33-test lifecycle, regression, and security run, rehearsal 2 | Passed 2026-11-25 after a second independent clean reset on merged commit `42a7eb2`. |
+| Responsive web review | The earlier review passed across patient, practitioner, and admin at 375×812, 768×1024, and 1280×720. A rendered review of the new program catalog/detail screen remains pending. Earlier screenshots are in ignored `.audit/evidence/phase1/`. |
 | Keyboard, screen-reader, and rendered native-app review | Pending; see `docs/IMPLEMENTATION_PLAN.md` limitations. |

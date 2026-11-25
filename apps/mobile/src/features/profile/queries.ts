@@ -1,9 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../lib/supabase';
-import { signedRecordUrl } from '../../lib/uploads';
+import { safeFileName, signedRecordUrl, uploadRecordFile } from '../../lib/uploads';
 import { functionErrorMessage } from '../../lib/functionError';
-import { uploadRecordFile, safeFileName } from '../../lib/uploads';
 import { RECORD_BUCKET } from '../../lib/records';
 import { useAuth } from '../../auth/AuthProvider';
 

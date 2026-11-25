@@ -1,11 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { Activity } from 'lucide-react-native';
+import { Activity, MessageCircle } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE } from '../../../constants/theme';
 import { useState } from 'react';
 import { Button, Card, EmptyState, Pill, Skeleton, monoStyle } from '../../components/primitives';
 import { ProgramChatSheet, type ProgramChatTarget } from './ProgramChatSheet';
-import { MessageCircle } from 'lucide-react-native';
 import { formatIstShortDate } from '../../lib/time';
+import { useNow } from '../../hooks/useNow';
 import { useActiveEnrolment } from './queries';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -13,6 +13,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // Progress through the active programme, for example "Day 18 of 60".
 export function ProgramProgressCard() {
   const enrolment = useActiveEnrolment();
+  const now = useNow().getTime();
   const [chat, setChat] = useState<ProgramChatTarget | null>(null);
 
   if (enrolment.isPending) return <Skeleton height={130} />;
@@ -42,6 +43,7 @@ export function ProgramProgressCard() {
         <ActiveProgramCard
           key={active.id}
           active={active}
+          now={now}
           onOpenChat={() =>
             setChat({
               enrolmentId: active.id,
@@ -58,14 +60,16 @@ export function ProgramProgressCard() {
 
 function ActiveProgramCard({
   active,
+  now,
   onOpenChat,
 }: {
   active: NonNullable<ReturnType<typeof useActiveEnrolment>['data']>[number];
+  now: number;
   onOpenChat: () => void;
 }) {
   const { programs, started_at, expires_at } = active;
   const duration = programs?.duration_days ?? 60;
-  const elapsedDays = Math.floor((Date.now() - new Date(started_at).getTime()) / DAY_MS) + 1;
+  const elapsedDays = Math.floor((now - new Date(started_at).getTime()) / DAY_MS) + 1;
   const day = Math.min(Math.max(elapsedDays, 1), duration);
   const percent = Math.round((day / duration) * 100);
   const endsOn = formatIstShortDate(expires_at);

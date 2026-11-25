@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE } from '../../../constants/theme';
@@ -14,7 +14,6 @@ import { uploadRecordFile, signedRecordUrl } from '../../lib/uploads';
 import { DIET_CHART_BUCKET } from '../../lib/records';
 import { useProgramMessages, useSendProgramMessage, type ProgramMessageRow } from './programChat';
 import { useQuery } from '@tanstack/react-query';
-import { Image } from 'react-native';
 
 export interface ProgramChatTarget {
   enrolmentId: string;

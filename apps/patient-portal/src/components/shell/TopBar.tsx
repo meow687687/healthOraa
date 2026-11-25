@@ -19,7 +19,7 @@ export function TopBar() {
   const status = program.data?.program;
 
   return (
-    <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-aura-line bg-aura-s1/90 px-4 py-3 backdrop-blur-md md:px-8 lg:h-20 lg:flex-nowrap lg:py-0">
+    <header className="sticky top-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-aura-line bg-aura-s1/90 px-4 py-3 backdrop-blur-md min-[520px]:grid-cols-[minmax(0,1fr)_auto_auto] md:px-8 lg:h-20 lg:py-0">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-aura-s3 text-xs font-bold text-text-primary">
           {initialsOf(patient.displayName)}
@@ -34,27 +34,47 @@ export function TopBar() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="col-span-2 row-start-2 flex min-w-0 flex-wrap items-center gap-2 min-[520px]:col-span-1 min-[520px]:col-start-2 min-[520px]:row-start-auto">
         {status && (
-          <Badge tone="emerald">
-            {status.protocolLabel} • Day {status.currentDay}/
-            {status.durationDays}
+          <Badge tone="emerald" className="text-xs">
+            <span aria-hidden="true" className="sm:hidden">
+              Day {status.currentDay}/{status.durationDays}
+            </span>
+            <span className="hidden sm:inline">
+              {status.protocolLabel} • Day {status.currentDay}/
+              {status.durationDays}
+            </span>
+            <span className="sr-only sm:hidden">
+              {status.protocolLabel}, day {status.currentDay} of{" "}
+              {status.durationDays}
+            </span>
           </Badge>
         )}
         {isDemoData ? (
           <Badge tone="violet" className="text-xs">
-            Demo data · synthetic records
+            <span aria-hidden="true" className="sm:hidden">
+              Demo
+            </span>
+            <span className="hidden sm:inline">
+              Demo data · synthetic records
+            </span>
+            <span className="sr-only sm:hidden">
+              Demo data · synthetic records
+            </span>
           </Badge>
         ) : null}
-        {!isPrototype ? (
+      </div>
+
+      {!isPrototype ? (
+        <div className="col-start-2 row-start-1 min-[520px]:col-start-3 min-[520px]:row-start-auto">
           <AccountMenu
             email={user.email}
             role={user.role}
             displayName={patient.displayName}
             onSignOut={() => void signOut()}
           />
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </header>
   );
 }

@@ -91,17 +91,19 @@ export default function ProgramCatalogView() {
         onCategoryChange={setCategory}
       />
 
-      {!query.isPending && (
-        <p
-          className="sr-only"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {filtered.length} {filtered.length === 1 ? "program" : "programs"}{" "}
-          found.
-        </p>
-      )}
+      <p
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {!query.isPending && !(query.isError && programs.length === 0) && (
+          <>
+            {filtered.length} {filtered.length === 1 ? "program" : "programs"}{" "}
+            found.
+          </>
+        )}
+      </p>
 
       {query.isPending ? (
         <div

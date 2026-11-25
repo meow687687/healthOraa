@@ -20,11 +20,11 @@ export function ConsultationList({ onOpenChat }: { onOpenChat: (target: ChatTarg
   const consultations = useMyConsultations();
   const [tab, setTab] = useState<Tab>('upcoming');
 
-  if (consultations.isPending) return <Skeleton height={120} />;
-  if (consultations.isError) return <ErrorBox message={consultations.error.message} />;
+  if (consultations.isPending && !consultations.data) return <Skeleton height={120} />;
+  if (consultations.isError && !consultations.data) return <ErrorBox message={consultations.error.message} />;
 
   const now = Date.now();
-  const rows = consultations.data.filter((row) => (tab === 'upcoming') === isUpcoming(row, now));
+  const rows = (consultations.data ?? []).filter((row) => (tab === 'upcoming') === isUpcoming(row, now));
 
   return (
     <View style={styles.wrap}>
@@ -32,6 +32,7 @@ export function ConsultationList({ onOpenChat }: { onOpenChat: (target: ChatTarg
         <TabButton label="Upcoming" active={tab === 'upcoming'} onPress={() => setTab('upcoming')} />
         <TabButton label="Past" active={tab === 'past'} onPress={() => setTab('past')} />
       </View>
+      {consultations.isError ? <ErrorBox message="Could not refresh consultations. Showing the last loaded details." /> : null}
       {rows.length === 0 ? (
         <EmptyState
           icon={CalendarX}

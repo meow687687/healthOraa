@@ -1,4 +1,19 @@
 -- Keep payment eligibility and capture ownership under database time and row locks.
+CREATE OR REPLACE FUNCTION public.preserve_refunded_payment_status()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+    IF OLD.status = 'refunded'
+       AND NEW.status IS DISTINCT FROM 'refunded'::public.payment_status
+       AND NEW.status IS DISTINCT FROM 'refund_review'::public.payment_status THEN
+        NEW.status := 'refunded';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
 ALTER TABLE public.razorpay_order_logs
     ADD COLUMN captured_payment_id TEXT;
 
@@ -120,6 +135,30 @@ $$;
 REVOKE ALL ON FUNCTION public.claim_razorpay_order_capture(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_razorpay_order_capture(TEXT, TEXT) TO service_role;
 
+CREATE OR REPLACE FUNCTION public.confirm_consultation_payment_capture(
+    p_consultation_id UUID,
+    p_patient_id UUID,
+    p_order_id TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+    UPDATE public.consultations
+    SET booking_status = 'confirmed'
+    WHERE id = p_consultation_id
+      AND patient_id = p_patient_id
+      AND payment_order_id = p_order_id
+      AND booking_status = 'pending_payment'
+      AND payment_expires_at > clock_timestamp();
+    RETURN FOUND;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.confirm_consultation_payment_capture(UUID, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.confirm_consultation_payment_capture(UUID, UUID, TEXT) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.confirm_shop_order_payment_capture(
     p_order_id UUID,
     p_patient_id UUID
@@ -136,12 +175,27 @@ BEGIN
       AND customer_id = p_patient_id
       AND status = 'pending'
       AND stock_released_at IS NULL
-      AND reservation_expires_at > NOW();
+      AND reservation_expires_at > clock_timestamp();
     RETURN FOUND;
 END;
 $$;
 REVOKE ALL ON FUNCTION public.confirm_shop_order_payment_capture(UUID, UUID) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.confirm_shop_order_payment_capture(UUID, UUID) TO service_role;
+
+-- Distinguish retryable automatic refunds from refunds owned by manual review.
+ALTER TABLE public.payment_refund_reviews
+    ADD COLUMN automatic_refund_state TEXT NOT NULL DEFAULT 'manual',
+    ADD COLUMN last_reconciled_processed_paise BIGINT NOT NULL DEFAULT 0
+        CHECK (last_reconciled_processed_paise >= 0),
+    ADD COLUMN last_reconciled_pending_count BIGINT NOT NULL DEFAULT 0
+        CHECK (last_reconciled_pending_count >= 0),
+    ADD COLUMN last_reconciled_failed_count BIGINT NOT NULL DEFAULT 0
+        CHECK (last_reconciled_failed_count >= 0),
+    ADD CONSTRAINT payment_refund_reviews_automatic_state_check
+        CHECK (automatic_refund_state IN ('manual', 'retryable', 'pending'));
+UPDATE public.payment_refund_reviews
+SET automatic_refund_state = 'pending'
+WHERE status = 'pending' AND refund_id IS NOT NULL;
 
 -- Keep provider refund events even when Razorpay delivers them before the capture audit row.
 CREATE TABLE public.razorpay_refund_events (
@@ -221,6 +275,9 @@ DECLARE
     v_failed_count BIGINT := 0;
     v_has_events BOOLEAN := FALSE;
     v_reason TEXT;
+    v_review_status TEXT;
+    v_automatic_refund_state TEXT;
+    v_latest_refund_id TEXT;
 BEGIN
     SELECT round(transaction.amount_inr * 100)::BIGINT, transaction.gateway_order_id
     INTO v_amount_paise, v_order_id
@@ -239,6 +296,12 @@ BEGIN
     WHERE event.gateway_payment_id = p_gateway_payment_id;
     IF NOT v_has_events THEN RETURN 'none'; END IF;
 
+    SELECT event.refund_id INTO v_latest_refund_id
+    FROM public.razorpay_refund_events AS event
+    WHERE event.gateway_payment_id = p_gateway_payment_id
+    ORDER BY event.updated_at DESC, event.refund_id
+    LIMIT 1;
+
     SELECT order_log.user_id INTO v_user_id
     FROM public.razorpay_order_logs AS order_log
     WHERE order_log.order_id = v_order_id;
@@ -249,6 +312,7 @@ BEGIN
         WHERE gateway_payment_id = p_gateway_payment_id;
         UPDATE public.payment_refund_reviews
         SET status = 'resolved', resolved_at = COALESCE(resolved_at, NOW()),
+            refund_id = COALESCE(refund_id, v_latest_refund_id),
             reason = format('Razorpay processed refunds totaling %s paise for this %s-paise payment.', v_processed_paise, v_amount_paise)
         WHERE gateway_payment_id = p_gateway_payment_id AND status = 'pending';
         UPDATE public.razorpay_order_logs
@@ -265,15 +329,40 @@ BEGIN
             v_processed_paise, v_amount_paise, v_pending_count, v_failed_count
         );
         IF v_user_id IS NULL THEN RETURN 'unmatched'; END IF;
-        INSERT INTO public.payment_refund_reviews (gateway_payment_id, gateway_order_id, user_id, reason)
-        VALUES (p_gateway_payment_id, v_order_id, v_user_id, v_reason)
+        v_automatic_refund_state := CASE
+            WHEN v_pending_count > 0 AND v_processed_paise = 0 AND v_failed_count = 0 THEN 'pending'
+            ELSE 'manual'
+        END;
+        INSERT INTO public.payment_refund_reviews (
+            gateway_payment_id, gateway_order_id, user_id, reason, refund_id, automatic_refund_state,
+            last_reconciled_processed_paise, last_reconciled_pending_count, last_reconciled_failed_count
+        ) VALUES (
+            p_gateway_payment_id, v_order_id, v_user_id, v_reason, v_latest_refund_id, v_automatic_refund_state,
+            v_processed_paise, v_pending_count, v_failed_count
+        )
         ON CONFLICT (gateway_payment_id) DO UPDATE
-        SET status = 'pending', resolved_at = NULL, reason = EXCLUDED.reason;
+        SET status = 'pending', resolved_at = NULL, reason = EXCLUDED.reason,
+            refund_id = EXCLUDED.refund_id,
+            automatic_refund_state = v_automatic_refund_state,
+            last_reconciled_processed_paise = EXCLUDED.last_reconciled_processed_paise,
+            last_reconciled_pending_count = EXCLUDED.last_reconciled_pending_count,
+            last_reconciled_failed_count = EXCLUDED.last_reconciled_failed_count
+        WHERE public.payment_refund_reviews.status = 'pending'
+           OR public.payment_refund_reviews.last_reconciled_processed_paise IS DISTINCT FROM EXCLUDED.last_reconciled_processed_paise
+           OR public.payment_refund_reviews.last_reconciled_pending_count IS DISTINCT FROM EXCLUDED.last_reconciled_pending_count
+           OR public.payment_refund_reviews.last_reconciled_failed_count IS DISTINCT FROM EXCLUDED.last_reconciled_failed_count;
+        SELECT review.status INTO v_review_status
+        FROM public.payment_refund_reviews AS review
+        WHERE review.gateway_payment_id = p_gateway_payment_id;
+        IF v_review_status = 'resolved' THEN RETURN 'resolved'; END IF;
+        UPDATE public.payment_transactions
+        SET status = 'refund_review'
+        WHERE gateway_payment_id = p_gateway_payment_id;
         UPDATE public.razorpay_order_logs
         SET status = 'refund_review'
         WHERE order_id = v_order_id
           AND captured_payment_id = p_gateway_payment_id
-          AND status = 'captured';
+          AND status IN ('captured', 'refunded');
         IF v_processed_paise > 0 THEN RETURN 'partial_review'; END IF;
         IF v_pending_count > 0 THEN RETURN 'refund_pending'; END IF;
         RETURN 'refund_failed';

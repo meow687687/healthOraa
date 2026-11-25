@@ -144,7 +144,8 @@ test.describe.serial("review fixes", () => {
     });
     expect(result.status, JSON.stringify(result.body)).toBe(200);
     expect(result.body.status).toBe("partial_refund_review");
-    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("captured");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("refund_review");
+    expect(psql(`select refund_id from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe(`rfnd_${run}_partial`);
     expect(psql(`select status from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe("pending");
     expect(psql(`select user_id from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe(PATIENT);
     expect(psql(`select public.has_pending_payment_refund_review('${PATIENT}', 'shop_order', '${entityId}')::text`)).toBe("true");
@@ -200,7 +201,7 @@ test.describe.serial("review fixes", () => {
     });
     expect(first.status, JSON.stringify(first.body)).toBe(200);
     expect(first.body.status).toBe("partial_refund_review");
-    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("captured");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("refund_review");
 
     const second = await sendRefundProcessed({
       orderId,
@@ -213,6 +214,50 @@ test.describe.serial("review fixes", () => {
     expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("refunded");
     expect(psql(`select status from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe("resolved");
     expect(psql(`select sum(amount_paise) from razorpay_refund_events where gateway_payment_id = ${lit(paymentId)} and status = 'processed'`)).toBe("79900");
+  });
+
+  test("refund replays preserve admin resolution until new partial evidence arrives", async () => {
+    const orderId = `order_${run}_resolved_review`;
+    const paymentId = `pay_${run}_resolved_review`;
+    const refundId = `rfnd_${run}_resolved_review`;
+    const entityId = crypto.randomUUID();
+    script(`
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id, captured_payment_id)
+      values (${lit(orderId)}, '${PATIENT}', 79900, 'INR', 'captured', 'program', '${entityId}', ${lit(paymentId)});
+      insert into payment_transactions (gateway_payment_id, gateway_order_id, amount_inr, currency, status)
+      values (${lit(paymentId)}, ${lit(orderId)}, 799, 'INR', 'captured');
+    `);
+
+    const partial = await sendRefundProcessed({ orderId, paymentId, refundId, refundAmountPaise: 12000 });
+    expect(partial.status, JSON.stringify(partial.body)).toBe(200);
+    expect(partial.body.status).toBe("partial_refund_review");
+
+    const adminToken = await accessToken("admin");
+    const resolved = await api(adminToken, "POST", "/rpc/record_payment_refund_review", {
+      p_gateway_payment_id: paymentId,
+      p_refund_id: `manual_${refundId}`,
+    });
+    expect(resolved.status, JSON.stringify(resolved.body)).toBe(200);
+
+    const replay = await sendRefundProcessed({ orderId, paymentId, refundId, refundAmountPaise: 12000 });
+    expect(replay.status, JSON.stringify(replay.body)).toBe(200);
+    expect(replay.body.status).toBe("resolved");
+    expect(psql(`select status from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe("resolved");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("refunded");
+    expect(psql(`select status from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe("refunded");
+
+    const newEvidence = await sendRefundProcessed({
+      orderId,
+      paymentId,
+      refundId: `rfnd_${run}_resolved_review_new`,
+      refundAmountPaise: 5000,
+    });
+    expect(newEvidence.status, JSON.stringify(newEvidence.body)).toBe(200);
+    expect(newEvidence.body.status).toBe("partial_refund_review");
+    expect(psql(`select status from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe("pending");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(paymentId)}`)).toBe("refund_review");
+    expect(psql(`select status from razorpay_order_logs where order_id = ${lit(orderId)}`)).toBe("refund_review");
+    expect(psql(`select refund_id from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe(`rfnd_${run}_resolved_review_new`);
   });
 
   test("concurrent deliveries of one program payment create one active enrolment", async () => {

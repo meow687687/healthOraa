@@ -339,14 +339,14 @@ isOneToOne: true
                   ]
                 },"payment_refund_reviews": {
                   Row: {
-                    "created_at": string,"gateway_order_id": string,"gateway_payment_id": string,"id": string,"reason": string,"refund_id": string | null,"resolved_at": string | null,"status": string,"user_id": string | null
+                    "automatic_refund_state": string,"created_at": string,"gateway_order_id": string,"gateway_payment_id": string,"id": string,"last_reconciled_failed_count": number,"last_reconciled_pending_count": number,"last_reconciled_processed_paise": number,"reason": string,"refund_id": string | null,"resolved_at": string | null,"status": string,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"gateway_order_id": string,"gateway_payment_id": string,"id"?: string,"reason": string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
+                    "automatic_refund_state"?: string,"created_at"?: string,"gateway_order_id": string,"gateway_payment_id": string,"id"?: string,"last_reconciled_failed_count"?: number,"last_reconciled_pending_count"?: number,"last_reconciled_processed_paise"?: number,"reason": string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"gateway_order_id"?: string,"gateway_payment_id"?: string,"id"?: string,"reason"?: string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
+                    "automatic_refund_state"?: string,"created_at"?: string,"gateway_order_id"?: string,"gateway_payment_id"?: string,"id"?: string,"last_reconciled_failed_count"?: number,"last_reconciled_pending_count"?: number,"last_reconciled_processed_paise"?: number,"reason"?: string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -721,7 +721,7 @@ isOneToOne: false
 { Args: { "p_limit"?: number }; Returns: number
                            },
 "fulfill_program_enrolment":
-{ Args: { "p_order_id": string,"p_patient_id": string,"p_program_id": string }; Returns: string
+{ Args: { "p_order_id": string,"p_patient_id": string,"p_program_id": string }; Returns: string | null
                            },
 "generate_consultation_slots":
 { Args: { "p_date": string,"p_practitioner_id": string }; Returns: number
@@ -839,7 +839,7 @@ isOneToOne: false
 { Args: { "p_gateway_payment_id": string,"p_refund_id": string }; Returns: string
                            },
 "record_razorpay_refund_event":
-{ Args: { "p_amount_paise": number,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: boolean
+{ Args: { "p_amount_paise": number,"p_gateway_order_id": string | null,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: boolean
                            },
 "register_patient_push_token":
 { Args: { "p_expo_push_token": string }; Returns: undefined
@@ -887,7 +887,7 @@ isOneToOne: false
       } }
           }
           Enums: {
-            "banner_target_type": "program"|"doctor"|"shop_product"|"external_url","booking_status": "pending_payment"|"confirmed"|"cancelled"|"rescheduled","compliance_request_status": "pending"|"processing"|"completed"|"rejected","compliance_request_type": "data_export"|"erasure_request"|"consent_withdrawal","consultation_status": "scheduled"|"in_progress"|"completed"|"cancelled","diagnostic_category": "blood_panel"|"imaging_radiology"|"prescription"|"discharge_summary"|"other","order_status": "pending"|"paid"|"shipped"|"delivered"|"cancelled","payment_gateway": "razorpay"|"upi_direct","payment_status": "initiated"|"captured"|"failed"|"refunded","product_category": "supplements"|"ayurvedic"|"skincare"|"equipment","program_category": "weight_management"|"pcod_pcos"|"dermato_nutrition"|"custom","user_role": "patient"|"practitioner"|"admin","verification_status": "pending"|"verified"|"rejected"
+            "banner_target_type": "program"|"doctor"|"shop_product"|"external_url","booking_status": "pending_payment"|"confirmed"|"cancelled"|"rescheduled","compliance_request_status": "pending"|"processing"|"completed"|"rejected","compliance_request_type": "data_export"|"erasure_request"|"consent_withdrawal","consultation_status": "scheduled"|"in_progress"|"completed"|"cancelled","diagnostic_category": "blood_panel"|"imaging_radiology"|"prescription"|"discharge_summary"|"other","order_status": "pending"|"paid"|"shipped"|"delivered"|"cancelled","payment_gateway": "razorpay"|"upi_direct","payment_status": "initiated"|"captured"|"failed"|"refunded"|"refund_review","product_category": "supplements"|"ayurvedic"|"skincare"|"equipment","program_category": "weight_management"|"pcod_pcos"|"dermato_nutrition"|"custom","user_role": "patient"|"practitioner"|"admin","verification_status": "pending"|"verified"|"rejected"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1007,7 +1007,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "banner_target_type": ["program", "doctor", "shop_product", "external_url"],"booking_status": ["pending_payment", "confirmed", "cancelled", "rescheduled"],"compliance_request_status": ["pending", "processing", "completed", "rejected"],"compliance_request_type": ["data_export", "erasure_request", "consent_withdrawal"],"consultation_status": ["scheduled", "in_progress", "completed", "cancelled"],"diagnostic_category": ["blood_panel", "imaging_radiology", "prescription", "discharge_summary", "other"],"order_status": ["pending", "paid", "shipped", "delivered", "cancelled"],"payment_gateway": ["razorpay", "upi_direct"],"payment_status": ["initiated", "captured", "failed", "refunded"],"product_category": ["supplements", "ayurvedic", "skincare", "equipment"],"program_category": ["weight_management", "pcod_pcos", "dermato_nutrition", "custom"],"user_role": ["patient", "practitioner", "admin"],"verification_status": ["pending", "verified", "rejected"]
+            "banner_target_type": ["program", "doctor", "shop_product", "external_url"],"booking_status": ["pending_payment", "confirmed", "cancelled", "rescheduled"],"compliance_request_status": ["pending", "processing", "completed", "rejected"],"compliance_request_type": ["data_export", "erasure_request", "consent_withdrawal"],"consultation_status": ["scheduled", "in_progress", "completed", "cancelled"],"diagnostic_category": ["blood_panel", "imaging_radiology", "prescription", "discharge_summary", "other"],"order_status": ["pending", "paid", "shipped", "delivered", "cancelled"],"payment_gateway": ["razorpay", "upi_direct"],"payment_status": ["initiated", "captured", "failed", "refunded", "refund_review"],"product_category": ["supplements", "ayurvedic", "skincare", "equipment"],"program_category": ["weight_management", "pcod_pcos", "dermato_nutrition", "custom"],"user_role": ["patient", "practitioner", "admin"],"verification_status": ["pending", "verified", "rejected"]
           }
         }
 } as const

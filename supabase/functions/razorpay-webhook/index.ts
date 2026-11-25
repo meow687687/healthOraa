@@ -236,6 +236,7 @@ Deno.serve(async (request) => {
   const recordRefundReview = async (
     reason: string,
     preserveFulfilledOrder = false,
+    automaticRefund = false,
   ): Promise<"recorded" | "fulfilled" | "refunded" | "error"> => {
     if (preserveFulfilledOrder) {
       const { data: latestLog, error: latestError } = await supabase.from("razorpay_order_logs")
@@ -264,6 +265,7 @@ Deno.serve(async (request) => {
       gateway_order_id: orderId,
       user_id: orderLog.user_id,
       reason,
+      automatic_refund_state: automaticRefund ? "retryable" : "manual",
     });
     return reviewError && reviewError.code !== "23505" ? "error" : "recorded";
   };
@@ -272,11 +274,11 @@ Deno.serve(async (request) => {
     reason: string,
     preserveFulfilledOrder = false,
   ): Promise<"recorded" | "fulfilled" | "refunded" | "error"> => {
-    const reviewResult = await recordRefundReview(reason, preserveFulfilledOrder);
+    const reviewResult = await recordRefundReview(reason, preserveFulfilledOrder, true);
     if (reviewResult !== "recorded") return reviewResult;
 
     const { data: existingReview, error: existingReviewError } = await supabase.from("payment_refund_reviews")
-      .select("refund_id,status")
+      .select("refund_id,status,automatic_refund_state")
       .eq("gateway_payment_id", paymentId)
       .maybeSingle();
     if (existingReviewError) return "error";
@@ -321,12 +323,17 @@ Deno.serve(async (request) => {
         p_gateway_payment_id: paymentId,
       });
       if (reconcileError) return "error";
-      return reconciled === "refunded" ? "refunded" : "recorded";
+      return reconciled === "refunded" || reconciled === "resolved" ? "refunded" : "recorded";
     }
+
+    if (existingReview?.automatic_refund_state !== "retryable") return "recorded";
 
     if (!keyId || !keySecret) {
       const { error } = await supabase.from("payment_refund_reviews")
-        .update({ reason: `${reason} Automatic refund is unavailable. Issue the refund in Razorpay and record its ID here.` })
+        .update({
+          automatic_refund_state: "manual",
+          reason: `${reason} Automatic refund is unavailable. Issue the refund in Razorpay and record its ID here.`,
+        })
         .eq("gateway_payment_id", paymentId)
         .eq("status", "pending");
       return error ? "error" : "recorded";
@@ -355,7 +362,10 @@ Deno.serve(async (request) => {
         return "error";
       }
       const { error } = await supabase.from("payment_refund_reviews")
-        .update({ reason: `${reason} Automatic refund could not be started. Issue the refund in Razorpay and record its ID here.` })
+        .update({
+          automatic_refund_state: "manual",
+          reason: `${reason} Automatic refund could not be started. Issue the refund in Razorpay and record its ID here.`,
+        })
         .eq("gateway_payment_id", paymentId)
         .eq("status", "pending");
       return error ? "error" : "recorded";
@@ -375,7 +385,7 @@ Deno.serve(async (request) => {
     if (!refundId || !Number.isSafeInteger(refundAmount) || (refundAmount as number) <= 0) return "error";
 
     const { error: refundIdError } = await supabase.from("payment_refund_reviews")
-      .update({ refund_id: refundId })
+      .update({ refund_id: refundId, automatic_refund_state: "pending" })
       .eq("gateway_payment_id", paymentId)
       .eq("status", "pending");
     if (refundIdError) return "error";
@@ -396,15 +406,15 @@ Deno.serve(async (request) => {
       p_gateway_payment_id: paymentId,
     });
     if (reconcileError) return "error";
-    return reconciled === "refunded" ? "refunded" : "recorded";
+    return reconciled === "refunded" || reconciled === "resolved" ? "refunded" : "recorded";
   };
 
   if (refundReconciliation && !["none", "unmatched"].includes(refundReconciliation)) {
     return jsonResponse({
       received: true,
-      status: refundReconciliation === "refunded" ? "refunded" : "captured",
+      status: ["refunded", "resolved"].includes(refundReconciliation) ? "refunded" : "captured",
       entity_type: orderLog.entity_type,
-      refund_review: refundReconciliation !== "refunded",
+      refund_review: ["partial_review", "refund_pending", "refund_failed"].includes(refundReconciliation),
     });
   }
 
@@ -429,11 +439,11 @@ Deno.serve(async (request) => {
 
   if (captured && orderLog.status === "refund_review" && orderLog.captured_payment_id === paymentId) {
     const { data: existingReview, error: reviewError } = await supabase.from("payment_refund_reviews")
-      .select("refund_id,status")
+      .select("refund_id,status,automatic_refund_state")
       .eq("gateway_payment_id", paymentId)
       .maybeSingle();
     if (reviewError) return jsonResponse({ error: "Could not recheck existing refund review" }, 500);
-    if (existingReview?.refund_id) {
+    if (!existingReview || existingReview.refund_id || existingReview.automatic_refund_state === "retryable") {
       const resumedRefund = await requestAutomaticRefund(
         "Resume the previously recorded refund and reconcile its provider status.",
         true,

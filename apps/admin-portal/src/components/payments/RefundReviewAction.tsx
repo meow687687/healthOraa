@@ -3,7 +3,7 @@ import type { PaymentRefundReview } from "@healthoraa/types";
 import { useRecordPaymentRefundReview } from "../../hooks/usePayments";
 
 type RefundReviewActionProps = {
-  review: Pick<PaymentRefundReview, "gateway_payment_id" | "refund_id" | "status" | "reason"> | null;
+  review: Pick<PaymentRefundReview, "gateway_payment_id" | "refund_id" | "automatic_refund_state" | "status" | "reason"> | null;
   onResolved: () => void;
 };
 
@@ -22,12 +22,23 @@ export function RefundReviewAction({ review, onResolved }: RefundReviewActionPro
     );
   }
 
-  if (review.refund_id) {
+  if (review.automatic_refund_state === "retryable") {
+    return (
+      <div className="space-y-1 rounded-2xl border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
+        <p className="text-xs font-mono uppercase tracking-wider text-accent-blue">Automatic refund retrying</p>
+        <p className="text-sm text-text-primary">{review.reason}</p>
+        <p className="text-xs text-text-muted">The provider request will be retried. Wait for its result before issuing another refund.</p>
+      </div>
+    );
+  }
+
+  if (review.automatic_refund_state === "pending") {
     return (
       <div className="space-y-1 rounded-2xl border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
         <p className="text-xs font-mono uppercase tracking-wider text-accent-blue">Refund processing</p>
-        <p className="text-sm text-text-primary">Razorpay refund ID: {review.refund_id}</p>
-        <p className="text-xs text-text-muted">The payment audit will update when Razorpay confirms the refund.</p>
+        {review.refund_id && <p className="text-sm text-text-primary">Razorpay refund ID: {review.refund_id}</p>}
+        <p className="text-sm text-text-primary">{review.reason}</p>
+        <p className="text-xs text-text-muted">Awaiting confirmation from Razorpay.</p>
       </div>
     );
   }
@@ -44,10 +55,15 @@ export function RefundReviewAction({ review, onResolved }: RefundReviewActionPro
       <div className="space-y-1">
         <p className="text-xs font-mono uppercase tracking-wider text-accent-amber">Refund review required</p>
         <p className="text-sm text-text-primary">{review.reason}</p>
-        <p className="text-xs text-text-muted">After issuing the refund in Razorpay, record its refund ID here.</p>
+        {review.refund_id && <p className="text-xs text-text-muted">Existing Razorpay refund ID: {review.refund_id}</p>}
+        <p className="text-xs text-text-muted">
+          {review.refund_id ? "After issuing any additional refund in Razorpay, record its ID here." : "After issuing the refund in Razorpay, record its refund ID here."}
+        </p>
       </div>
       <div className="space-y-1">
-        <label htmlFor="razorpay-refund-id" className="text-xs font-medium text-text-secondary">Razorpay refund ID</label>
+        <label htmlFor="razorpay-refund-id" className="text-xs font-medium text-text-secondary">
+          {review.refund_id ? "Additional Razorpay refund ID" : "Razorpay refund ID"}
+        </label>
         <input
           id="razorpay-refund-id"
           value={refundId}

@@ -127,29 +127,31 @@ Deno.serve(async (request) => {
   if (priced.error) return json({ error: priced.error }, priced.status ?? 400);
   if (priced.amountPaise <= 0) return json({ error: "This item has no amount to pay." }, 409);
 
-  const { data: hasPendingRefundReview, error: pendingRefundReviewError } = await admin.rpc(
-    "has_pending_payment_refund_review",
-    {
-      p_user_id: userId,
-      p_entity_type: entityType,
-      p_entity_id: entityId,
-    },
-  );
-  if (pendingRefundReviewError) return json({ error: "Could not check the previous payment status." }, 500);
-  if (hasPendingRefundReview) {
-    return json({ error: "A previous payment needs refund review before another payment can start." }, 409);
-  }
+  const checkRefundReview = async (): Promise<{ blocked: boolean; failed: boolean }> => {
+    const [pendingReview, orderReview] = await Promise.all([
+      admin.rpc("has_pending_payment_refund_review", {
+        p_user_id: userId,
+        p_entity_type: entityType,
+        p_entity_id: entityId,
+      }),
+      admin.from("razorpay_order_logs")
+        .select("order_id")
+        .eq("user_id", userId)
+        .eq("entity_type", entityType)
+        .eq("entity_id", entityId)
+        .eq("status", "refund_review")
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    return {
+      blocked: pendingReview.data === true || Boolean(orderReview.data),
+      failed: Boolean(pendingReview.error || orderReview.error),
+    };
+  };
 
-  const { data: refundReview, error: refundReviewError } = await admin.from("razorpay_order_logs")
-    .select("order_id")
-    .eq("user_id", userId)
-    .eq("entity_type", entityType)
-    .eq("entity_id", entityId)
-    .eq("status", "refund_review")
-    .limit(1)
-    .maybeSingle();
-  if (refundReviewError) return json({ error: "Could not check the previous payment status." }, 500);
-  if (refundReview) {
+  const initialRefundReview = await checkRefundReview();
+  if (initialRefundReview.failed) return json({ error: "Could not check the previous payment status." }, 500);
+  if (initialRefundReview.blocked) {
     return json({ error: "A previous payment needs refund review before another payment can start." }, 409);
   }
 
@@ -186,6 +188,12 @@ Deno.serve(async (request) => {
     if (!current.payable) {
       if (!await supersedeCreatedOrder(orderId)) return json({ error: "The payment order could not be marked inactive." }, 500);
       return json({ error: "This item is no longer waiting for payment." }, 409);
+    }
+    const refundReview = await checkRefundReview();
+    if (refundReview.failed) return json({ error: "Could not check the previous payment status." }, 500);
+    if (refundReview.blocked) {
+      if (!await supersedeCreatedOrder(orderId)) return json({ error: "The payment order could not be marked inactive." }, 500);
+      return json({ error: "A previous payment needs refund review before another payment can start." }, 409);
     }
     return orderResponse(orderId, amountPaise, keyId);
   };
@@ -279,31 +287,13 @@ Deno.serve(async (request) => {
 
   // A refund review can be recorded while the gateway order is being created. Recheck before
   // exposing the order ID so the client cannot start another payment in that race window.
-  const [
-    { data: latePendingRefundReview, error: pendingReviewError },
-    { data: lateRefundReview, error: lateRefundReviewError },
-  ] = await Promise.all([
-    admin.rpc("has_pending_payment_refund_review", {
-      p_user_id: userId,
-      p_entity_type: entityType,
-      p_entity_id: entityId,
-    }),
-    admin.from("razorpay_order_logs")
-    .select("order_id")
-    .eq("user_id", userId)
-    .eq("entity_type", entityType)
-    .eq("entity_id", entityId)
-    .eq("status", "refund_review")
-    .limit(1)
-    .maybeSingle(),
-  ]);
-  if (pendingReviewError || lateRefundReviewError || latePendingRefundReview || lateRefundReview) {
+  const lateRefundReview = await checkRefundReview();
+  if (lateRefundReview.failed) {
+    return json({ error: "The previous payment status could not be confirmed. Try again." }, 500);
+  }
+  if (lateRefundReview.blocked) {
     if (!await supersedeCreatedOrder(order.id)) return json({ error: "The new payment order could not be marked inactive." }, 500);
-    return json({
-      error: pendingReviewError || lateRefundReviewError
-        ? "The previous payment status could not be confirmed. Try again."
-        : "A previous payment needs refund review before another payment can start.",
-    }, pendingReviewError || lateRefundReviewError ? 500 : 409);
+    return json({ error: "A previous payment needs refund review before another payment can start." }, 409);
   }
 
   const finalEligibility = await isEntityPayableNow();

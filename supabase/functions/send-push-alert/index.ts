@@ -83,7 +83,8 @@ Deno.serve(async (request) => {
         last_error: "No Expo receipt was available within 24 hours.",
         receipt_next_check_at: null,
       })
-      .in("id", staleReceipts.map((row) => row.id));
+      .in("id", staleReceipts.map((row) => row.id))
+      .is("receipt_checked_at", null);
     if (error) return json({ error: "Could not age out stale push receipts." }, 500);
   }
 
@@ -131,7 +132,10 @@ Deno.serve(async (request) => {
               .delete()
               .eq("user_id", row.recipient_id)
               .eq("registration_version", row.expo_token_registration_version);
-            if (tokenDeleteError) receiptRequestFailed = true;
+            if (tokenDeleteError) {
+              receiptRequestFailed = true;
+              continue;
+            }
           }
 
           const receiptError = receipt.status === "error"
@@ -304,19 +308,25 @@ Deno.serve(async (request) => {
         continue;
       }
       failed += 1;
+      let tokenDeleteFailed = false;
       if (ticket?.details?.error === "DeviceNotRegistered") {
         // Avoid deleting a newer token registered while this send was in flight.
         const { error: tokenDeleteError } = await admin.from("patient_push_tokens").delete()
           .eq("user_id", row.recipient_id)
           .eq("registration_version", token.registration_version);
-        if (tokenDeleteError) return json({ error: "Could not remove a rejected device token." }, 500);
+        if (tokenDeleteError) {
+          tokenDeleteFailed = true;
+          deliveryStateWriteFailed = true;
+        }
       }
       const { error: failureError } = await admin.from("push_outbox")
         .update({
-          delivery_state: row.attempts + 1 >= MAX_ATTEMPTS ? "failed" : "pending",
+          delivery_state: tokenDeleteFailed || row.attempts + 1 >= MAX_ATTEMPTS ? "failed" : "pending",
           delivery_claimed_at: null,
           attempts: row.attempts + 1,
-          last_error: ticket?.message ?? "The push service did not respond.",
+          last_error: tokenDeleteFailed
+            ? "Expo rejected this device token, but the invalid token could not be removed."
+            : ticket?.message ?? "The push service did not respond.",
         })
         .eq("id", row.id)
         .eq("delivery_state", "sending");
@@ -325,7 +335,7 @@ Deno.serve(async (request) => {
   }
 
   if (deliveryStateWriteFailed) {
-    return json({ error: "Some delivery outcomes could not be recorded; claimed alerts will not be resent automatically." }, 500);
+    return json({ error: "Some delivery or token updates failed; verify the outbox before retrying the worker." }, 500);
   }
 
   return json({

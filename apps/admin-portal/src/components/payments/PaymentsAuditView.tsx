@@ -26,6 +26,7 @@ const STATUS_META: Record<PaymentStatus, { label: string; tone: Tone }> = {
   initiated: { label: "Initiated", tone: "amber" },
   captured: { label: "Captured", tone: "emerald" },
   failed: { label: "Failed", tone: "red" },
+  refund_review: { label: "Refund review", tone: "amber" },
   refunded: { label: "Refunded", tone: "neutral" },
 };
 
@@ -82,7 +83,7 @@ export default function PaymentsAuditView() {
   const counts = useMemo<Record<FilterValue, number>>(() => {
     const base: Record<FilterValue, number> = { all: payments?.length ?? 0, captured: 0, refund_review: 0, failed: 0, refunded: 0 };
     for (const p of payments ?? []) {
-      if (p.refund_review?.status === "pending") {
+      if (p.status === "refund_review" || p.refund_review?.status === "pending") {
         base.refund_review += 1;
       } else if (p.status === "captured" || p.status === "failed" || p.status === "refunded") {
         base[p.status] += 1;
@@ -148,10 +149,12 @@ export default function PaymentsAuditView() {
     {
       id: "status",
       header: "Status",
-      cell: (payment) => payment.refund_review?.status === "pending"
+      cell: (payment) => payment.status === "refund_review" || payment.refund_review?.status === "pending"
         ? <Badge tone="amber">Refund review</Badge>
         : <Badge tone={STATUS_META[payment.status].tone}>{STATUS_META[payment.status].label}</Badge>,
-      sortValue: (payment) => payment.refund_review?.status === "pending" ? "refund_review" : payment.status,
+      sortValue: (payment) => payment.status === "refund_review" || payment.refund_review?.status === "pending"
+        ? "refund_review"
+        : payment.status,
     },
     {
       id: "actions",
@@ -182,7 +185,7 @@ export default function PaymentsAuditView() {
     options: FILTERS.map((option) => ({ id: option.id, label: `${option.label} ${counts[option.id]}` })),
     onChange: (id) => setFilter(id as FilterValue),
     match: (payment, id) => id === "all" || (id === "refund_review"
-      ? payment.refund_review?.status === "pending"
+      ? payment.status === "refund_review" || payment.refund_review?.status === "pending"
       : payment.refund_review?.status !== "pending" && payment.status === id),
   };
 

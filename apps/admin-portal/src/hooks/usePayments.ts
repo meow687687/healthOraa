@@ -17,7 +17,7 @@ export type PaymentWithCustomer = PaymentTransaction & {
   linked_consultation_id: string | null;
   refund_review: Pick<
     PaymentRefundReview,
-    "gateway_payment_id" | "refund_id" | "status" | "reason" | "created_at" | "resolved_at"
+    "gateway_payment_id" | "refund_id" | "automatic_refund_state" | "status" | "reason" | "created_at" | "resolved_at"
   > | null;
 };
 
@@ -86,8 +86,9 @@ export const usePayments = () => {
     queryKey: paymentKeys.list(),
     queryFn: async (): Promise<PaymentWithCustomer[]> => {
       const paymentRows: PaymentRow[] = [];
-      for (let offset = 0; ; offset += PAYMENT_PAGE_SIZE) {
-        const { data, error } = await supabase
+      let cursor: Pick<PaymentRow, "created_at" | "id"> | null = null;
+      for (;;) {
+        let pageQuery = supabase
           .from("payment_transactions")
           .select(
             `*,
@@ -96,12 +97,21 @@ export const usePayments = () => {
           )
           .order("created_at", { ascending: false })
           .order("id", { ascending: true })
-          .range(offset, offset + PAYMENT_PAGE_SIZE - 1);
+          .limit(PAYMENT_PAGE_SIZE);
 
+        if (cursor) {
+          pageQuery = pageQuery.or(
+            `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.gt.${cursor.id})`,
+          );
+        }
+
+        const { data, error } = await pageQuery;
         if (error) throw new Error(error.message);
         const page = (data ?? []) as PaymentRow[];
         paymentRows.push(...page);
         if (page.length < PAYMENT_PAGE_SIZE) break;
+        const last = page[page.length - 1];
+        cursor = { created_at: last.created_at, id: last.id };
       }
 
       const paymentIds = paymentRows
@@ -112,7 +122,7 @@ export const usePayments = () => {
         const batch = paymentIds.slice(start, start + REFUND_LOOKUP_BATCH_SIZE);
         const { data, error } = await supabase
           .from("payment_refund_reviews")
-          .select("gateway_payment_id,refund_id,status,reason,created_at,resolved_at")
+          .select("gateway_payment_id,refund_id,automatic_refund_state,status,reason,created_at,resolved_at")
           .in("gateway_payment_id", batch)
           .order("gateway_payment_id", { ascending: true })
           .range(0, batch.length - 1);

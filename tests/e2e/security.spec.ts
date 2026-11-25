@@ -29,6 +29,8 @@ test.describe("Phase 1 security boundaries", () => {
     if (!userId || !refreshToken || !accessToken) throw new Error("The synthetic patient account did not receive a session.");
     const legacyRecordPath = `${userId}/health-locker/legacy-${Date.now()}.pdf`;
     const bulkFixturePrefix = `phase1-bulk-${Date.now()}`;
+    const inFlightAlertId = crypto.randomUUID();
+    const queuedAlertId = crypto.randomUUID();
 
     try {
       const legacyUpload = await fetch(`${SUPABASE_URL}/storage/v1/object/medical-records/${legacyRecordPath}`, {
@@ -43,6 +45,12 @@ test.describe("Phase 1 security boundaries", () => {
       expect([200, 201]).toContain(legacyUpload.status);
       expect(psql(`select owner_id from storage.objects where bucket_id = 'medical-records' and name = ${lit(legacyRecordPath)}`)).toBe(userId);
       script(`
+        insert into patient_push_tokens (user_id, expo_push_token)
+        values ('${userId}', ${lit(`ExponentPushToken[phase1-delete-${Date.now()}]`)});
+        insert into push_outbox (id, recipient_id, title, body, data)
+        values ('${inFlightAlertId}', '${userId}', 'In-flight deletion test', 'Synthetic fixture.', '{}'::jsonb);
+        insert into push_outbox (id, recipient_id, title, body, data)
+        values ('${queuedAlertId}', '${userId}', 'Deletion suppression test', 'Synthetic fixture.', '{}'::jsonb);
         insert into storage.objects (bucket_id, name, owner_id, metadata)
         select 'medical-records', '${userId}/locker/${bulkFixturePrefix}-record-' || object_number || '.pdf', '${userId}',
                '{"mimetype":"application/pdf","size":64}'
@@ -53,12 +61,26 @@ test.describe("Phase 1 security boundaries", () => {
         from generate_series(1, 1001) AS object_number;
       `);
 
+      expect(psql(`select count(*) from public.claim_push_alerts_for_dispatch(ARRAY['${inFlightAlertId}']::uuid[])`)).toBe("1");
+      const blockedDuringDispatch = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+        method: "POST",
+        headers: { apikey: PUBLISHABLE_KEY, authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
+        body: "{}",
+      });
+      expect(blockedDuringDispatch.status, await blockedDuringDispatch.clone().text()).toBe(409);
+      expect(psql(`select (deleted_at is null)::text from profiles where id = '${userId}'`)).toBe("true");
+      expect(psql(`select delivery_state from push_outbox where id = '${inFlightAlertId}'`)).toBe("sending");
+      script(`update push_outbox set delivery_state = 'sent', sent_at = now(), delivery_claimed_at = null where id = '${inFlightAlertId}';`);
+
       // Model the state after personal data is scrubbed but before auth deletion succeeds.
       script(`
         update profiles set deleted_at = now(), full_name = 'Deleted patient', phone = null, avatar_url = null
         where id = '${userId}';
         update auth.users set email = ${lit(`deleted-${userId}@deleted.invalid`)} where id = '${userId}';
       `);
+      expect(psql(`select count(*) from public.claim_push_alerts_for_dispatch(ARRAY['${queuedAlertId}']::uuid[])`)).toBe("0");
+      script(`select public.queue_push('${userId}', 'Blocked account', 'This alert must be suppressed.', '{}'::jsonb);`);
+      expect(psql(`select count(*) from push_outbox where recipient_id = '${userId}' and title = 'Blocked account'`)).toBe("0");
       const tokenAfterDeletionStarted = await api(accessToken, "POST", "/rpc/register_patient_push_token", {
         p_expo_push_token: `ExponentPushToken[phase1-deleted-${Date.now()}]`,
       });
@@ -88,6 +110,9 @@ test.describe("Phase 1 security boundaries", () => {
       expect(psql(`select count(*) from storage.objects where bucket_id = 'medical-records' and name = ${lit(legacyRecordPath)}`)).toBe("0");
       expect(psql(`select count(*) from storage.objects where bucket_id = 'medical-records' and name like ${lit(`${userId}/locker/${bulkFixturePrefix}-%`)}`)).toBe("0");
       expect(psql(`select count(*) from storage.objects where bucket_id = 'diet-charts' and name like ${lit(`${userId}/meals/${bulkFixturePrefix}-%`)}`)).toBe("0");
+      expect(psql(`select delivery_state from push_outbox where id = '${queuedAlertId}'`)).toBe("failed");
+      expect(psql(`select delivery_state from push_outbox where id = '${inFlightAlertId}'`)).toBe("sent");
+      expect(psql(`select count(*) from patient_push_tokens where user_id = '${userId}'`)).toBe("0");
     } finally {
       script(`delete from auth.users where id = '${userId}';`);
       if (psql(`select count(*) from storage.objects where bucket_id = 'medical-records' and name = ${lit(legacyRecordPath)}`) !== "0") {
@@ -405,7 +430,7 @@ test.describe("Phase 1 security boundaries", () => {
     }
   });
 
-  test("only an admin may resolve erasure and refund reviews", async () => {
+  test("only an admin may record erasure and refund review references", async () => {
     const patientToken = await accessToken("patient");
     const erasure = await api(patientToken, "POST", "/rpc/resolve_erasure_request", {
       p_request_id: "ffffffff-0000-4000-8000-000000000001",
@@ -418,6 +443,18 @@ test.describe("Phase 1 security boundaries", () => {
       p_refund_id: `refund_e2e_forbidden_${Date.now()}`,
     });
     expect(refund.status).toBe(400);
-    expect(JSON.stringify(refund.body)).toContain("Only admins can resolve payment refund reviews");
+    expect(JSON.stringify(refund.body)).toContain("Only admins can record payment refund references");
+
+    const retryRefund = await fetch(`${SUPABASE_URL}/functions/v1/retry-razorpay-refund`, {
+      method: "POST",
+      headers: {
+        apikey: PUBLISHABLE_KEY,
+        authorization: `Bearer ${patientToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ gateway_payment_id: "pay_e2e_forbidden_retry" }),
+    });
+    expect(retryRefund.status).toBe(403);
+    expect(await retryRefund.json()).toMatchObject({ error: "Only administrators can retry payment refunds." });
   });
 });

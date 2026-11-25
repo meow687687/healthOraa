@@ -1,44 +1,79 @@
 import { useState, type FormEvent } from "react";
 import type { PaymentRefundReview } from "@healthoraa/types";
-import { useRecordPaymentRefundReview } from "../../hooks/usePayments";
+import { useRecordPaymentRefundReference, useRetryAutomaticPaymentRefund } from "../../hooks/usePayments";
 
 type RefundReviewActionProps = {
-  review: Pick<PaymentRefundReview, "gateway_payment_id" | "refund_id" | "automatic_refund_state" | "status" | "reason"> | null;
-  onResolved: () => void;
+  review: Pick<
+    PaymentRefundReview,
+    | "gateway_payment_id"
+    | "refund_id"
+    | "automatic_refund_state"
+    | "manual_refund_reference"
+    | "manual_refund_recorded_by"
+    | "manual_refund_recorded_at"
+    | "status"
+    | "reason"
+  > | null;
 };
 
-export function RefundReviewAction({ review, onResolved }: RefundReviewActionProps) {
+export function RefundReviewAction({ review }: RefundReviewActionProps) {
   const [refundId, setRefundId] = useState("");
-  const mutation = useRecordPaymentRefundReview(onResolved);
+  const mutation = useRecordPaymentRefundReference();
+  const retryMutation = useRetryAutomaticPaymentRefund();
 
   if (!review) return null;
 
   if (review.status === "resolved") {
     return (
       <div className="rounded-2xl border border-accent-emerald/30 bg-accent-emerald/10 px-4 py-3 space-y-1">
-        <p className="text-xs font-mono uppercase tracking-wider text-accent-emerald">Refund recorded</p>
-        <p className="text-sm text-text-primary">Razorpay refund ID: {review.refund_id}</p>
+        <p className="text-xs font-mono uppercase tracking-wider text-accent-emerald">Refund confirmed by Razorpay</p>
+        {review.refund_id && <p className="text-sm text-text-primary">Razorpay refund ID: {review.refund_id}</p>}
+        <p className="text-xs text-text-muted">Processed refund events cover the captured payment amount.</p>
       </div>
     );
   }
 
   if (review.automatic_refund_state === "retryable") {
     return (
-      <div className="space-y-1 rounded-2xl border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
-        <p className="text-xs font-mono uppercase tracking-wider text-accent-blue">Automatic refund retrying</p>
+      <div className="space-y-3 rounded-2xl border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
+        <p className="text-xs font-mono uppercase tracking-wider text-accent-blue">Automatic refund needs a retry</p>
         <p className="text-sm text-text-primary">{review.reason}</p>
-        <p className="text-xs text-text-muted">The provider request will be retried. Wait for its result before issuing another refund.</p>
+        <p className="text-xs text-text-muted">
+          Retry the same Razorpay request safely. Its idempotency key prevents a second refund if the first request reached Razorpay.
+        </p>
+        {retryMutation.isError && <p role="alert" className="text-sm text-accent-red">{retryMutation.error.message}</p>}
+        <button
+          type="button"
+          onClick={() => retryMutation.mutate(review.gateway_payment_id)}
+          disabled={retryMutation.isPending}
+          className="min-h-11 rounded-xl bg-aura-s3 px-4 text-sm font-medium text-text-primary transition-opacity disabled:opacity-50"
+        >
+          {retryMutation.isPending ? "Checking with Razorpay…" : "Retry automatic refund"}
+        </button>
       </div>
     );
   }
 
   if (review.automatic_refund_state === "pending") {
     return (
-      <div className="space-y-1 rounded-2xl border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
+      <div className="space-y-3 rounded-2xl border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
         <p className="text-xs font-mono uppercase tracking-wider text-accent-blue">Refund processing</p>
         {review.refund_id && <p className="text-sm text-text-primary">Razorpay refund ID: {review.refund_id}</p>}
         <p className="text-sm text-text-primary">{review.reason}</p>
-        <p className="text-xs text-text-muted">Awaiting confirmation from Razorpay.</p>
+        <p className="text-xs text-text-muted">
+          Check Razorpay directly if its refund webhook has not arrived. Processed provider events still determine when this review closes.
+        </p>
+        {retryMutation.isError && <p role="alert" className="text-sm text-accent-red">{retryMutation.error.message}</p>}
+        {review.refund_id && (
+          <button
+            type="button"
+            onClick={() => retryMutation.mutate(review.gateway_payment_id)}
+            disabled={retryMutation.isPending}
+            className="min-h-11 rounded-xl bg-aura-s3 px-4 text-sm font-medium text-text-primary transition-opacity disabled:opacity-50"
+          >
+            {retryMutation.isPending ? "Checking with Razorpay…" : "Check refund status"}
+          </button>
+        )}
       </div>
     );
   }
@@ -55,15 +90,21 @@ export function RefundReviewAction({ review, onResolved }: RefundReviewActionPro
       <div className="space-y-1">
         <p className="text-xs font-mono uppercase tracking-wider text-accent-amber">Refund review required</p>
         <p className="text-sm text-text-primary">{review.reason}</p>
-        {review.refund_id && <p className="text-xs text-text-muted">Existing Razorpay refund ID: {review.refund_id}</p>}
+        {review.refund_id && <p className="text-xs text-text-muted">Provider-reported refund ID: {review.refund_id}</p>}
+        {review.manual_refund_reference && (
+          <p className="text-xs text-text-muted">
+            Admin reference {review.manual_refund_reference}
+            {review.manual_refund_recorded_by ? ` recorded by ${review.manual_refund_recorded_by}` : " recorded"}
+            {review.manual_refund_recorded_at ? ` at ${new Date(review.manual_refund_recorded_at).toLocaleString()}` : ""}.
+            Awaiting Razorpay confirmation.
+          </p>
+        )}
         <p className="text-xs text-text-muted">
-          {review.refund_id ? "After issuing any additional refund in Razorpay, record its ID here." : "After issuing the refund in Razorpay, record its refund ID here."}
+          Record the refund ID after issuing it in Razorpay. This reference does not close the review; processed refund events do.
         </p>
       </div>
       <div className="space-y-1">
-        <label htmlFor="razorpay-refund-id" className="text-xs font-medium text-text-secondary">
-          {review.refund_id ? "Additional Razorpay refund ID" : "Razorpay refund ID"}
-        </label>
+        <label htmlFor="razorpay-refund-id" className="text-xs font-medium text-text-secondary">Razorpay refund reference</label>
         <input
           id="razorpay-refund-id"
           value={refundId}
@@ -79,7 +120,7 @@ export function RefundReviewAction({ review, onResolved }: RefundReviewActionPro
         disabled={!refundId.trim() || mutation.isPending}
         className="min-h-11 rounded-xl bg-aura-s3 px-4 text-sm font-medium text-text-primary transition-opacity disabled:opacity-50"
       >
-        {mutation.isPending ? "Saving refund ID…" : "Record refund ID"}
+        {mutation.isPending ? "Saving reference…" : "Record reference"}
       </button>
     </form>
   );

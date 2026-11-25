@@ -101,19 +101,17 @@ Deno.serve(async (request) => {
     return json({ error: "This account cannot be deleted from the app. Contact support." }, 403);
   }
 
-  // First write: the account is blocked from this moment. current_user_role() returns no role for a deleted
-  // profile, so every role-based policy refuses the account on its next request, even before the token expires.
-  if (profile.deleted_at === null) {
-    const { error: blockError } = await admin
-      .from("profiles")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", userId)
-      .is("deleted_at", null);
-    if (blockError) return json({ error: "Your account was not deleted. Try again." }, 500);
+  // Block access, remove the token, and cancel queued alerts atomically. The push worker takes
+  // compatible profile/token locks while claiming a delivery, so a stale pre-read cannot authorize a send.
+  const { data: pushBlocked, error: blockError } = await admin.rpc("block_patient_push_delivery", {
+    p_patient_id: userId,
+  });
+  if (blockError) {
+    return json({ error: "Your account was not deleted. Try again." }, 500);
   }
-
-  const { error: tokenError } = await admin.from("patient_push_tokens").delete().eq("user_id", userId);
-  if (tokenError) return json({ error: "Your account was not fully deleted. Try again." }, 500);
+  if (pushBlocked !== true) {
+    return json({ error: "A notification is still in progress. Wait for it to finish, then retry account deletion." }, 409);
+  }
 
   // Ownership comes from storage metadata, not client-writable patient_documents.file_path values.
   const recordCleanupError = await removeOwnedFiles("list_patient_owned_record_objects", RECORD_BUCKETS, RECORD_FOLDERS);

@@ -17,7 +17,16 @@ export type PaymentWithCustomer = PaymentTransaction & {
   linked_consultation_id: string | null;
   refund_review: Pick<
     PaymentRefundReview,
-    "gateway_payment_id" | "refund_id" | "automatic_refund_state" | "status" | "reason" | "created_at" | "resolved_at"
+    | "gateway_payment_id"
+    | "refund_id"
+    | "automatic_refund_state"
+    | "manual_refund_reference"
+    | "manual_refund_recorded_by"
+    | "manual_refund_recorded_at"
+    | "status"
+    | "reason"
+    | "created_at"
+    | "resolved_at"
   > | null;
 };
 
@@ -31,13 +40,11 @@ export const paymentKeys = {
 const PAYMENT_PAGE_SIZE = 500;
 const REFUND_LOOKUP_BATCH_SIZE = 100;
 
-type RefundResolutionInput = { gatewayPaymentId: string; refundId: string };
+type RefundReferenceInput = { gatewayPaymentId: string; refundId: string };
 
-export const useRecordPaymentRefundReview = (
-  onSuccess?: () => void,
-): UseMutationResult<void, Error, RefundResolutionInput> => {
+export const useRecordPaymentRefundReference = (): UseMutationResult<void, Error, RefundReferenceInput> => {
   const queryClient = useQueryClient();
-  return useMutation<void, Error, RefundResolutionInput>({
+  return useMutation<void, Error, RefundReferenceInput>({
     mutationFn: async ({ gatewayPaymentId, refundId }): Promise<void> => {
       const { error } = await supabase.rpc("record_payment_refund_review", {
         p_gateway_payment_id: gatewayPaymentId,
@@ -47,7 +54,21 @@ export const useRecordPaymentRefundReview = (
     },
     onSuccess: async (): Promise<void> => {
       await queryClient.invalidateQueries({ queryKey: paymentKeys.all });
-      onSuccess?.();
+    },
+  });
+};
+
+export const useRetryAutomaticPaymentRefund = (): UseMutationResult<void, Error, string> => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (gatewayPaymentId: string): Promise<void> => {
+      const { error } = await supabase.functions.invoke("retry-razorpay-refund", {
+        body: { gateway_payment_id: gatewayPaymentId },
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSettled: async (): Promise<void> => {
+      await queryClient.invalidateQueries({ queryKey: paymentKeys.all });
     },
   });
 };
@@ -122,7 +143,7 @@ export const usePayments = () => {
         const batch = paymentIds.slice(start, start + REFUND_LOOKUP_BATCH_SIZE);
         const { data, error } = await supabase
           .from("payment_refund_reviews")
-          .select("gateway_payment_id,refund_id,automatic_refund_state,status,reason,created_at,resolved_at")
+          .select("gateway_payment_id,refund_id,automatic_refund_state,manual_refund_reference,manual_refund_recorded_by,manual_refund_recorded_at,status,reason,created_at,resolved_at")
           .in("gateway_payment_id", batch)
           .order("gateway_payment_id", { ascending: true })
           .range(0, batch.length - 1);

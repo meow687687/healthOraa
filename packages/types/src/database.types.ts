@@ -339,14 +339,14 @@ isOneToOne: true
                   ]
                 },"payment_refund_reviews": {
                   Row: {
-                    "automatic_refund_state": string,"created_at": string,"gateway_order_id": string,"gateway_payment_id": string,"id": string,"last_reconciled_failed_count": number,"last_reconciled_pending_count": number,"last_reconciled_processed_paise": number,"reason": string,"refund_id": string | null,"resolved_at": string | null,"status": string,"user_id": string | null
+                    "automatic_refund_state": string,"created_at": string,"gateway_order_id": string,"gateway_payment_id": string,"id": string,"last_reconciled_failed_count": number,"last_reconciled_pending_count": number,"last_reconciled_processed_paise": number,"manual_refund_recorded_at": string | null,"manual_refund_recorded_by": string | null,"manual_refund_reference": string | null,"reason": string,"refund_id": string | null,"resolved_at": string | null,"status": string,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "automatic_refund_state"?: string,"created_at"?: string,"gateway_order_id": string,"gateway_payment_id": string,"id"?: string,"last_reconciled_failed_count"?: number,"last_reconciled_pending_count"?: number,"last_reconciled_processed_paise"?: number,"reason": string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
+                    "automatic_refund_state"?: string,"created_at"?: string,"gateway_order_id": string,"gateway_payment_id": string,"id"?: string,"last_reconciled_failed_count"?: number,"last_reconciled_pending_count"?: number,"last_reconciled_processed_paise"?: number,"manual_refund_recorded_at"?: string | null,"manual_refund_recorded_by"?: string | null,"manual_refund_reference"?: string | null,"reason": string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
                   }
                   Update: {
-                    "automatic_refund_state"?: string,"created_at"?: string,"gateway_order_id"?: string,"gateway_payment_id"?: string,"id"?: string,"last_reconciled_failed_count"?: number,"last_reconciled_pending_count"?: number,"last_reconciled_processed_paise"?: number,"reason"?: string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
+                    "automatic_refund_state"?: string,"created_at"?: string,"gateway_order_id"?: string,"gateway_payment_id"?: string,"id"?: string,"last_reconciled_failed_count"?: number,"last_reconciled_pending_count"?: number,"last_reconciled_processed_paise"?: number,"manual_refund_recorded_at"?: string | null,"manual_refund_recorded_by"?: string | null,"manual_refund_reference"?: string | null,"reason"?: string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -670,6 +670,9 @@ isOneToOne: false
             "admin_dashboard_summary":
 { Args: { "p_days"?: number }; Returns: Json
                            },
+"block_patient_push_delivery":
+{ Args: { "p_patient_id": string }; Returns: boolean
+                           },
 "book_consultation_slot":
 { Args: { "p_chief_complaint": string,"p_patient_id": string,"p_slot_id": string }; Returns: {
               "amount_inr": number,
@@ -697,6 +700,11 @@ isOneToOne: false
 "can_start_mobile_payment":
 { Args: { "p_entity_id": string,"p_entity_type": string,"p_user_id": string }; Returns: boolean
                            },
+"claim_push_alerts_for_dispatch":
+{ Args: { "p_outbox_ids": (string)[] }; Returns: {
+              "attempts": number,"body": string,"data": Json,"expo_push_token": string,"id": string,"recipient_id": string,"registration_version": string,"title": string
+            }[]
+                           },
 "claim_razorpay_order_capture":
 { Args: { "p_order_id": string,"p_payment_id": string }; Returns: boolean
                            },
@@ -704,7 +712,7 @@ isOneToOne: false
 { Args: { "p_consultation_id": string,"p_order_id": string,"p_patient_id": string }; Returns: boolean
                            },
 "confirm_shop_order_payment_capture":
-{ Args: { "p_order_id": string,"p_patient_id": string }; Returns: boolean
+{ Args: { "p_gateway_order_id": string,"p_order_id": string,"p_patient_id": string }; Returns: boolean
                            },
 "create_mobile_order":
 { Args: { "p_items": Json,"p_shipping_address": string }; Returns: string
@@ -835,8 +843,17 @@ isOneToOne: false
 "reconcile_razorpay_refunds":
 { Args: { "p_gateway_payment_id": string }; Returns: string
                            },
+"record_and_reconcile_razorpay_refund_event":
+{ Args: { "p_amount_paise": number,"p_gateway_order_id": string | null,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: string
+                           },
+"record_captured_payment_refund_review":
+{ Args: { "p_automatic_refund"?: boolean,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_preserve_fulfilled_order"?: boolean,"p_reason": string,"p_user_id": string }; Returns: string
+                           },
 "record_payment_refund_review":
 { Args: { "p_gateway_payment_id": string,"p_refund_id": string }; Returns: string
+                           },
+"record_razorpay_payment_capture":
+{ Args: { "p_amount_inr": number,"p_consultation_id": string | null,"p_currency": string,"p_error_code": string | null,"p_error_description": string | null,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_order_id": string | null,"p_status": Database["public"]['Enums']["payment_status"] }; Returns: Database["public"]['Enums']["payment_status"] | null
                            },
 "record_razorpay_refund_event":
 { Args: { "p_amount_paise": number,"p_gateway_order_id": string | null,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: boolean

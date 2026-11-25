@@ -23,3 +23,18 @@ export async function verifySignature(
   }
   return difference === 0;
 }
+
+export const automaticRefundRequest = (
+  paymentId: string,
+  keyId: string,
+  keySecret: string,
+): RequestInit => ({
+  method: "POST",
+  headers: {
+    authorization: `Basic ${btoa(`${keyId}:${keySecret}`)}`,
+    "content-type": "application/json",
+    "X-Refund-Idempotency": `healthoraa-${paymentId}`,
+  },
+  body: JSON.stringify({ notes: { reason: "Reservation expired before payment capture" } }),
+  signal: AbortSignal.timeout(10_000),
+});

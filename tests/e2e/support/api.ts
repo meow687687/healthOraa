@@ -64,6 +64,24 @@ export const deleteAccountFunctionReady = async (): Promise<boolean> => {
   }
 };
 
+export const refundRetryFunctionReady = async (): Promise<boolean> => {
+  try {
+    const token = await accessToken("admin");
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/retry-razorpay-refund`, {
+      method: "GET",
+      headers: {
+        apikey: PUBLISHABLE_KEY,
+        authorization: `Bearer ${token}`,
+      },
+    });
+    if (response.status !== 405) return false;
+    const body = (await response.json()) as { error?: unknown };
+    return body.error === "Method not allowed.";
+  } catch {
+    return false;
+  }
+};
+
 // Calls PostgREST as the given user. Returns the HTTP status and the parsed body.
 export const api = async (
   token: string,

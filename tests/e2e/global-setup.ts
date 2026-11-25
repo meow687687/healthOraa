@@ -4,14 +4,14 @@ import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
 import { PID_FILE } from "./support/paths";
 import { webhookReady } from "./support/webhook";
-import { deleteAccountFunctionReady } from "./support/api";
+import { deleteAccountFunctionReady, refundRetryFunctionReady } from "./support/api";
 
 const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 // The Edge Functions run in the Supabase runtime. Start them if not already served and remember
 // the process so teardown can stop it. A runtime that was already running is left alone.
 export default async function globalSetup(): Promise<void> {
-  if (await webhookReady() && await deleteAccountFunctionReady()) return;
+  if (await webhookReady() && await deleteAccountFunctionReady() && await refundRetryFunctionReady()) return;
 
   const log = openSync(fileURLToPath(new URL("./functions.log", import.meta.url)), "a");
   const child = spawn(
@@ -26,7 +26,7 @@ export default async function globalSetup(): Promise<void> {
   }
 
   for (let attempt = 0; attempt < 60; attempt += 1) {
-    if (await webhookReady() && await deleteAccountFunctionReady()) return;
+    if (await webhookReady() && await deleteAccountFunctionReady() && await refundRetryFunctionReady()) return;
     await sleep(2_000);
   }
   throw new Error("The required Edge Functions did not start. See tests/e2e/functions.log.");

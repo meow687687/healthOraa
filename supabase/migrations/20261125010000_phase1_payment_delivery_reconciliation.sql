@@ -145,7 +145,34 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+    v_payment_id TEXT;
+    v_payment_status public.payment_status;
 BEGIN
+    SELECT order_log.captured_payment_id
+    INTO v_payment_id
+    FROM public.razorpay_order_logs AS order_log
+    WHERE order_log.order_id = p_order_id
+      AND order_log.entity_type = 'consultation'
+      AND order_log.entity_id = p_consultation_id
+      AND order_log.user_id = p_patient_id;
+    IF NOT FOUND OR v_payment_id IS NULL THEN RETURN FALSE; END IF;
+
+    -- Match reconcile_razorpay_refunds' payment-first lock order so a refund
+    -- cannot be reconciled between its state check and booking confirmation.
+    SELECT transaction.status
+    INTO v_payment_status
+    FROM public.payment_transactions AS transaction
+    WHERE transaction.gateway_payment_id = v_payment_id
+      AND transaction.gateway = 'razorpay'::public.payment_gateway
+      AND transaction.gateway_order_id = p_order_id
+      AND transaction.consultation_id = p_consultation_id
+      AND transaction.status = 'captured'::public.payment_status
+    FOR UPDATE;
+    IF NOT FOUND OR v_payment_status IS DISTINCT FROM 'captured'::public.payment_status THEN
+        RETURN FALSE;
+    END IF;
+
     UPDATE public.consultations
     SET booking_status = 'confirmed'
     WHERE id = p_consultation_id
@@ -161,14 +188,41 @@ GRANT EXECUTE ON FUNCTION public.confirm_consultation_payment_capture(UUID, UUID
 
 CREATE OR REPLACE FUNCTION public.confirm_shop_order_payment_capture(
     p_order_id UUID,
-    p_patient_id UUID
+    p_patient_id UUID,
+    p_gateway_order_id TEXT
 )
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+    v_payment_id TEXT;
+    v_payment_status public.payment_status;
 BEGIN
+    SELECT order_log.captured_payment_id
+    INTO v_payment_id
+    FROM public.razorpay_order_logs AS order_log
+    WHERE order_log.order_id = p_gateway_order_id
+      AND order_log.entity_type = 'shop_order'
+      AND order_log.entity_id = p_order_id
+      AND order_log.user_id = p_patient_id;
+    IF NOT FOUND OR v_payment_id IS NULL THEN RETURN FALSE; END IF;
+
+    -- Use the same payment row and lock order as refund reconciliation.
+    SELECT transaction.status
+    INTO v_payment_status
+    FROM public.payment_transactions AS transaction
+    WHERE transaction.gateway_payment_id = v_payment_id
+      AND transaction.gateway = 'razorpay'::public.payment_gateway
+      AND transaction.gateway_order_id = p_gateway_order_id
+      AND transaction.order_id = p_order_id
+      AND transaction.status = 'captured'::public.payment_status
+    FOR UPDATE;
+    IF NOT FOUND OR v_payment_status IS DISTINCT FROM 'captured'::public.payment_status THEN
+        RETURN FALSE;
+    END IF;
+
     UPDATE public.orders
     SET status = 'paid'
     WHERE id = p_order_id
@@ -179,8 +233,8 @@ BEGIN
     RETURN FOUND;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.confirm_shop_order_payment_capture(UUID, UUID) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.confirm_shop_order_payment_capture(UUID, UUID) TO service_role;
+REVOKE ALL ON FUNCTION public.confirm_shop_order_payment_capture(UUID, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.confirm_shop_order_payment_capture(UUID, UUID, TEXT) TO service_role;
 
 -- Distinguish retryable automatic refunds from refunds owned by manual review.
 ALTER TABLE public.payment_refund_reviews
@@ -318,8 +372,8 @@ BEGIN
         UPDATE public.razorpay_order_logs
         SET status = 'refunded'
         WHERE order_id = v_order_id
-          AND captured_payment_id = p_gateway_payment_id
-          AND status IN ('captured', 'refund_review');
+          AND (captured_payment_id IS NULL OR captured_payment_id = p_gateway_payment_id)
+          AND status IN ('created', 'superseded', 'failed', 'captured', 'refund_review');
         RETURN 'refunded';
     END IF;
 

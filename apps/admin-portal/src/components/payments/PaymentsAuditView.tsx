@@ -50,7 +50,7 @@ function DetailDrawer({ payment, onClose }: { payment: PaymentWithCustomer | nul
 
       {payment && (
         <div className="flex-1 space-y-5 py-6">
-          <RefundReviewAction review={payment.refund_review} onResolved={onClose} />
+          <RefundReviewAction review={payment.refund_review} />
           {payment.error_code && (
             <div className="rounded-2xl border border-accent-red/30 bg-accent-red/10 px-4 py-3 space-y-1">
               <p className="text-xs font-mono uppercase tracking-wider text-accent-red">{payment.error_code}</p>
@@ -79,6 +79,9 @@ export default function PaymentsAuditView() {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [selected, setSelected] = useState<PaymentWithCustomer | null>(null);
   const { data: payments, isLoading, isError, error, refetch } = usePayments();
+  const selectedPayment = selected
+    ? payments?.find((payment) => payment.id === selected.id) ?? selected
+    : null;
 
   const counts = useMemo<Record<FilterValue, number>>(() => {
     const base: Record<FilterValue, number> = { all: payments?.length ?? 0, captured: 0, refund_review: 0, failed: 0, refunded: 0 };
@@ -228,7 +231,7 @@ export default function PaymentsAuditView() {
         </div>
       )}
 
-      <DetailDrawer payment={selected} onClose={() => setSelected(null)} />
+      <DetailDrawer payment={selectedPayment} onClose={() => setSelected(null)} />
     </div>
   );
 }

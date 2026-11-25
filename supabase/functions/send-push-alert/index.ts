@@ -40,6 +40,11 @@ interface ExpoTokenRow {
   registration_version: string;
 }
 
+interface ClaimedOutboxRow extends OutboxRow {
+  expo_push_token: string;
+  registration_version: string;
+}
+
 const json = (body: Record<string, unknown>, status: number): Response =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
@@ -191,7 +196,7 @@ Deno.serve(async (request) => {
   let skipped = 0;
   let deliveryUnknown = 0;
   let deliveryStateWriteFailed = false;
-  const deliverable: Array<{ row: OutboxRow; token: ExpoTokenRow }> = [];
+  const deliverable: OutboxRow[] = [];
 
   for (const row of pending) {
     const token = deletedRecipients.has(row.recipient_id) ? undefined : tokenFor.get(row.recipient_id);
@@ -206,24 +211,22 @@ Deno.serve(async (request) => {
       if (skippedRow) skipped += 1;
       continue;
     }
-    deliverable.push({ row, token });
+    deliverable.push(row);
   }
 
   for (let start = 0; start < deliverable.length; start += BATCH) {
     const requestedBatch = deliverable.slice(start, start + BATCH);
-    const claimAt = new Date().toISOString();
-    const claimIds = requestedBatch.map(({ row }) => row.id);
-    const { data: claimedRows, error: claimError } = await admin.from("push_outbox")
-      .update({ delivery_state: "sending", delivery_claimed_at: claimAt })
-      .in("id", claimIds)
-      .eq("delivery_state", "pending")
-      .select("id");
+    const claimIds = requestedBatch.map((row) => row.id);
+    // The pre-read above only identifies candidates. This RPC rechecks the current profile/token
+    // under locks that serialize with account blocking and returns the token used for this send.
+    const { data: claimedRows, error: claimError } = await admin.rpc("claim_push_alerts_for_dispatch", {
+      p_outbox_ids: claimIds,
+    });
     if (claimError) return json({ error: "Could not claim pending alerts." }, 500);
-    const claimedIds = new Set((claimedRows ?? []).map((row) => row.id));
-    const batch = requestedBatch.filter(({ row }) => claimedIds.has(row.id));
+    const batch = (claimedRows ?? []) as ClaimedOutboxRow[];
     if (batch.length === 0) continue;
-    const messages = batch.map(({ row, token }) => ({
-      to: token.expo_push_token,
+    const messages = batch.map((row) => ({
+      to: row.expo_push_token,
       title: row.title,
       body: row.body,
       data: row.data,
@@ -247,7 +250,7 @@ Deno.serve(async (request) => {
 
     if (!tickets) {
       deliveryUnknown += batch.length;
-      for (const { row } of batch) {
+      for (const row of batch) {
         const { error } = await admin.from("push_outbox")
           .update({
             delivery_state: "unknown",
@@ -263,7 +266,7 @@ Deno.serve(async (request) => {
     }
 
     for (let index = 0; index < batch.length; index += 1) {
-      const { row, token } = batch[index];
+      const row = batch[index];
       const ticket = tickets?.[index];
       if (ticket?.status === "ok") {
         const acceptedUpdate = {
@@ -273,7 +276,7 @@ Deno.serve(async (request) => {
           last_error: ticket.id ? null : "Expo accepted the alert without returning a receipt id.",
           attempts: row.attempts + 1,
           expo_ticket_id: ticket.id ?? null,
-          expo_token_registration_version: token.registration_version,
+          expo_token_registration_version: row.registration_version,
           receipt_next_check_at: ticket.id ? new Date(Date.now() + RECEIPT_DELAY_MS).toISOString() : null,
         };
         let { error: sentError } = await admin.from("push_outbox").update(acceptedUpdate)
@@ -313,7 +316,7 @@ Deno.serve(async (request) => {
         // Avoid deleting a newer token registered while this send was in flight.
         const { error: tokenDeleteError } = await admin.from("patient_push_tokens").delete()
           .eq("user_id", row.recipient_id)
-          .eq("registration_version", token.registration_version);
+          .eq("registration_version", row.registration_version);
         if (tokenDeleteError) {
           tokenDeleteFailed = true;
           deliveryStateWriteFailed = true;

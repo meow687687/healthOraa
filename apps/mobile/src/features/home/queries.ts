@@ -11,7 +11,7 @@ export const HOME_CATEGORIES: ReadonlyArray<{ value: ProgramCategory; label: str
   { value: 'weight_management', label: 'Weight Management', blurb: 'Explore available programmes and review each plan before enrolling.' },
   { value: 'pcod_pcos', label: 'PCOD / PCOS Management', blurb: 'Review programme details and practitioner support before enrolling.' },
   { value: 'dermato_nutrition', label: 'Dermato-Nutrition', blurb: 'Explore available programmes and their included support.' },
-  { value: 'custom', label: 'Personalized Nutrition', blurb: 'Compare programme scope, duration and price before deciding.' },
+  { value: 'custom', label: 'Personalized Nutrition', blurb: 'Review example programme outlines before deciding.' },
 ];
 
 // The category list above must cover every category the database defines.
@@ -93,7 +93,7 @@ export const useCategoryPrograms = (category: ProgramCategory | null) =>
       if (!category) throw new Error('No category selected');
       const { data, error } = await supabase
         .from('programs')
-        .select('id, title, description, duration_days, price_inr')
+        .select('id, title, description, duration_days')
         .eq('is_active', true)
         .eq('category', category)
         .order('title', { ascending: true });

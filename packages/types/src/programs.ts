@@ -7,5 +7,5 @@ export const PROGRAM_CATEGORY_LABELS: Record<
   weight_management: "Weight Management",
   pcod_pcos: "PCOD / PCOS",
   dermato_nutrition: "Dermato-Nutrition",
-  custom: "Personalized Medical Nutrition",
+  custom: "Personalized Nutrition",
 };

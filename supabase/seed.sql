@@ -160,14 +160,14 @@ ON CONFLICT (id) DO NOTHING;
 -- 7. Wellness store catalog. Low stock (<5) and out-of-stock rows exercise the admin alerts.
 INSERT INTO public.products (id, sku, title, category, description, price_inr, stock_count, is_active)
 VALUES
-  ('eeeeeeee-0000-4000-8000-000000000001', 'HX-ASH-KSM66', 'Ashwagandha KSM-66 Balance', 'ayurvedic',
-    'Full-spectrum KSM-66 root extract for stress resilience and sleep quality. 60 capsules.', 899.00, 42, TRUE),
-  ('eeeeeeee-0000-4000-8000-000000000002', 'HX-OMG-3T', 'Omega-3 Triple Strength EPA/DHA', 'supplements',
-    'Triple-strength fish oil concentrate with EPA and DHA for heart and cognitive health. 60 softgels.', 1299.00, 18, TRUE),
-  ('eeeeeeee-0000-4000-8000-000000000003', 'HX-CER-BAR', 'Ceramide Barrier Restoring Cream', 'skincare',
-    'Ceramide and niacinamide moisturiser for dry, reactive skin. 50 g.', 749.00, 3, TRUE),
-  ('eeeeeeee-0000-4000-8000-000000000004', 'HX-SCALE-BT', 'Smart Bluetooth Body Composition Scale', 'equipment',
-    'Bluetooth scale measuring weight, body fat, muscle mass and hydration. Syncs with the Healthoraa app.', 2499.00, 0, FALSE)
+  ('eeeeeeee-0000-4000-8000-000000000001', 'HX-ASH-KSM66', 'Sample Ayurvedic listing', 'ayurvedic',
+    'Sample listing. Client-approved product facts and usage information are pending.', 899.00, 42, TRUE),
+  ('eeeeeeee-0000-4000-8000-000000000002', 'HX-OMG-3T', 'Sample supplement listing', 'supplements',
+    'Sample listing. Client-approved product facts and usage information are pending.', 1299.00, 18, TRUE),
+  ('eeeeeeee-0000-4000-8000-000000000003', 'HX-CER-BAR', 'Sample skincare listing', 'skincare',
+    'Sample listing. Client-approved product facts and usage information are pending.', 749.00, 3, TRUE),
+  ('eeeeeeee-0000-4000-8000-000000000004', 'HX-SCALE-BT', 'Sample equipment listing', 'equipment',
+    'Sample listing. Client-approved product facts and usage information are pending.', 2499.00, 0, FALSE)
 ON CONFLICT (sku) DO NOTHING;
 
 -- 8. DPDPA 2023 data subject requests for the mock patient. One per lifecycle state.

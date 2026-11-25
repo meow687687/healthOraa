@@ -22,24 +22,43 @@ export function ConsultationFunnel({ summary }: { summary: DashboardSummary }) {
       description={`From published slot to completed visit, last ${summary.window_days} days`}
       chart={
         nothingHappened ? (
-          <EmptyState icon={CalendarCheck} title="No slots published" description="Publish a week of slots to start the funnel." />
+          <EmptyState
+            icon={CalendarCheck}
+            title="No slots published"
+            description="Publish a week of slots to start the funnel."
+          />
         ) : (
           <ol className="space-y-4">
             {steps.map((step, index) => {
               const share = top > 0 ? (step.value / top) * 100 : 0;
               const previous = index === 0 ? null : steps[index - 1].value;
-              const conversion = previous && previous > 0 ? Math.round((step.value / previous) * 100) : null;
+              const conversion =
+                previous && previous > 0
+                  ? Math.round((step.value / previous) * 100)
+                  : null;
               return (
                 <li key={step.label}>
                   <div className="flex items-baseline justify-between gap-3 text-[13px]">
                     <span className="text-text-secondary">{step.label}</span>
                     <span className="font-mono tabular-nums text-text-primary">
                       {formatCount(step.value)}
-                      {conversion !== null ? <span className="ml-2 text-text-muted">{conversion}%</span> : null}
+                      {conversion !== null ? (
+                        <span className="ml-2 text-text-muted">
+                          {conversion}%
+                        </span>
+                      ) : null}
                     </span>
                   </div>
-                  <div className="mt-2 h-3 overflow-hidden rounded-full bg-aura-s3" aria-hidden="true">
-                    <div className="h-full rounded-full bg-accent-blue" style={{ width: `${Math.max(share, 2)}%` }} />
+                  <div
+                    className="mt-2 h-3 overflow-hidden rounded-full bg-aura-s3"
+                    aria-hidden="true"
+                  >
+                    <div
+                      className="h-full rounded-full bg-accent-blue"
+                      style={{
+                        width: `${step.value > 0 ? Math.max(share, 2) : 0}%`,
+                      }}
+                    />
                   </div>
                 </li>
               );

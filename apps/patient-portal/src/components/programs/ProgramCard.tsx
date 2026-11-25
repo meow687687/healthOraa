@@ -32,10 +32,11 @@ export function ProgramCard({
         <h3 className="text-base font-semibold leading-snug text-text-primary">
           {program.title}
         </h3>
-        <p className="line-clamp-3 text-sm leading-relaxed text-text-secondary">
-          {program.description?.trim() ||
-            "A program overview has not been added yet."}
-        </p>
+        {program.description?.trim() && (
+          <p className="line-clamp-3 text-sm leading-relaxed text-text-secondary">
+            {program.description.trim()}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-aura-line pt-4">

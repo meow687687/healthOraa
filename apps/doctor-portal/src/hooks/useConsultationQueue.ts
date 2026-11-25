@@ -8,6 +8,7 @@ import { signedConsultationIds } from "../lib/prescriptionStore";
 import { startedConsultationIds } from "../lib/startedStore";
 import { useAuth } from "../context/AuthContext";
 import { useDoctor } from "../context/DoctorContext";
+import { startOfIndiaDay } from "../lib/indiaTime";
 import type { ConsultationStatus, QueueConsultation } from "../types/queue";
 
 export const CONSULTATION_QUEUE_KEY = ["consultations", "queue"] as const;
@@ -34,12 +35,6 @@ interface IntakeRow {
   known_allergies: string[] | null;
   current_medications: string[] | null;
 }
-
-const startOfToday = (): string => {
-  const day = new Date();
-  day.setHours(0, 0, 0, 0);
-  return day.toISOString();
-};
 
 const toQueueItem = (row: QueueRow, intake: IntakeRow | undefined): QueueConsultation => ({
   id: row.id,
@@ -120,7 +115,7 @@ export const useConsultationQueue = () => {
           .eq("doctor_id", doctor.id)
           .eq("booking_status", "confirmed")
           .in("status", QUEUE_STATUSES)
-          .gte("slot_start", startOfToday())
+          .gte("slot_start", startOfIndiaDay().toISOString())
           .order("slot_start", { ascending: true });
         if (error) throw new Error(error.message);
         const rows = (data ?? []) as QueueRow[];

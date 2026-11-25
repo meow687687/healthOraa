@@ -1,5 +1,6 @@
 import type { Tone } from "@healthoraa/ui";
 import type { ConsultationStatus, QueueConsultation } from "../../types/queue";
+import { formatIndiaTime } from "../../lib/indiaTime";
 
 export const CONSULTATION_STATUS_META: Record<ConsultationStatus, { label: string; tone: Tone }> = {
   scheduled: { label: "Scheduled", tone: "amber" },
@@ -8,9 +9,7 @@ export const CONSULTATION_STATUS_META: Record<ConsultationStatus, { label: strin
   cancelled: { label: "Cancelled", tone: "red" },
 };
 
-const timeFormatter = new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" });
-
-export const formatTime = (iso: string): string => timeFormatter.format(new Date(iso));
+export const formatTime = (iso: string): string => formatIndiaTime(iso);
 
 const minutesUntil = (iso: string, now: number): number => Math.round((Date.parse(iso) - now) / 60_000);
 

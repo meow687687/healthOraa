@@ -1,5 +1,6 @@
 import type { CreatePrescriptionInput, PrescriptionMedicineInput } from "@healthoraa/validation";
 import type { StoredPrescription } from "./prescriptionStore";
+import { formatIndiaDate } from "./indiaTime";
 
 export const FREQUENCY_OPTIONS = [
   "Once daily in the morning",
@@ -44,5 +45,4 @@ export const addDays = (from: Date, days: number): Date => {
   return next;
 };
 
-const dateFormatter = new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-export const formatDate = (date: Date): string => dateFormatter.format(date);
+export const formatDate = (date: Date): string => formatIndiaDate(date);

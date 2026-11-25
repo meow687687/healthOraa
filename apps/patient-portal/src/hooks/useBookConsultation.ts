@@ -7,11 +7,6 @@ import { appendDeviceBooking } from "../lib/deviceBookingStore";
 import { gstOn, rupeesToPaise } from "../lib/money";
 import type { BookingReceipt, BookingRequest, DeviceBooking } from "../types/consultations";
 
-// Simulated Razorpay checkout delay. Mock checkout: no money moves.
-export const CHECKOUT_DELAY_MS = 800;
-
-const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
 const newReference = (): string => `HLX-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
 type ServerOutcome =
@@ -63,7 +58,7 @@ const noticeFor = (reason: string | null): string =>
     ? "This is a demo slot, so the booking is held on this device only."
     : `The clinic did not take this booking (${reason}). It is held on this device and has not been sent.`;
 
-// Runs the mock checkout, then books. Live slots go to the server; demo slots and refused bookings are held on this device.
+// Saves a booking request. Live slots go to the server; demo slots and refused bookings are held on this device.
 export const useBookConsultation = () => {
   const patient = usePatient();
   const queryClient = useQueryClient();
@@ -73,8 +68,6 @@ export const useBookConsultation = () => {
       const parsed = patientIntakeSchema.safeParse(rawIntake);
       if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Check the intake form.");
       const intake = parsed.data;
-
-      await wait(CHECKOUT_DELAY_MS);
 
       const feePaise = rupeesToPaise(doctor.feeInr);
       const gstPaise = gstOn(feePaise);

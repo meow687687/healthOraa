@@ -16,10 +16,10 @@ export function ProductCard({ product, onAdd, adding }: { product: ShopProduct; 
     <article className={cn(PANEL, "flex flex-col gap-4 p-4")}>
       <div
         role="img"
-        aria-label={`${product.title} preview`}
-        className={cn("flex aspect-[4/3] items-center justify-center rounded-2xl border border-aura-line bg-gradient-to-br", visual.tile)}
+        aria-label={`Illustrative ${CATEGORY_LABEL[product.category]} category art; not a product photo.`}
+        className={cn("flex h-28 items-center justify-center rounded-2xl border border-aura-line", visual.tile)}
       >
-        <Icon className="h-10 w-10" />
+        <Icon className="h-10 w-10" strokeWidth={1.5} />
       </div>
 
       <div className="flex items-center justify-between gap-2">

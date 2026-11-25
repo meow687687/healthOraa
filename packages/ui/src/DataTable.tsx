@@ -251,7 +251,7 @@ export function DataTable<T>({
                 onKeyDown={onRowClick ? (event) => activate(row, event) : undefined}
                 className={cn(
                   "rounded-2xl border border-aura-line bg-aura-s2 p-4 space-y-3",
-                  onRowClick && "cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-blue/20",
+                  onRowClick && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue",
                 )}
               >
                 {columns.map((column) => (

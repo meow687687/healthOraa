@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createPrescriptionSchema } from "@healthoraa/validation";
 import type { CreatePrescriptionFormValues, CreatePrescriptionInput } from "@healthoraa/validation";
@@ -24,7 +24,6 @@ export function PrescriptionForm({
     register,
     control,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors, submitCount },
   } = useForm<CreatePrescriptionFormValues, unknown, CreatePrescriptionInput>({
@@ -32,7 +31,7 @@ export function PrescriptionForm({
     defaultValues: initialValues,
   });
 
-  const followupDays = watch("followup_days");
+  const followupDays = useWatch({ control, name: "followup_days" });
   const invalidCount = Object.keys(errors).length;
 
   const onValid = (values: CreatePrescriptionInput) => {
@@ -99,7 +98,7 @@ export function PrescriptionForm({
         <button
           type="submit"
           disabled={save.isPending}
-          className="rounded-full bg-accent-blue px-6 py-2.5 font-semibold text-white shadow-aura-elevated transition-all hover:bg-accent-blue/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-accent-blue px-6 py-2.5 font-semibold text-aura-canvas transition-colors hover:bg-accent-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue disabled:cursor-not-allowed disabled:opacity-60"
         >
           {save.isPending ? "Signing..." : "Issue & Sign Rx"}
         </button>

@@ -72,7 +72,43 @@ export default function ProgramsView() {
         )}
 
         {!isLoading && !isError && programs && programs.length > 0 && (
-          <div className="table-scroll overflow-x-auto -mx-6">
+          <div className="space-y-3 px-4 py-4 md:hidden">
+            {programs.map((program) => {
+              const busy = busyId === program.id;
+              const meta = CATEGORY_META[program.category];
+              return (
+                <article key={program.id} className="rounded-2xl border border-aura-line bg-aura-s2 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-text-primary">{program.title}</h3>
+                      {program.description && <p className="mt-1 line-clamp-2 text-xs text-text-muted">{program.description}</p>}
+                    </div>
+                    <Badge tone={meta.tone}>{meta.label}</Badge>
+                  </div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-aura-s1/70 p-3">
+                    <div><dt className="text-[11px] text-text-muted">Duration</dt><dd className={cn("mt-1", NUM)}>{program.duration_days} days</dd></div>
+                    <div><dt className="text-[11px] text-text-muted">Price</dt><dd className={cn("mt-1", MONEY)}>{formatInr(program.price_inr)}</dd></div>
+                  </dl>
+                  <div className="mt-4 flex items-center justify-between border-t border-aura-line pt-3">
+                    <span className="text-xs text-text-secondary">{program.is_active ? "Active in catalog" : "Hidden from catalog"}</span>
+                    <ActiveSwitch checked={program.is_active} disabled={busy} label={`Toggle ${program.title} active`} onChange={(next) => toggleActive.mutate({ id: program.id, isActive: next })} />
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <button type="button" onClick={() => { setEditingProgram(program); setIsDrawerOpen(true); }} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-aura-line2 bg-aura-s1 px-3 text-xs font-semibold text-text-primary">
+                      <Pencil className="h-3.5 w-3.5" /> Edit program
+                    </button>
+                    <button type="button" disabled={busy} onClick={() => { if (window.confirm(`Delete ${program.title}? Programs with enrolment history will be protected.`)) deleteProgram.mutate(program.id); }} aria-label={`Delete ${program.title}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-aura-line2 bg-aura-s1 px-3 text-xs font-semibold text-accent-red disabled:opacity-50">
+                      <Trash2 className="h-3.5 w-3.5" /><span className="sr-only">Delete</span>
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {!isLoading && !isError && programs && programs.length > 0 && (
+          <div className="table-scroll -mx-6 hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className={TABLE_HEAD}>
@@ -164,14 +200,13 @@ export default function ProgramsView() {
                 })}
               </tbody>
             </table>
-            {(toggleActive.isError || deleteProgram.isError) && (
-              <p className="px-6 py-3 text-xs text-accent-red border-t border-aura-line">
-                {deleteProgram.isError
-                  ? deleteProgram.error.message
-                  : `Could not update status: ${toggleActive.error?.message ?? "Try again."}`}
-              </p>
-            )}
           </div>
+        )}
+
+        {(toggleActive.isError || deleteProgram.isError) && (
+          <p className="border-t border-aura-line px-6 py-3 text-xs text-accent-red">
+            {deleteProgram.isError ? deleteProgram.error.message : `Could not update status: ${toggleActive.error?.message ?? "Try again."}`}
+          </p>
         )}
       </div>
 

@@ -38,7 +38,7 @@ export function FileDropzone({
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={cn(
-          "flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-8 text-center transition-colors focus-within:ring-4 focus-within:ring-accent-blue/20",
+          "flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-blue",
           dragging && "border-accent-blue bg-accent-blue/10",
           !dragging && file && !error && "border-accent-emerald/40 bg-accent-emerald/5",
           !dragging && !file && "border-aura-line2 bg-aura-s2 hover:bg-aura-s3",

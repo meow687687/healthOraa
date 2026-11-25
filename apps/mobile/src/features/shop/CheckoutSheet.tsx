@@ -1,0 +1,266 @@
+import { useRef, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { checkoutOrderSchema, type CheckoutOrderInput } from '@healthoraa/validation';
+import { StyleSheet, Text, View } from 'react-native';
+import { COLORS, SPACE } from '../../../constants/theme';
+import { Button, Card, ErrorBox, LabelLine, Pill } from '../../components/primitives';
+import { Sheet } from '../../components/Sheet';
+import { TextField } from '../../components/TextField';
+import { formatPaise } from '../../lib/money';
+import { RAZORPAY_PAYMENTS_ENABLED, startCheckout } from '../../lib/payments';
+import { secureStorage } from '../../lib/secureStorage';
+import { useAuth } from '../../auth/AuthProvider';
+import { useCartStore } from './cartStore';
+import type { CartLine } from './cartMath';
+import { CheckoutReservationExpiredError, usePlaceOrder } from './queries';
+
+interface Totals {
+  units: number;
+  subtotalPaise: number;
+  gstPaise: number;
+  totalPaise: number;
+}
+
+// Shipping details, then the order is placed as pending. Payment is confirmed on the server.
+export function CheckoutSheet({
+  visible,
+  lines,
+  totals,
+  onClose,
+}: {
+  visible: boolean;
+  lines: CartLine[];
+  totals: Totals;
+  onClose: () => void;
+}) {
+  const [placed, setPlaced] = useState<{ orderId: string } | null>(null);
+  const [isPlacing, setIsPlacing] = useState(false);
+  const close = () => {
+    if (isPlacing) return;
+    setPlaced(null);
+    onClose();
+  };
+  return (
+    <Sheet
+      visible={visible}
+      title={placed ? 'Order placed' : 'Checkout'}
+      onClose={close}
+      closeDisabled={isPlacing}
+    >
+      {placed ? (
+        <PlacedOrder orderId={placed.orderId} totalPaise={totals.totalPaise} onDone={() => {
+          close();
+        }} />
+      ) : (
+        <ShippingForm
+          lines={lines}
+          totals={totals}
+          onPlacementPending={setIsPlacing}
+          onPlaced={(orderId) => {
+            useCartStore.getState().clear();
+            setPlaced({ orderId });
+          }}
+        />
+      )}
+    </Sheet>
+  );
+}
+
+function ShippingForm({
+  lines,
+  totals,
+  onPlacementPending,
+  onPlaced,
+}: {
+  lines: CartLine[];
+  totals: Totals;
+  onPlacementPending: (pending: boolean) => void;
+  onPlaced: (orderId: string) => void;
+}) {
+  const place = usePlaceOrder();
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const checkoutAttempt = useRef<{ signature: string; key: string } | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const form = useForm<CheckoutOrderInput>({
+    resolver: zodResolver(checkoutOrderSchema),
+    mode: 'onTouched',
+    defaultValues: { full_name: '', phone: '', pincode: '', address_line: '', city: '', state: '' },
+  });
+  const { errors, isSubmitting } = form.formState;
+
+  const onSubmit = async (values: CheckoutOrderInput) => {
+    setFailure(null);
+    // This client check gives quick feedback; the database validates and reserves stock atomically.
+    const short = lines.find((line) => line.quantity > line.product.stock_count);
+    if (short) {
+      setFailure(`Only ${short.product.stock_count} of ${short.product.title} left. Lower the quantity in your cart.`);
+      return;
+    }
+    const items = lines.map((line) => ({ productId: line.product.id, quantity: line.quantity }));
+    onPlacementPending(true);
+    try {
+      if (!userId) throw new Error('Sign in to place your order.');
+      const signature = hashRequest(JSON.stringify({ items, checkout: values }));
+      if (checkoutAttempt.current?.signature !== signature) {
+        const storageKey = `healthoraa.shop.checkout.${userId}`;
+        const saved = await secureStorage.getItem(storageKey);
+        let savedAttempt: { signature?: string; key?: string } | null = null;
+        try {
+          savedAttempt = saved ? JSON.parse(saved) as { signature?: string; key?: string } : null;
+        } catch {
+          savedAttempt = null;
+        }
+        const key = savedAttempt?.signature === signature && typeof savedAttempt.key === 'string'
+          ? savedAttempt.key
+          : createIdempotencyKey();
+        const nextAttempt = { signature, key };
+        await secureStorage.setItem(storageKey, JSON.stringify(nextAttempt));
+        checkoutAttempt.current = nextAttempt;
+      }
+      const orderId = await place.mutateAsync({
+        items,
+        checkout: values,
+        idempotencyKey: checkoutAttempt.current.key,
+      });
+      checkoutAttempt.current = null;
+      await secureStorage.removeItem(`healthoraa.shop.checkout.${userId}`);
+      onPlaced(orderId);
+    } catch (error) {
+      if (error instanceof CheckoutReservationExpiredError && userId) {
+        const signature = hashRequest(JSON.stringify({ items, checkout: values }));
+        const nextAttempt = { signature, key: createIdempotencyKey() };
+        checkoutAttempt.current = nextAttempt;
+        try {
+          await secureStorage.setItem(`healthoraa.shop.checkout.${userId}`, JSON.stringify(nextAttempt));
+          setFailure('Your previous reservation expired and was cancelled. Review your details, then place the order again.');
+        } catch {
+          checkoutAttempt.current = null;
+          setFailure('Your previous reservation expired. We could not save a new checkout attempt; try again.');
+        }
+        return;
+      }
+      setFailure(error instanceof Error ? error.message : 'The order could not be placed. Try again.');
+    } finally {
+      onPlacementPending(false);
+    }
+  };
+
+  return (
+    <>
+      {failure ? <ErrorBox message={failure} /> : null}
+      <Card>
+        <LabelLine label="Total incl. GST" value={formatPaise(totals.totalPaise)} strong />
+      </Card>
+      <Controller
+        control={form.control}
+        name="full_name"
+        render={({ field }) => (
+          <TextField label="Full name" autoComplete="name" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.full_name?.message} />
+        )}
+      />
+      <Controller
+        control={form.control}
+        name="phone"
+        render={({ field }) => (
+          <TextField label="Mobile number" keyboardType="phone-pad" maxLength={10} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.phone?.message} />
+        )}
+      />
+      <Controller
+        control={form.control}
+        name="address_line"
+        render={({ field }) => (
+          <TextField label="Address" multiline value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.address_line?.message} />
+        )}
+      />
+      <View style={styles.row}>
+        <View style={styles.half}>
+          <Controller
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <TextField label="City" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.city?.message} />
+            )}
+          />
+        </View>
+        <View style={styles.half}>
+          <Controller
+            control={form.control}
+            name="pincode"
+            render={({ field }) => (
+              <TextField label="PIN code" keyboardType="number-pad" maxLength={6} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.pincode?.message} />
+            )}
+          />
+        </View>
+      </View>
+      <Controller
+        control={form.control}
+        name="state"
+        render={({ field }) => (
+          <TextField label="State" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.state?.message} />
+        )}
+      />
+      <Button label="Place order" busy={isSubmitting || place.isPending} onPress={() => void form.handleSubmit(onSubmit)()} />
+    </>
+  );
+}
+
+function createIdempotencyKey(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    return (character === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+  });
+}
+
+function hashRequest(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function PlacedOrder({ orderId, totalPaise, onDone }: { orderId: string; totalPaise: number; onDone: () => void }) {
+  const [note, setNote] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const reference = `HX-${orderId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+
+  const onPay = async () => {
+    setFailure(null);
+    const outcome = await startCheckout({ entityType: 'shop_order', entityId: orderId, description: 'Wellness order' });
+    if (outcome.status === 'submitted') {
+      setNote('Payment submitted. The order moves forward once Razorpay reports the payment as captured.');
+    } else if (outcome.status === 'cancelled') {
+      setNote('Payment cancelled. The order stays pending until it is paid.');
+    } else if (outcome.status === 'failed') {
+      setFailure(outcome.message);
+    }
+  };
+
+  return (
+    <>
+      <Card>
+        <Pill label="Pending payment" tone="amber" />
+        <LabelLine label="Reference" value={reference} />
+        <LabelLine label="Total incl. GST" value={formatPaise(totalPaise)} strong />
+      </Card>
+      {failure ? <ErrorBox message={failure} /> : null}
+      {note ? <Text style={styles.note}>{note}</Text> : null}
+      {!RAZORPAY_PAYMENTS_ENABLED ? <Text style={styles.note}>Demo mode: no payment was taken. This order remains pending and unpaid.</Text> : null}
+      <Button
+        label={RAZORPAY_PAYMENTS_ENABLED ? `Pay ${formatPaise(totalPaise)} with Razorpay` : 'Payment disabled in demo'}
+        disabled={!RAZORPAY_PAYMENTS_ENABLED}
+        onPress={() => void onPay()}
+      />
+      <Button label="Done" variant="secondary" onPress={onDone} />
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: SPACE.md },
+  half: { flex: 1 },
+  note: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
+});

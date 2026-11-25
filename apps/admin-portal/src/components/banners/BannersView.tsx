@@ -1,6 +1,6 @@
 import { EmptyState } from "@healthoraa/ui";
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ImageOff, Loader2, Megaphone, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, Megaphone, Plus, Trash2 } from "lucide-react";
 import type { AppBanner } from "@healthoraa/types";
 import {
   useBanners,
@@ -45,9 +45,19 @@ function BannerCard({
     <article className="group relative bg-aura-s2 border border-aura-line rounded-2xl overflow-hidden shadow-aura-card">
       <div className="relative aspect-video bg-aura-s3">
         {imageFailed ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-text-muted">
-            <ImageOff className="w-6 h-6" />
-            <span className="text-xs font-mono">Image unavailable</span>
+          <div role="img" aria-label={`${banner.title} campaign artwork is unavailable`} className="absolute inset-0 flex flex-col justify-between bg-aura-s3 p-5">
+            <div className="flex items-center gap-2 pl-12 text-text-secondary">
+              <Megaphone className="h-4 w-4" aria-hidden="true" />
+              <span className="text-xs font-semibold">Artwork unavailable · {meta.label}</span>
+            </div>
+            <div className="max-w-[80%]">
+              <p className="text-2xl font-semibold leading-tight tracking-tight text-text-primary">{banner.title}</p>
+              <p className="mt-2 text-xs text-text-secondary">
+                {banner.is_active
+                  ? "The live banner image could not load. Replace it to restore the carousel artwork."
+                  : "Add approved campaign artwork before activating this banner."}
+              </p>
+            </div>
           </div>
         ) : (
           <img
@@ -185,7 +195,12 @@ export default function BannersView() {
         )}
 
         {!isLoading && !isError && banners && banners.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-6",
+              banners.length === 1 ? "max-w-xl" : banners.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3",
+            )}
+          >
             {banners.map((banner, index) => (
               <BannerCard
                 key={banner.id}

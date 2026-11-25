@@ -51,7 +51,7 @@ export function AccountMenu({
         aria-label="Account menu"
         className="inline-flex h-11 items-center gap-2 rounded-full border border-aura-line2 bg-aura-s2 py-1 pl-1 pr-3 transition-colors duration-150 hover:bg-aura-s3 cursor-pointer"
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-accent-blue to-accent-violet text-xs font-semibold text-white">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-aura-s3 text-xs font-semibold text-text-primary">
           {initials}
         </span>
         <span className="hidden text-[13px] text-text-secondary md:inline">{role}</span>

@@ -10,12 +10,14 @@ import { Drawer, DrawerHeader } from "../ui/Drawer";
 import { ViewHeader } from "../ui/ViewHeader";
 import { ERROR_BOX, LABEL, MONEY, NUM, PANEL, ROW_MICRO, type Tone } from "../ui/tokens";
 import { cn } from "../../lib/cn";
+import { RefundReviewAction } from "./RefundReviewAction";
 
-type FilterValue = "all" | Extract<PaymentStatus, "captured" | "failed" | "refunded">;
+type FilterValue = "all" | Extract<PaymentStatus, "captured" | "failed" | "refunded"> | "refund_review";
 
 const FILTERS: { id: FilterValue; label: string }[] = [
   { id: "all", label: "All" },
   { id: "captured", label: "Captured" },
+  { id: "refund_review", label: "Refund review" },
   { id: "failed", label: "Failed" },
   { id: "refunded", label: "Refunded" },
 ];
@@ -24,6 +26,7 @@ const STATUS_META: Record<PaymentStatus, { label: string; tone: Tone }> = {
   initiated: { label: "Initiated", tone: "amber" },
   captured: { label: "Captured", tone: "emerald" },
   failed: { label: "Failed", tone: "red" },
+  refund_review: { label: "Refund review", tone: "amber" },
   refunded: { label: "Refunded", tone: "neutral" },
 };
 
@@ -47,6 +50,7 @@ function DetailDrawer({ payment, onClose }: { payment: PaymentWithCustomer | nul
 
       {payment && (
         <div className="flex-1 space-y-5 py-6">
+          <RefundReviewAction review={payment.refund_review} />
           {payment.error_code && (
             <div className="rounded-2xl border border-accent-red/30 bg-accent-red/10 px-4 py-3 space-y-1">
               <p className="text-xs font-mono uppercase tracking-wider text-accent-red">{payment.error_code}</p>
@@ -75,14 +79,9 @@ export default function PaymentsAuditView() {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [selected, setSelected] = useState<PaymentWithCustomer | null>(null);
   const { data: payments, isLoading, isError, error, refetch } = usePayments();
-
-  const counts = useMemo<Record<FilterValue, number>>(() => {
-    const base: Record<FilterValue, number> = { all: payments?.length ?? 0, captured: 0, failed: 0, refunded: 0 };
-    for (const p of payments ?? []) {
-      if (p.status in base) base[p.status as FilterValue] += 1;
-    }
-    return base;
-  }, [payments]);
+  const selectedPayment = selected
+    ? payments?.find((payment) => payment.id === selected.id) ?? selected
+    : null;
 
   const capturedTotal = useMemo(
     () => (payments ?? []).filter((p) => p.status === "captured").reduce((sum, p) => sum + p.amount_inr, 0),
@@ -141,8 +140,12 @@ export default function PaymentsAuditView() {
     {
       id: "status",
       header: "Status",
-      cell: (payment) => <Badge tone={STATUS_META[payment.status].tone}>{STATUS_META[payment.status].label}</Badge>,
-      sortValue: (payment) => payment.status,
+      cell: (payment) => payment.status === "refund_review" || payment.refund_review?.status === "pending"
+        ? <Badge tone="amber">Refund review</Badge>
+        : <Badge tone={STATUS_META[payment.status].tone}>{STATUS_META[payment.status].label}</Badge>,
+      sortValue: (payment) => payment.status === "refund_review" || payment.refund_review?.status === "pending"
+        ? "refund_review"
+        : payment.status,
     },
     {
       id: "actions",
@@ -170,9 +173,11 @@ export default function PaymentsAuditView() {
 
   const statusFilter: DataFilter<PaymentWithCustomer> = {
     active: filter,
-    options: FILTERS.map((option) => ({ id: option.id, label: `${option.label} ${counts[option.id]}` })),
+    options: FILTERS,
     onChange: (id) => setFilter(id as FilterValue),
-    match: (payment, id) => id === "all" || payment.status === id,
+    match: (payment, id) => id === "all" || (id === "refund_review"
+      ? payment.status === "refund_review" || payment.refund_review?.status === "pending"
+      : payment.refund_review?.status !== "pending" && payment.status === id),
   };
 
   return (
@@ -214,7 +219,7 @@ export default function PaymentsAuditView() {
         </div>
       )}
 
-      <DetailDrawer payment={selected} onClose={() => setSelected(null)} />
+      <DetailDrawer payment={selectedPayment} onClose={() => setSelected(null)} />
     </div>
   );
 }

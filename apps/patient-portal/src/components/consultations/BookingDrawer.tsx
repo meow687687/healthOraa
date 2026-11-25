@@ -9,22 +9,22 @@ import { IntakeForm } from "./booking/IntakeForm";
 import { PaymentSummary } from "./booking/PaymentSummary";
 import { BookingConfirmation } from "./booking/BookingConfirmation";
 
-type Step = "slot" | "intake" | "pay" | "done";
+type Step = "slot" | "intake" | "review" | "done";
 
 const STEPS: { id: Exclude<Step, "done">; label: string }[] = [
   { id: "slot", label: "Slot" },
   { id: "intake", label: "Intake" },
-  { id: "pay", label: "Pay" },
+  { id: "review", label: "Review" },
 ];
 
 const TITLES: Record<Step, string> = {
   slot: "Choose a time",
   intake: "Clinical intake",
-  pay: "Review and pay",
+  review: "Review booking",
   done: "Booking receipt",
 };
 
-// Three-step booking flow: slot, intake, then payment. Closing mid-flow discards the draft.
+// Three-step booking flow: slot, intake, then review. Closing mid-flow discards the draft.
 export function BookingDrawer({ doctor, onClose }: { doctor: DoctorOption; onClose: () => void }) {
   const [step, setStep] = useState<Step>("slot");
   const [slot, setSlot] = useState<SlotOption | null>(null);
@@ -33,13 +33,13 @@ export function BookingDrawer({ doctor, onClose }: { doctor: DoctorOption; onClo
   const slots = useDoctorSlots(doctor.id);
   const booking = useBookConsultation();
 
-  const pay = async () => {
+  const submitBooking = async () => {
     if (!slot || !intake) return;
     try {
       setReceipt(await booking.mutateAsync({ doctor, slot, intake }));
       setStep("done");
     } catch {
-      // The error is shown on the payment step, so the draft is kept for a retry.
+      // The error is shown on the review step, so the draft is kept for a retry.
     }
   };
 
@@ -84,19 +84,19 @@ export function BookingDrawer({ doctor, onClose }: { doctor: DoctorOption; onClo
             onBack={() => setStep("slot")}
             onSubmit={(values) => {
               setIntake(values);
-              setStep("pay");
+              setStep("review");
             }}
           />
         )}
-        {step === "pay" && slot && intake && (
+        {step === "review" && slot && intake && (
           <PaymentSummary
             doctor={doctor}
             slot={slot}
             intake={intake}
-            isPaying={booking.isPending}
+            isSubmitting={booking.isPending}
             error={booking.isError ? booking.error.message : null}
             onBack={() => setStep("intake")}
-            onPay={pay}
+            onSubmit={submitBooking}
           />
         )}
         {step === "done" && receipt && <BookingConfirmation receipt={receipt} onDone={onClose} />}

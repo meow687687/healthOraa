@@ -47,7 +47,7 @@ export function ProgressTracker({ program }: { program: ActiveProgram }) {
       </div>
 
       <div className="space-y-2">
-        <div role="img" aria-label={`Day ${currentDay} of ${durationDays}`} className="flex gap-[3px]">
+        <div role="img" aria-label={`Day ${currentDay} of ${durationDays}`} className="flex gap-1">
           {Array.from({ length: durationDays }, (_, index) => {
             const day = index + 1;
             return (
@@ -56,7 +56,7 @@ export function ProgressTracker({ program }: { program: ActiveProgram }) {
                 className={cn(
                   "h-2 flex-1 rounded-full",
                   day < currentDay && "bg-accent-blue",
-                  day === currentDay && "bg-accent-blue shadow-[0_0_10px_rgba(59,130,246,0.6)]",
+                  day === currentDay && "bg-accent-blue",
                   day > currentDay && "bg-aura-s3",
                 )}
               />

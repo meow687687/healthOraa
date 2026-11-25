@@ -10,7 +10,7 @@ import { DOCUMENT_CATEGORY_LABEL } from "./categoryLabels";
 import { FileDropzone } from "./FileDropzone";
 
 const SUBMIT =
-  "bg-accent-blue hover:bg-accent-blue/90 text-white rounded-full font-semibold py-2.5 px-6 shadow-lg shadow-accent-blue-glow transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
+  "bg-accent-blue hover:bg-accent-blue/90 text-aura-canvas rounded-xl font-semibold py-2.5 px-6 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue disabled:opacity-60 disabled:cursor-not-allowed";
 
 const Field = ({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) => (
   <div className="space-y-1.5">

@@ -91,7 +91,57 @@ export default function ComplianceView() {
         )}
 
         {!isLoading && !isError && requests && requests.length > 0 && (
-          <div className="table-scroll overflow-x-auto -mx-6">
+          <>
+            <div className="space-y-3 px-4 py-4 md:hidden">
+              {requests.map((request) => {
+                const isOpen = request.status === "pending" || request.status === "processing";
+                const busy = busyId === request.id || exportingId === request.id;
+                const confirming = confirmingId === request.id;
+                const typeMeta = TYPE_META[request.request_type];
+                const statusMeta = STATUS_META[request.status];
+                return (
+                  <article key={request.id} className="rounded-2xl border border-aura-line bg-aura-s2 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-text-primary">{request.profiles?.full_name ?? "Unknown user"}</h3>
+                        <p className="mt-1 text-xs text-text-muted">{request.profiles?.role ?? "—"} · {request.user_id.slice(0, 8)}</p>
+                      </div>
+                      <Badge tone={statusMeta.tone}>{statusMeta.label}</Badge>
+                    </div>
+                    <dl className="mt-4 grid grid-cols-1 gap-3 rounded-xl bg-aura-s1/70 p-3 sm:grid-cols-2">
+                      <div><dt className="text-[11px] text-text-muted">Request</dt><dd className="mt-1"><Badge tone={typeMeta.tone}>{typeMeta.label}</Badge></dd></div>
+                      <div><dt className="text-[11px] text-text-muted">Submitted</dt><dd className={cn("mt-1", NUM)}>{new Date(request.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</dd></div>
+                    </dl>
+                    {isOpen ? (
+                      confirming ? (
+                        <div className="mt-4 space-y-3 rounded-xl border border-accent-red/25 bg-accent-red/5 p-3">
+                          <p className="text-xs text-accent-red">Anonymise this user&apos;s name, phone and avatar? This cannot be undone.</p>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => setConfirmingId(null)} className={cn(BTN_TEXT, "min-h-10 flex-1")}>Cancel</button>
+                            <button type="button" onClick={() => handleErase(request)} disabled={busy} className={cn(BTN_DANGER_SM, "min-h-10 flex-1")}>{busy && <Loader2 className="h-3 w-3 animate-spin" />}Confirm Erasure</button>
+                          </div>
+                        </div>
+                      ) : request.request_type === "erasure_request" ? (
+                        <button type="button" onClick={() => setConfirmingId(request.id)} disabled={busy} className="mt-4 min-h-11 w-full rounded-xl border border-accent-red/30 bg-accent-red/5 px-3 text-sm font-semibold text-accent-red disabled:opacity-50">
+                          <Trash2 className="mr-2 inline h-4 w-4" />Review erasure request
+                        </button>
+                      ) : (
+                        <button type="button" onClick={() => void handleExport(request)} disabled={busy} className="mt-4 min-h-11 w-full rounded-xl border border-aura-line2 bg-aura-s1 px-3 text-sm font-semibold text-text-primary disabled:opacity-50">
+                          {busy ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : <Download className="mr-2 inline h-4 w-4" />}
+                          Export JSON packet
+                        </button>
+                      )
+                    ) : (
+                      <div className="mt-4 rounded-xl bg-aura-s1/70 p-3 text-xs text-text-muted">
+                        <p>{request.resolved_at ? `Resolved ${new Date(request.resolved_at).toLocaleDateString("en-IN")}` : "Resolved"}</p>
+                        {request.notes && request.status === "completed" && <p className="mt-2">{request.notes}</p>}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+            <div className="table-scroll -mx-6 hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className={TABLE_HEAD}>
@@ -200,7 +250,8 @@ export default function ComplianceView() {
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
 
         {(exportError || resolve.isError) && (

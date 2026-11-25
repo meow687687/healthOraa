@@ -48,7 +48,7 @@ export function NextVisitCard({ onOpen, now }: { onOpen: () => void; now: number
           ) : pending ? (
             <>
               <p className="text-base font-semibold text-text-primary">Booking awaiting confirmation</p>
-              <p className="text-sm text-text-secondary">{pending.doctorName}. The visit is confirmed once payment is verified.</p>
+              <p className="text-sm text-text-secondary">{pending.doctorName}. No payment was taken in this demo, so the visit is not confirmed.</p>
             </>
           ) : query.isError ? (
             <>

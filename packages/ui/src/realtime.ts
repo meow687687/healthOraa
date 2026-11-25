@@ -5,7 +5,7 @@ export type TableName = keyof Database["public"]["Tables"];
 
 export interface TableWatch {
   table: TableName;
-  events: ("INSERT" | "UPDATE")[];
+  events: ("INSERT" | "UPDATE" | "DELETE")[];
   // PostgREST filter such as "doctor_id=eq.<uuid>". Omit to receive every row RLS allows.
   filter?: string;
 }
@@ -26,7 +26,7 @@ export function watchTables<Row = Record<string, unknown>>(
       channel = channel.on(
         "postgres_changes",
         { event, schema: "public", table: watch.table, filter: watch.filter },
-        (payload) => onRow(payload.new as Row),
+        (payload) => onRow((event === "DELETE" ? payload.old : payload.new) as Row),
       );
     }
   }

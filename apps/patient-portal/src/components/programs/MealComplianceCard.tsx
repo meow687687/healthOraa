@@ -19,7 +19,7 @@ export function MealComplianceCard({ meals, onToggle }: { meals: MealId[]; onTog
         </Badge>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="divide-y divide-aura-line">
         {MEALS.map((meal) => {
           const on = meals.includes(meal.id);
           return (
@@ -29,7 +29,7 @@ export function MealComplianceCard({ meals, onToggle }: { meals: MealId[]; onTog
                 role="switch"
                 aria-checked={on}
                 onClick={() => onToggle(meal.id)}
-                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-aura-line bg-aura-s2 px-4 py-3 text-left transition-colors hover:bg-aura-s3 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-blue/20"
+                className="flex min-h-14 w-full items-center justify-between gap-3 px-2 py-3 text-left transition-colors hover:bg-aura-s2/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-blue"
               >
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-text-primary">{meal.label}</span>

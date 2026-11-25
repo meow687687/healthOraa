@@ -13,7 +13,7 @@ import { SlotPreviewDrawer } from "./SlotPreviewDrawer";
 const PILL_OUTLINE =
   "inline-flex items-center gap-2 rounded-full border border-aura-line bg-aura-s2 px-4 py-2 text-xs font-semibold text-text-secondary transition-colors hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40";
 const PILL_PRIMARY =
-  "inline-flex items-center gap-2 rounded-full bg-accent-blue px-4 py-2 text-xs font-semibold text-white shadow-aura-elevated transition-all hover:bg-accent-blue/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex items-center gap-2 rounded-xl bg-accent-blue px-4 py-2 text-xs font-semibold text-aura-canvas transition-colors hover:bg-accent-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue disabled:cursor-not-allowed disabled:opacity-40";
 
 // Working copy of the schedule. Edits stay here until saved as a draft or published.
 export function ScheduleEditor({ view }: { view: ScheduleView }) {

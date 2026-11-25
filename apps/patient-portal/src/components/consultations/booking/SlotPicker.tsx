@@ -6,7 +6,7 @@ import { nextSevenDayKeys } from "../../../lib/slotPlanner";
 import type { DoctorOption, SlotOption } from "../../../types/consultations";
 
 const CHIP =
-  "rounded-full border px-4 py-2 text-xs font-mono tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-blue/20";
+  "rounded-xl border px-4 py-2 text-xs font-mono tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue";
 
 // Date carousel for the next seven days, then morning and evening slot blocks for the chosen day.
 export function SlotPicker({

@@ -8,7 +8,7 @@ import { isMockConsultation } from "../../lib/chatFallback";
 import { useLatestPrescription } from "../../hooks/useLatestPrescription";
 import { PrescriptionForm } from "../consultations/PrescriptionForm";
 import { ChatThread } from "../chat/ChatThread";
-import { timingLine } from "../queue/UpNextCard";
+import { timingLine } from "../queue/consultationMeta";
 import { RoomIntake } from "./RoomIntake";
 
 const PANES: { id: RoomPane; label: string }[] = [
@@ -31,10 +31,17 @@ export function ConsultationRoom({ consultation, initialPane, now, onExit, onSig
   const [pane, setPane] = useState<RoomPane>(initialPane);
   const tabRefs = useRef<Record<RoomPane, HTMLButtonElement | null>>({ intake: null, rx: null, chat: null });
   const live = !isMockConsultation(consultation.id);
+  const canWritePrescription = consultation.status === "in_progress" || consultation.status === "completed";
   const saved = useLatestPrescription(consultation.id);
 
   // Live visits start from the saved prescription. The form waits for it, so it never opens blank over a saved one.
   const rxBody = (() => {
+    if (!canWritePrescription) {
+      const message = consultation.status === "scheduled"
+        ? "Start the consultation before issuing a prescription."
+        : "Cancelled consultations cannot be prescribed.";
+      return <p role="status" className="py-10 text-center text-sm text-text-secondary">{message}</p>;
+    }
     if (live && saved.isPending) return <p className="py-10 text-center text-sm text-text-secondary">Loading the saved prescription...</p>;
     if (live && saved.isError && saved.data === undefined) {
       return (

@@ -37,7 +37,7 @@ export default function App() {
 
       <div className="flex min-h-screen min-w-0 flex-col md:pl-16 xl:pl-[232px]">
         <TopBar />
-        <main aria-busy={isPending} className="mx-auto w-full max-w-5xl flex-1 p-4 pb-24 md:p-6 md:pb-8 lg:p-8">
+        <main aria-busy={isPending} className="mx-auto w-full max-w-5xl flex-1 p-4 pb-32 md:p-6 md:pb-8 lg:p-8">
           <Suspense
             fallback={
               <div aria-busy="true" aria-label="Loading workspace" className="min-h-[20rem] space-y-5">

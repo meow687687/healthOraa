@@ -27,8 +27,8 @@ export function BookingConfirmation({ receipt, onDone }: { receipt: BookingRecei
           <CheckCircle2 className="h-5 w-5" />
         </div>
         <div className="space-y-2">
-          <h3 className="text-lg font-bold tracking-tight text-white">{onHeld ? "Booking held on this device" : "Booking received"}</h3>
-          <Badge tone={onHeld ? "amber" : "emerald"}>{onHeld ? "Not sent to the clinic" : "Awaiting payment verification"}</Badge>
+          <h3 className="text-lg font-bold tracking-tight text-white">{onHeld ? "Demo booking held on this device" : "Booking request saved"}</h3>
+          <Badge tone="amber">{onHeld ? "Not sent to the clinic" : "Pending payment · not confirmed"}</Badge>
         </div>
       </div>
 
@@ -53,6 +53,11 @@ export function BookingConfirmation({ receipt, onDone }: { receipt: BookingRecei
 
       {receipt.notice && (
         <p className="rounded-xl border border-accent-amber/30 bg-accent-amber/10 px-4 py-3 text-xs text-accent-amber">{receipt.notice}</p>
+      )}
+      {!onHeld && (
+        <p role="status" className="rounded-xl border border-accent-amber/30 bg-accent-amber/10 px-4 py-3 text-xs leading-relaxed text-text-primary">
+          No payment was taken in this demo. The appointment is not confirmed until payment is enabled and verified.
+        </p>
       )}
 
       <div className="flex flex-col gap-3 border-t border-aura-line pt-5 sm:flex-row sm:justify-between">

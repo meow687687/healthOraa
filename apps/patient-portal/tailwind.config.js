@@ -12,20 +12,21 @@ export default {
           s3: '#1D2130',
           line: 'rgba(255, 255, 255, 0.08)',
           line2: 'rgba(255, 255, 255, 0.14)',
+          line3: '#626879',
         },
         accent: {
-          blue: '#4387F6',
+          blue: '#6EA7FF',
           'blue-glow': 'rgba(67, 135, 246, 0.25)',
           emerald: '#10B981',
           'emerald-glow': 'rgba(16, 185, 129, 0.25)',
           amber: '#FFB020',
           red: '#FF5A6E',
-          violet: '#8B6CFF',
+          violet: '#A897FF',
         },
         text: {
           primary: '#F4F6FB',
           secondary: '#A3A9BA',
-          muted: '#838899',
+          muted: '#9096A6',
         }
       },
       fontFamily: {

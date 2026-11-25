@@ -14,13 +14,6 @@ export function CommandPalette({ open, onClose, onSelect }: CommandPaletteProps)
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
 
-  useEffect(() => {
-    if (open) {
-      setQuery("");
-      setIndex(0);
-    }
-  }, [open]);
-
   const matches = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return ALL_NAV_ITEMS.filter((item) => item.label.toLowerCase().includes(needle));

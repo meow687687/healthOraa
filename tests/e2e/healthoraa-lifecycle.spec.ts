@@ -3,6 +3,7 @@ import { CHIEF_COMPLAINT_PREFIX, PERSONAS, PROGRAM_TITLE } from "./support/confi
 import { lit, psql, script } from "./support/db";
 import { sendPaymentCaptured } from "./support/webhook";
 import { signInAs } from "./support/portals";
+import { accessToken, api } from "./support/api";
 
 // End-to-end lifecycle across the admin, doctor and patient portals, against the local Supabase
 // stack and the three Vite dev servers. Steps run in order and share state.
@@ -117,7 +118,12 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     await doctor.getByRole("button", { name: "Queue", exact: true }).click();
   });
 
-  test("3. patient: books a generated slot, pays through checkout, and the webhook confirms it", async () => {
+  test("3. patient: submits an unpaid booking request; a local mock callback enables the clinical test flow", async () => {
+    const gatewayRequests: string[] = [];
+    patient.on("request", (request) => {
+      if (new URL(request.url()).hostname === "api.razorpay.com") gatewayRequests.push(request.url());
+    });
+
     await signInAs(patient, "patient");
     await patient.getByRole("button", { name: "Consultations", exact: true }).click();
     await patient.getByRole("button", { name: "Book consultation", exact: true }).first().click();
@@ -132,15 +138,45 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     await drawer.locator("#intake-duration").fill("3 months");
     await drawer.getByRole("button", { name: "Continue to summary", exact: true }).click();
 
-    await drawer.getByRole("button", { name: "Proceed to Pay with Razorpay", exact: true }).click();
-    await expect(drawer.getByText("Awaiting payment verification")).toBeVisible({ timeout: 20_000 });
+    await expect(drawer.getByText(/No payment will be taken/)).toBeVisible();
+    await drawer.getByRole("button", { name: "Submit booking request", exact: true }).click();
+    await expect(drawer.getByText("Booking request saved", { exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(drawer.getByText("Pending payment · not confirmed", { exact: true })).toBeVisible();
+    expect(gatewayRequests).toEqual([]);
 
     const booking = psql(
-      `select id || '|' || booking_status || '|' || payment_order_id from consultations where chief_complaint = ${lit(complaint)}`,
+      `select id || '|' || booking_status || '|' || coalesce(payment_order_id, '')
+       from consultations where patient_id = '${PATIENT_ID}' and created_at >= '${state.startedAt}'
+       order by created_at desc limit 1`,
     ).split("|");
     expect(booking[1]).toBe("pending_payment");
     state.consultationId = booking[0];
-    state.orderId = booking[2];
+    expect(booking[2]).toBe("");
+
+    const queueRefresh = doctor.waitForResponse(
+      (response) => response.url().includes("/rest/v1/consultations?") && response.request().method() === "GET",
+      { timeout: 15_000 },
+    );
+    await doctor.reload();
+    await expect(doctor.getByRole("button", { name: "Account menu", exact: true })).toBeVisible();
+    const queueResponse = await queueRefresh;
+    expect(queueResponse.ok()).toBeTruthy();
+    const doctorQueueRows = (await queueResponse.json()) as Array<{ id: string }>;
+    expect(doctorQueueRows.map((row) => row.id)).not.toContain(state.consultationId);
+    expect(await doctor.getByRole("article").filter({ hasText: runTag })).toHaveCount(0);
+
+    const unpaidCompletionAttempt = await api(await accessToken("doctor"), "PATCH", `/consultations?id=eq.${state.consultationId}`, {
+      status: "completed",
+    });
+    expect(unpaidCompletionAttempt.status).not.toBe(200);
+    expect(psql(`select status || '|' || booking_status from consultations where id = '${state.consultationId}'`)).toBe(
+      "scheduled|pending_payment",
+    );
+
+    expect(psql(`select count(*) from payment_transactions where consultation_id = '${state.consultationId}'`)).toBe("0");
+    expect(
+      psql(`select count(*) from razorpay_order_logs where entity_type = 'consultation' and entity_id = '${state.consultationId}'`),
+    ).toBe("0");
 
     const intakeRows = Number(psql(`select count(*) from patient_intake_forms where consultation_id = '${state.consultationId}'`));
     expect(intakeRows).toBe(1);
@@ -149,7 +185,19 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     );
     expect(slotBooked).toBe("t");
 
-    // Mock checkout: the gateway confirms the captured payment to the webhook.
+    // Attach a test-only order to the pending booking so the local mock callback can exercise
+    // downstream doctor flows. The patient UI above made no gateway request or payment order.
+    state.orderId = `order_e2e_${runTag}_consultation`;
+    state.amountPaise = Number(
+      psql(`select round(amount_inr * 100)::bigint from consultations where id = '${state.consultationId}'`),
+    );
+    script(`
+      update consultations set payment_order_id = ${lit(state.orderId)}
+      where id = '${state.consultationId}' and booking_status = 'pending_payment';
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(state.orderId)}, '${PATIENT_ID}', ${state.amountPaise}, 'INR', 'created', 'consultation', '${state.consultationId}');
+    `);
+    expect(psql(`select payment_order_id from consultations where id = '${state.consultationId}'`)).toBe(state.orderId);
     const [amountPaise, currency] = psql(
       `select amount_paise || '|' || currency from razorpay_order_logs where order_id = ${lit(state.orderId)}`,
     ).split("|");
@@ -174,6 +222,13 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     const card = doctor.getByRole("article").filter({ hasText: "Priya Mehta" });
     await expect(card).toBeVisible({ timeout: 15_000 });
 
+    await card.getByRole("button", { name: "Review Intake Form", exact: true }).click();
+    const room = doctor.getByRole("region", { name: "Consultation room" });
+    const prescriptionPane = room.getByRole("tabpanel", { name: "Prescription", exact: true });
+    await expect(prescriptionPane.getByText("Start the consultation before issuing a prescription.", { exact: true })).toBeVisible();
+    await expect(prescriptionPane.getByRole("button", { name: "Issue & Sign Rx", exact: true })).toHaveCount(0);
+    await room.getByRole("button", { name: "Back to queue", exact: true }).click();
+
     await card.getByRole("button", { name: "Start Consultation", exact: true }).click();
     // Starting moves the consultation to in_progress in the database before the composer opens.
     await expect.poll(() => psql(`select status from consultations where id = '${state.consultationId}'`)).toBe(
@@ -185,14 +240,17 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     await composer.getByLabel("Dosage").first().fill("1 tablet");
     await composer.getByLabel("Frequency").first().selectOption("Twice daily after meals");
     await composer.getByLabel("Duration (days)").first().fill("30");
+    await composer.getByRole("button", { name: "14 Days", exact: true }).click();
     await composer.getByRole("button", { name: "Issue & Sign Rx", exact: true }).click();
     await expect(doctor.getByText("Prescription signed and issued to patient portal")).toBeVisible({ timeout: 20_000 });
 
     expect(
       psql(
-        `select status || '|' || (followup_expires_at > now() + interval '6 days') from consultations where id = '${state.consultationId}'`,
+        `select c.status || '|' || (c.followup_expires_at = c.slot_end + interval '7 days') || '|' || p.followup_days
+         from consultations c join prescriptions p on p.consultation_id = c.id
+         where c.id = '${state.consultationId}' order by p.created_at desc limit 1`,
       ),
-    ).toBe("completed|true");
+    ).toBe("completed|true|14");
     expect(psql(`select count(*) from prescriptions where consultation_id = '${state.consultationId}'`)).toBe("1");
     expect(
       psql(

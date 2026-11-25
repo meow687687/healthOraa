@@ -2,7 +2,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  
+
   "graphql_public": {
           Tables: {
             [_ in never]: never
@@ -35,7 +35,7 @@ export type Database = {
                     "created_at"?: string,"display_order"?: number,"id"?: string,"image_url"?: string,"is_active"?: boolean,"target_id"?: string | null,"target_type"?: Database["public"]['Enums']["banner_target_type"],"title"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"cart_items": {
                   Row: {
@@ -137,14 +137,14 @@ isOneToOne: false
                   ]
                 },"consultations": {
                   Row: {
-                    "amount_inr": number,"booking_status": Database["public"]['Enums']["booking_status"],"chief_complaint": string | null,"created_at": string,"doctor_id": string,"followup_expires_at": string | null,"id": string,"intake_id": string | null,"patient_id": string,"payment_order_id": string | null,"slot_end": string,"slot_id": string | null,"slot_start": string,"status": Database["public"]['Enums']["consultation_status"]
+                    "amount_inr": number,"booking_status": Database["public"]['Enums']["booking_status"],"chief_complaint": string | null,"created_at": string,"doctor_id": string,"followup_expires_at": string | null,"id": string,"intake_id": string | null,"patient_id": string,"payment_expires_at": string | null,"payment_order_id": string | null,"slot_end": string,"slot_id": string | null,"slot_start": string,"status": Database["public"]['Enums']["consultation_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_inr"?: number,"booking_status"?: Database["public"]['Enums']["booking_status"],"chief_complaint"?: string | null,"created_at"?: string,"doctor_id": string,"followup_expires_at"?: string | null,"id"?: string,"intake_id"?: string | null,"patient_id": string,"payment_order_id"?: string | null,"slot_end": string,"slot_id"?: string | null,"slot_start": string,"status"?: Database["public"]['Enums']["consultation_status"]
+                    "amount_inr"?: number,"booking_status"?: Database["public"]['Enums']["booking_status"],"chief_complaint"?: string | null,"created_at"?: string,"doctor_id": string,"followup_expires_at"?: string | null,"id"?: string,"intake_id"?: string | null,"patient_id": string,"payment_expires_at"?: string | null,"payment_order_id"?: string | null,"slot_end": string,"slot_id"?: string | null,"slot_start": string,"status"?: Database["public"]['Enums']["consultation_status"]
                   }
                   Update: {
-                    "amount_inr"?: number,"booking_status"?: Database["public"]['Enums']["booking_status"],"chief_complaint"?: string | null,"created_at"?: string,"doctor_id"?: string,"followup_expires_at"?: string | null,"id"?: string,"intake_id"?: string | null,"patient_id"?: string,"payment_order_id"?: string | null,"slot_end"?: string,"slot_id"?: string | null,"slot_start"?: string,"status"?: Database["public"]['Enums']["consultation_status"]
+                    "amount_inr"?: number,"booking_status"?: Database["public"]['Enums']["booking_status"],"chief_complaint"?: string | null,"created_at"?: string,"doctor_id"?: string,"followup_expires_at"?: string | null,"id"?: string,"intake_id"?: string | null,"patient_id"?: string,"payment_expires_at"?: string | null,"payment_order_id"?: string | null,"slot_end"?: string,"slot_id"?: string | null,"slot_start"?: string,"status"?: Database["public"]['Enums']["consultation_status"]
                   }
                   Relationships: [
                     {
@@ -227,14 +227,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "created_at": string,"customer_id": string,"id": string,"shipping_address": string,"status": Database["public"]['Enums']["order_status"],"total_amount_inr": number,"tracking_number": string | null
+                    "checkout_fingerprint": string | null,"checkout_idempotency_key": string | null,"created_at": string,"customer_id": string,"id": string,"reservation_expires_at": string | null,"shipping_address": string,"status": Database["public"]['Enums']["order_status"],"stock_released_at": string | null,"total_amount_inr": number,"tracking_number": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"customer_id": string,"id"?: string,"shipping_address": string,"status"?: Database["public"]['Enums']["order_status"],"total_amount_inr": number,"tracking_number"?: string | null
+                    "checkout_fingerprint"?: string | null,"checkout_idempotency_key"?: string | null,"created_at"?: string,"customer_id": string,"id"?: string,"reservation_expires_at"?: string | null,"shipping_address": string,"status"?: Database["public"]['Enums']["order_status"],"stock_released_at"?: string | null,"total_amount_inr": number,"tracking_number"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"customer_id"?: string,"id"?: string,"shipping_address"?: string,"status"?: Database["public"]['Enums']["order_status"],"total_amount_inr"?: number,"tracking_number"?: string | null
+                    "checkout_fingerprint"?: string | null,"checkout_idempotency_key"?: string | null,"created_at"?: string,"customer_id"?: string,"id"?: string,"reservation_expires_at"?: string | null,"shipping_address"?: string,"status"?: Database["public"]['Enums']["order_status"],"stock_released_at"?: string | null,"total_amount_inr"?: number,"tracking_number"?: string | null
                   }
                   Relationships: [
                     {
@@ -312,6 +312,52 @@ isOneToOne: false
     },{
       foreignKeyName: "patient_intake_forms_patient_id_fkey"
       columns: ["patient_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"patient_push_tokens": {
+                  Row: {
+                    "expo_push_token": string,"registration_version": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "expo_push_token": string,"registration_version"?: string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "expo_push_token"?: string,"registration_version"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "patient_push_tokens_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payment_refund_reviews": {
+                  Row: {
+                    "automatic_refund_state": string,"created_at": string,"gateway_order_id": string,"gateway_payment_id": string,"id": string,"last_reconciled_failed_count": number,"last_reconciled_pending_count": number,"last_reconciled_processed_paise": number,"manual_refund_recorded_at": string | null,"manual_refund_recorded_by": string | null,"manual_refund_reference": string | null,"reason": string,"refund_id": string | null,"resolved_at": string | null,"status": string,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "automatic_refund_state"?: string,"created_at"?: string,"gateway_order_id": string,"gateway_payment_id": string,"id"?: string,"last_reconciled_failed_count"?: number,"last_reconciled_pending_count"?: number,"last_reconciled_processed_paise"?: number,"manual_refund_recorded_at"?: string | null,"manual_refund_recorded_by"?: string | null,"manual_refund_reference"?: string | null,"reason": string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "automatic_refund_state"?: string,"created_at"?: string,"gateway_order_id"?: string,"gateway_payment_id"?: string,"id"?: string,"last_reconciled_failed_count"?: number,"last_reconciled_pending_count"?: number,"last_reconciled_processed_paise"?: number,"manual_refund_recorded_at"?: string | null,"manual_refund_recorded_by"?: string | null,"manual_refund_reference"?: string | null,"reason"?: string,"refund_id"?: string | null,"resolved_at"?: string | null,"status"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payment_refund_reviews_gateway_payment_id_fkey"
+      columns: ["gateway_payment_id"]
+isOneToOne: true
+      referencedRelation: "payment_transactions"
+      referencedColumns: ["gateway_payment_id"]
+    },{
+      foreignKeyName: "payment_refund_reviews_user_id_fkey"
+      columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
@@ -447,21 +493,21 @@ isOneToOne: false
                     "category"?: Database["public"]['Enums']["product_category"],"created_at"?: string,"description"?: string | null,"id"?: string,"is_active"?: boolean,"price_inr"?: number,"sku"?: string,"stock_count"?: number,"title"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"created_at": string,"full_name": string,"id": string,"phone": string | null,"role": Database["public"]['Enums']["user_role"],"updated_at": string
+                    "avatar_url": string | null,"created_at": string,"deleted_at": string | null,"full_name": string,"id": string,"phone": string | null,"role": Database["public"]['Enums']["user_role"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_url"?: string | null,"created_at"?: string,"full_name": string,"id": string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
+                    "avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"full_name": string,"id": string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
                   }
                   Update: {
-                    "avatar_url"?: string | null,"created_at"?: string,"full_name"?: string,"id"?: string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
+                    "avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"full_name"?: string,"id"?: string,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"program_enrolments": {
                   Row: {
@@ -553,27 +599,67 @@ isOneToOne: false
                     "category"?: Database["public"]['Enums']["program_category"],"created_at"?: string,"description"?: string | null,"duration_days"?: number,"id"?: string,"is_active"?: boolean,"price_inr"?: number,"title"?: string
                   }
                   Relationships: [
-                    
+
                   ]
-                },"razorpay_order_logs": {
+                },"push_outbox": {
                   Row: {
-                    "amount_paise": number,"created_at": string,"currency": string,"entity_id": string,"entity_type": string,"id": string,"order_id": string,"status": string,"user_id": string
+                    "attempts": number,"body": string,"created_at": string,"data": NonNullable<Json>,"delivery_claimed_at": string | null,"delivery_state": string,"expo_ticket_id": string | null,"expo_token_registration_version": string | null,"expo_token_updated_at": string | null,"id": string,"last_error": string | null,"receipt_checked_at": string | null,"receipt_next_check_at": string | null,"recipient_id": string,"sent_at": string | null,"title": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_paise": number,"created_at"?: string,"currency"?: string,"entity_id": string,"entity_type": string,"id"?: string,"order_id": string,"status"?: string,"user_id": string
+                    "attempts"?: number,"body": string,"created_at"?: string,"data"?: NonNullable<Json>,"delivery_claimed_at"?: string | null,"delivery_state"?: string,"expo_ticket_id"?: string | null,"expo_token_registration_version"?: string | null,"expo_token_updated_at"?: string | null,"id"?: string,"last_error"?: string | null,"receipt_checked_at"?: string | null,"receipt_next_check_at"?: string | null,"recipient_id": string,"sent_at"?: string | null,"title": string
                   }
                   Update: {
-                    "amount_paise"?: number,"created_at"?: string,"currency"?: string,"entity_id"?: string,"entity_type"?: string,"id"?: string,"order_id"?: string,"status"?: string,"user_id"?: string
+                    "attempts"?: number,"body"?: string,"created_at"?: string,"data"?: NonNullable<Json>,"delivery_claimed_at"?: string | null,"delivery_state"?: string,"expo_ticket_id"?: string | null,"expo_token_registration_version"?: string | null,"expo_token_updated_at"?: string | null,"id"?: string,"last_error"?: string | null,"receipt_checked_at"?: string | null,"receipt_next_check_at"?: string | null,"recipient_id"?: string,"sent_at"?: string | null,"title"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "push_outbox_recipient_id_fkey"
+      columns: ["recipient_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"razorpay_order_logs": {
+                  Row: {
+                    "amount_paise": number,"captured_payment_id": string | null,"created_at": string,"currency": string,"entity_id": string,"entity_type": string,"id": string,"order_id": string,"program_enrolment_id": string | null,"status": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_paise": number,"captured_payment_id"?: string | null,"created_at"?: string,"currency"?: string,"entity_id": string,"entity_type": string,"id"?: string,"order_id": string,"program_enrolment_id"?: string | null,"status"?: string,"user_id": string
+                  }
+                  Update: {
+                    "amount_paise"?: number,"captured_payment_id"?: string | null,"created_at"?: string,"currency"?: string,"entity_id"?: string,"entity_type"?: string,"id"?: string,"order_id"?: string,"program_enrolment_id"?: string | null,"status"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "razorpay_order_logs_program_enrolment_id_fkey"
+      columns: ["program_enrolment_id"]
+isOneToOne: false
+      referencedRelation: "program_enrolments"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "razorpay_order_logs_user_id_fkey"
       columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
+                  ]
+                },"razorpay_refund_events": {
+                  Row: {
+                    "amount_paise": number,"created_at": string,"gateway_order_id": string | null,"gateway_payment_id": string,"refund_id": string,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_paise": number,"created_at"?: string,"gateway_order_id"?: string | null,"gateway_payment_id": string,"refund_id": string,"status": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount_paise"?: number,"created_at"?: string,"gateway_order_id"?: string | null,"gateway_payment_id"?: string,"refund_id"?: string,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+
                   ]
                 }
           }
@@ -583,6 +669,9 @@ isOneToOne: false
           Functions: {
             "admin_dashboard_summary":
 { Args: { "p_days"?: number }; Returns: Json
+                           },
+"block_patient_push_delivery":
+{ Args: { "p_patient_id": string }; Returns: boolean
                            },
 "book_consultation_slot":
 { Args: { "p_chief_complaint": string,"p_patient_id": string,"p_slot_id": string }; Returns: {
@@ -595,6 +684,7 @@ isOneToOne: false
 "id": string,
 "intake_id": string | null,
 "patient_id": string,
+"payment_expires_at": string | null,
 "payment_order_id": string | null,
 "slot_end": string,
 "slot_id": string | null,
@@ -607,11 +697,52 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"can_start_mobile_payment":
+{ Args: { "p_entity_id": string,"p_entity_type": string,"p_user_id": string }; Returns: boolean
+                           },
+"claim_push_alerts_for_dispatch":
+{ Args: { "p_outbox_ids": (string)[] }; Returns: {
+              "attempts": number,"body": string,"data": Json,"expo_push_token": string,"id": string,"recipient_id": string,"registration_version": string,"title": string
+            }[]
+                           },
+"claim_razorpay_order_capture":
+{ Args: { "p_order_id": string,"p_payment_id": string }; Returns: boolean
+                           },
+"confirm_consultation_payment_capture":
+{ Args: { "p_consultation_id": string,"p_order_id": string,"p_patient_id": string }; Returns: boolean
+                           },
+"confirm_shop_order_payment_capture":
+{ Args: { "p_gateway_order_id": string,"p_order_id": string,"p_patient_id": string }; Returns: boolean
+                           },
+"create_mobile_order":
+{ Args: { "p_items": Json,"p_shipping_address": string }; Returns: string
+                           } |
+{ Args: { "p_idempotency_key": string,"p_items": Json,"p_shipping_address": string }; Returns: string
+                           },
 "current_user_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["user_role"]
                            },
+"expire_pending_consultations":
+{ Args: { "p_limit"?: number }; Returns: number
+                           },
+"expire_pending_shop_orders":
+{ Args: { "p_limit"?: number }; Returns: number
+                           },
+"fulfill_program_enrolment":
+{ Args: { "p_order_id": string,"p_patient_id": string,"p_program_id": string }; Returns: string | null
+                           },
 "generate_consultation_slots":
 { Args: { "p_date": string,"p_practitioner_id": string }; Returns: number
+                           },
+"get_best_sellers":
+{ Args: { "p_limit"?: number }; Returns: {
+              "category": Database["public"]['Enums']["product_category"],"id": string,"price_inr": number,"stock_count": number,"title": string,"units_sold": number
+            }[]
+                           },
+"get_consultation_practitioner_names":
+{ Args: { "p_consultation_ids": (string)[] }; Returns: {
+              "consultation_id": string,"full_name": string
+            }[]
                            },
 "get_patient_biomarkers":
 { Args: { "p_marker_name"?: string,"p_patient_id": string }; Returns: {
@@ -651,10 +782,16 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"get_program_dietitian_name":
+{ Args: { "p_enrolment_id": string }; Returns: string
+                           },
 "get_verified_practitioners":
 { Args: Record<PropertyKey, never>; Returns: {
-              "avatar_url": string | null,"bio": string | null,"consultation_fee_inr": number,"full_name": string,"id": string,"languages_spoken": (string)[] | null,"qualification": string,"slot_duration_minutes": number,"specialization": string | null,"years_of_experience": number | null
+              "avatar_url": string,"bio": string,"consultation_fee_inr": number,"full_name": string,"id": string,"languages_spoken": (string)[],"qualification": string,"slot_duration_minutes": number,"specialization": string,"years_of_experience": number
             }[]
+                           },
+"has_pending_payment_refund_review":
+{ Args: { "p_entity_id": string,"p_entity_type": string,"p_user_id": string }; Returns: boolean
                            },
 "initiate_consultation_booking":
 { Args: { "p_chief_complaint": string,"p_patient_id": string,"p_slot_id": string }; Returns: {
@@ -664,13 +801,30 @@ isOneToOne: false
 "issue_prescription":
 { Args: { "p_clinical_notes": string,"p_consultation_id": string,"p_diagnosis": string,"p_followup_days": number,"p_medicines": Json }; Returns: string
                            },
+"link_consultation_payment_order":
+{ Args: { "p_consultation_id": string,"p_order_id": string,"p_patient_id": string }; Returns: boolean
+                           },
+"list_patient_owned_meal_objects":
+{ Args: { "p_patient_id": string }; Returns: {
+              "bucket_id": string,"name": string
+            }[]
+                           },
+"list_patient_owned_record_objects":
+{ Args: { "p_patient_id": string }; Returns: {
+              "bucket_id": string,"name": string
+            }[]
+                           },
 "place_shop_order":
 { Args: { "p_patient_id": string,"p_shipping_address": string }; Returns: {
-              "created_at": string,
+              "checkout_fingerprint": string | null,
+"checkout_idempotency_key": string | null,
+"created_at": string,
 "customer_id": string,
 "id": string,
+"reservation_expires_at": string | null,
 "shipping_address": string,
 "status": Database["public"]['Enums']["order_status"],
+"stock_released_at": string | null,
 "total_amount_inr": number,
 "tracking_number": string | null
             }
@@ -682,6 +836,30 @@ isOneToOne: false
       } },
 "publish_schedule":
 { Args: { "p_days"?: number,"p_duration_minutes": number,"p_rules": Json }; Returns: number
+                           },
+"queue_push":
+{ Args: { "p_body": string,"p_data": Json,"p_recipient": string,"p_title": string }; Returns: undefined
+                           },
+"reconcile_razorpay_refunds":
+{ Args: { "p_gateway_payment_id": string }; Returns: string
+                           },
+"record_and_reconcile_razorpay_refund_event":
+{ Args: { "p_amount_paise": number,"p_gateway_order_id": string | null,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: string
+                           },
+"record_captured_payment_refund_review":
+{ Args: { "p_automatic_refund"?: boolean,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_preserve_fulfilled_order"?: boolean,"p_reason": string,"p_user_id": string }; Returns: string
+                           },
+"record_payment_refund_review":
+{ Args: { "p_gateway_payment_id": string,"p_refund_id": string }; Returns: string
+                           },
+"record_razorpay_payment_capture":
+{ Args: { "p_amount_inr": number,"p_consultation_id": string | null,"p_currency": string,"p_error_code": string | null,"p_error_description": string | null,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_order_id": string | null,"p_status": Database["public"]['Enums']["payment_status"] }; Returns: Database["public"]['Enums']["payment_status"] | null
+                           },
+"record_razorpay_refund_event":
+{ Args: { "p_amount_paise": number,"p_gateway_order_id": string | null,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: boolean
+                           },
+"register_patient_push_token":
+{ Args: { "p_expo_push_token": string }; Returns: undefined
                            },
 "resolve_erasure_request":
 { Args: { "p_request_id": string }; Returns: {
@@ -726,7 +904,7 @@ isOneToOne: false
       } }
           }
           Enums: {
-            "banner_target_type": "program"|"doctor"|"shop_product"|"external_url","booking_status": "pending_payment"|"confirmed"|"cancelled"|"rescheduled","compliance_request_status": "pending"|"processing"|"completed"|"rejected","compliance_request_type": "data_export"|"erasure_request"|"consent_withdrawal","consultation_status": "scheduled"|"in_progress"|"completed"|"cancelled","diagnostic_category": "blood_panel"|"imaging_radiology"|"prescription"|"discharge_summary"|"other","order_status": "pending"|"paid"|"shipped"|"delivered"|"cancelled","payment_gateway": "razorpay"|"upi_direct","payment_status": "initiated"|"captured"|"failed"|"refunded","product_category": "supplements"|"ayurvedic"|"skincare"|"equipment","program_category": "weight_management"|"pcod_pcos"|"dermato_nutrition"|"custom","user_role": "patient"|"practitioner"|"admin","verification_status": "pending"|"verified"|"rejected"
+            "banner_target_type": "program"|"doctor"|"shop_product"|"external_url","booking_status": "pending_payment"|"confirmed"|"cancelled"|"rescheduled","compliance_request_status": "pending"|"processing"|"completed"|"rejected","compliance_request_type": "data_export"|"erasure_request"|"consent_withdrawal","consultation_status": "scheduled"|"in_progress"|"completed"|"cancelled","diagnostic_category": "blood_panel"|"imaging_radiology"|"prescription"|"discharge_summary"|"other","order_status": "pending"|"paid"|"shipped"|"delivered"|"cancelled","payment_gateway": "razorpay"|"upi_direct","payment_status": "initiated"|"captured"|"failed"|"refunded"|"refund_review","product_category": "supplements"|"ayurvedic"|"skincare"|"equipment","program_category": "weight_management"|"pcod_pcos"|"dermato_nutrition"|"custom","user_role": "patient"|"practitioner"|"admin","verification_status": "pending"|"verified"|"rejected"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -842,11 +1020,11 @@ export type CompositeTypes<
 export const Constants = {
   "graphql_public": {
           Enums: {
-            
+
           }
         },"public": {
           Enums: {
-            "banner_target_type": ["program", "doctor", "shop_product", "external_url"],"booking_status": ["pending_payment", "confirmed", "cancelled", "rescheduled"],"compliance_request_status": ["pending", "processing", "completed", "rejected"],"compliance_request_type": ["data_export", "erasure_request", "consent_withdrawal"],"consultation_status": ["scheduled", "in_progress", "completed", "cancelled"],"diagnostic_category": ["blood_panel", "imaging_radiology", "prescription", "discharge_summary", "other"],"order_status": ["pending", "paid", "shipped", "delivered", "cancelled"],"payment_gateway": ["razorpay", "upi_direct"],"payment_status": ["initiated", "captured", "failed", "refunded"],"product_category": ["supplements", "ayurvedic", "skincare", "equipment"],"program_category": ["weight_management", "pcod_pcos", "dermato_nutrition", "custom"],"user_role": ["patient", "practitioner", "admin"],"verification_status": ["pending", "verified", "rejected"]
+            "banner_target_type": ["program", "doctor", "shop_product", "external_url"],"booking_status": ["pending_payment", "confirmed", "cancelled", "rescheduled"],"compliance_request_status": ["pending", "processing", "completed", "rejected"],"compliance_request_type": ["data_export", "erasure_request", "consent_withdrawal"],"consultation_status": ["scheduled", "in_progress", "completed", "cancelled"],"diagnostic_category": ["blood_panel", "imaging_radiology", "prescription", "discharge_summary", "other"],"order_status": ["pending", "paid", "shipped", "delivered", "cancelled"],"payment_gateway": ["razorpay", "upi_direct"],"payment_status": ["initiated", "captured", "failed", "refunded", "refund_review"],"product_category": ["supplements", "ayurvedic", "skincare", "equipment"],"program_category": ["weight_management", "pcod_pcos", "dermato_nutrition", "custom"],"user_role": ["patient", "practitioner", "admin"],"verification_status": ["pending", "verified", "rejected"]
           }
         }
 } as const

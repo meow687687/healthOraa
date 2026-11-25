@@ -20,9 +20,10 @@ export default function App() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-aura-canvas font-sans text-text-primary antialiased">
       <TopBar />
+      <PatientNav active={view} onSelect={selectView} />
 
-      {/* pb-28 keeps the last card clear of the fixed bottom bar. */}
-      <main aria-busy={isPending} className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-28 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
+      {/* Leave room for phone navigation; wide screens use the navigation row above the page. */}
+      <main aria-busy={isPending} className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-28 md:px-6 md:pt-6 lg:px-8 lg:pt-8 lg:pb-8">
         <Suspense
           fallback={
             <div aria-busy="true" aria-label="Loading workspace" className="min-h-[20rem] space-y-5">
@@ -44,7 +45,6 @@ export default function App() {
         </Suspense>
       </main>
 
-      <PatientNav active={view} onSelect={selectView} />
     </div>
   );
 }

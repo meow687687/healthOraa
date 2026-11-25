@@ -30,7 +30,7 @@ export function CategoryFilter({
             aria-pressed={on}
             onClick={() => onChange(option.id)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-blue/20",
+              "inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue",
               on ? "bg-aura-s3 text-white" : "text-text-muted hover:text-text-primary",
             )}
           >

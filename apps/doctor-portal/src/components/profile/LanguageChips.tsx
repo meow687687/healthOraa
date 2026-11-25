@@ -3,7 +3,7 @@ import type { UseFormReturn } from "react-hook-form";
 import type { UpdatePractitionerProfileInput } from "@healthoraa/validation";
 import { ERROR_TEXT, LABEL, cn } from "@healthoraa/ui";
 
-export const LANGUAGE_OPTIONS = ["English", "Hindi", "Assamese", "Bengali"] as const;
+const LANGUAGE_OPTIONS = ["English", "Hindi", "Assamese", "Bengali"] as const;
 
 // Multi-select chips. Keeps any saved language visible even when it is not in the preset list.
 export function LanguageChips({ form }: { form: UseFormReturn<UpdatePractitionerProfileInput> }) {
@@ -37,7 +37,7 @@ export function LanguageChips({ form }: { form: UseFormReturn<UpdatePractitioner
                     aria-pressed={on}
                     onClick={() => toggle(language)}
                     className={cn(
-                      "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-blue/20",
+                      "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue",
                       on
                         ? "border-accent-blue/40 bg-accent-blue/15 text-accent-blue"
                         : "border-aura-line2 bg-aura-s2 text-text-secondary hover:text-text-primary",

@@ -14,7 +14,7 @@ const devServer = (app: string, port: number) => ({
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["healthoraa-lifecycle.spec.ts", "regressions.spec.ts"],
+  testMatch: ["healthoraa-lifecycle.spec.ts", "regressions.spec.ts", "security.spec.ts"],
   globalSetup: "./global-setup.ts",
   globalTeardown: "./global-teardown.ts",
   // One browser context per portal, shared across serial steps. Parallel runs would race on the same rows.

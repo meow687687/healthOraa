@@ -23,6 +23,7 @@ export const useStartConsultation = () => {
         .from("consultations")
         .update({ status: "in_progress" })
         .eq("id", consultation.id)
+        .eq("booking_status", "confirmed")
         .eq("status", "scheduled")
         .select("id");
       if (error) throw new Error(error.message);

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { AuthSplash, UnauthorizedCard, useAuthSession } from "@healthoraa/ui";
@@ -18,6 +19,7 @@ const PROTOTYPE_USER: AuthUser = {
 interface AuthValue {
   user: AuthUser;
   isPrototype: boolean;
+  isDemoData: boolean;
   signOut: AuthSession["signOut"];
 }
 
@@ -26,6 +28,7 @@ const AuthContext = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const session = useAuthSession(supabase, { enabled: AUTH_ENABLED, requiredRole: "admin" });
   const isPrototype = session.status === "bypass";
+  const isDemoData = isPrototype || import.meta.env.VITE_DEMO_DATA === "true";
   const user = isPrototype ? PROTOTYPE_USER : session.status === "authorized" ? session.user : null;
 
   if (!user) {
@@ -46,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isPrototype, signOut: session.signOut }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isPrototype, isDemoData, signOut: session.signOut }}>{children}</AuthContext.Provider>
   );
 }
 

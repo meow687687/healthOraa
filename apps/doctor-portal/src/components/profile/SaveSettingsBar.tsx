@@ -1,6 +1,6 @@
 import { BTN_PRIMARY, cn } from "@healthoraa/ui";
 
-// Sticky offsets are measured inside main's padding, and main already has pb-20 for the mobile nav.
+// Keep the sticky action above the phone navigation; desktop navigation sits on the left.
 export function SaveSettingsBar({
   isDirty,
   isSaving,
@@ -13,7 +13,7 @@ export function SaveSettingsBar({
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-aura-line2 bg-aura-s1/95 p-4 shadow-aura-elevated backdrop-blur-md lg:bottom-4",
+        "sticky bottom-20 z-20 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-aura-line2 bg-aura-s1/95 p-4 shadow-aura-elevated backdrop-blur-md md:bottom-0 lg:bottom-4",
       )}
     >
       <p role="status" aria-live="polite" className="min-w-0 text-xs">
@@ -25,7 +25,11 @@ export function SaveSettingsBar({
           <span className="text-text-muted">All changes saved</span>
         )}
       </p>
-      <button type="submit" disabled={!isDirty || isSaving} className={BTN_PRIMARY}>
+      <button
+        type="submit"
+        disabled={!isDirty || isSaving}
+        className={BTN_PRIMARY}
+      >
         {isSaving ? "Saving..." : "Save Practice Settings"}
       </button>
     </div>

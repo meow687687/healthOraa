@@ -90,7 +90,7 @@ Recorded client requests also require enough program detail to choose without ca
 | 0 | Reconcile signed scope, client requests, role journeys and deferred items | Product lead + client contact | Approved script/content/input list; no unapproved scope or claim |
 | 1 | Close PR #3 payment, security, idempotency and UI defects | App + Supabase engineer + reviewer | Complete: PR #3 merged as `52086dd`; build, clean reset/type generation, 31 E2E checks and Luna reviews passed |
 | 2 | Complete the client-facing program discovery/detail/video path | Product + app engineers | Structure and synthetic rehearsal merged in PR #8; client copy, video, price, CTA, and contact route remain pending |
-| 3 | Make local demo data and startup/reset repeatable; close three role journeys | Full-stack engineer | `docs/CLIENT_DEMO.md` updated; two clean resets/type generations and 33-test E2E rehearsals pass without manual SQL edits |
+| 3 | Make local demo data and startup/reset repeatable; close three role journeys | Full-stack engineer | Two clean reset/type-generation and 33-test E2E rehearsals pass; the manual three-role walkthrough and native patient runtime remain open |
 | 4 | Polish shown screens to the existing brand and accessibility bar | Product designer + app engineers | Four-surface rendered review, responsive/accessibility evidence, no high-impact UI defect |
 | 5 | Rehearse security, data isolation, errors and recovery on a fresh local database | Supabase engineer + independent reviewer | Reset/type/build and role/RLS checks pass; no unresolved high-severity issue |
 | 6 | Rehearse the client demo and prepare the acceptance handout | Demo owner | Evidence mapped to M1–M4, known limitations, commercial terminology and open inputs |
@@ -98,7 +98,7 @@ Recorded client requests also require enough program detail to choose without ca
 | 8 | Implement sandbox payment and controlled pilot readiness | Payments engineer + operations | Webhook/refund/reconciliation evidence; live mode stays off until written approval |
 | 9 | Prove broader-launch operations | Platform + security + operations | Backup/restore, failover, R2 recovery, monitoring, incident, capacity and rollback evidence |
 
-Step 1 is complete. Step 2 has the catalog/detail structure and synthetic rehearsal merged, but remains open until client-owned copy, video, price, CTA, and contact inputs are resolved. Step 3 has passed twice from clean local resets; the runbook records the exact setup and presenter path. Client-facing claims, payment enablement, real-user data, app-store releases and production infrastructure cannot be completed without the listed owner approvals and account access.
+Step 1 is complete. Step 2 has the catalog/detail structure and synthetic rehearsal merged, but remains open until client-owned copy, video, price, CTA, and contact inputs are resolved. The reset and automated E2E checks for Step 3 passed twice from clean local resets, but the step remains open until the manual three-role walkthrough—including the native patient runtime—passes without manual SQL edits. Client-facing claims, payment enablement, real-user data, app-store releases and production infrastructure cannot be completed without the listed owner approvals and account access.
 
 ## Phase 1 work detail and acceptance
 

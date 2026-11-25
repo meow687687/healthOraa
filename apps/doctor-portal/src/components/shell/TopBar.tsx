@@ -12,7 +12,7 @@ const initialsOf = (displayName: string): string =>
     .join("")
     .toUpperCase();
 
-export function TopBar() {
+export function TopBar({ pageTitle }: { pageTitle: string }) {
   const { doctor, isAccepting, toggleAccepting } = useDoctor();
   const { user, isPrototype, isDemoData, signOut } = useAuth();
 
@@ -23,7 +23,8 @@ export function TopBar() {
           {initialsOf(doctor.displayName)}
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold tracking-tight text-white lg:text-xl">{doctor.displayName}</h1>
+          <h1 className="truncate text-lg font-bold tracking-tight text-white lg:text-xl">{pageTitle}</h1>
+          <p className="truncate text-sm text-text-secondary">{doctor.displayName}</p>
           <p className="truncate font-mono text-xs text-text-muted">{doctor.registrationNumber}</p>
         </div>
       </div>

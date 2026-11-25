@@ -3,7 +3,7 @@ import type { ActiveProgram, ChatMessage, DayLog } from "../types/program";
 // Offline demo data. Dates are fixed so the Day 18 demo holds whatever today's date is.
 export const FALLBACK_PROGRAM: ActiveProgram = {
   enrolmentId: "fb-enrolment-pcod-001",
-  title: "60-Day PCOD/PCOS Reset",
+  title: "PCOD/PCOS Nutrition Program (Sample)",
   protocolLabel: "PCOD Protocol",
   durationDays: 60,
   currentDay: 18,

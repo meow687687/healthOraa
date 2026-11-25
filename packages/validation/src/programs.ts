@@ -31,6 +31,13 @@ export const createProgramSchema = z.object({
     .trim()
     .max(1000, "Description must be 1000 characters or fewer.")
     .optional(),
+  intro_video_url: z
+    .string()
+    .trim()
+    .max(2048, "Video link must be 2048 characters or fewer.")
+    .url("Enter a valid video link.")
+    .refine((value) => /^https:\/\//i.test(value), "Video links must use HTTPS.")
+    .optional(),
 });
 
 export type CreateProgramInput = z.infer<typeof createProgramSchema>;

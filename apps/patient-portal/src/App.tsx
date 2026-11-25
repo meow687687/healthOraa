@@ -5,6 +5,7 @@ import { PatientNav } from "./components/shell/PatientNav";
 import type { PatientView } from "./components/shell/PatientNav";
 
 const ActiveProgramView = lazy(() => import("./components/programs/ActiveProgramView"));
+const ProgramCatalogView = lazy(() => import("./components/programs/ProgramCatalogView"));
 const ConsultationsView = lazy(() => import("./components/consultations/ConsultationsView"));
 const PatientShopView = lazy(() => import("./components/shop/PatientShopView"));
 const HealthLockerView = lazy(() => import("./components/locker/HealthLockerView"));
@@ -38,6 +39,7 @@ export default function App() {
         >
           <div key={view} className="portal-view-enter">
             {view === "today" && <ActiveProgramView onOpenConsultations={() => selectView("consultations")} />}
+            {view === "programs" && <ProgramCatalogView />}
             {view === "consultations" && <ConsultationsView />}
             {view === "shop" && <PatientShopView />}
             {view === "locker" && <HealthLockerView />}

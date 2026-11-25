@@ -69,6 +69,7 @@ export function Drawer({
       const last = items[items.length - 1];
       const active = document.activeElement;
       const outside = !asideRef.current?.contains(active);
+      const activeIsFocusable = items.includes(active as HTMLElement);
 
       if (event.shiftKey && (active === first || outside)) {
         event.preventDefault();
@@ -76,6 +77,24 @@ export function Drawer({
       } else if (!event.shiftKey && (active === last || outside)) {
         event.preventDefault();
         first.focus();
+      } else if (active instanceof HTMLElement && !activeIsFocusable) {
+        const adjacent = event.shiftKey
+          ? [...items]
+              .reverse()
+              .find((item) =>
+                Boolean(
+                  active.compareDocumentPosition(item) &
+                  Node.DOCUMENT_POSITION_PRECEDING,
+                ),
+              )
+          : items.find((item) =>
+              Boolean(
+                active.compareDocumentPosition(item) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+              ),
+            );
+        event.preventDefault();
+        (adjacent ?? (event.shiftKey ? last : first)).focus();
       }
     };
 

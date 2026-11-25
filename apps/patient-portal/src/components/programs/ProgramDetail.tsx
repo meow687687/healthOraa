@@ -14,6 +14,9 @@ export function ProgramDetail({
   const titleRef = useRef<HTMLHeadingElement>(null);
   const meta = PROGRAM_CATEGORY_META[program.category];
   const Icon = meta.icon;
+  const description = /\bsample\b/i.test(program.title)
+    ? "This is a sample listing. Specific services and program details are not provided in this preview."
+    : program.description?.trim();
 
   useEffect(() => {
     titleRef.current?.focus();
@@ -62,7 +65,7 @@ export function ProgramDetail({
         </header>
 
         <div className="space-y-6 p-5 sm:p-7">
-          {program.description?.trim() && (
+          {description && (
             <section
               aria-labelledby="program-overview-title"
               className="space-y-2"
@@ -74,7 +77,7 @@ export function ProgramDetail({
                 Program overview
               </h3>
               <p className="max-w-3xl whitespace-pre-line text-sm leading-7 text-text-secondary">
-                {program.description.trim()}
+                {description}
               </p>
             </section>
           )}

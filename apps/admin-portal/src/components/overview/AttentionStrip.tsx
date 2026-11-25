@@ -41,7 +41,7 @@ export function AttentionStrip({ summary, onNavigate }: { summary: DashboardSumm
                 type="button"
                 onClick={() => onNavigate(item.target)}
                 className={cn(
-                  "flex min-h-[96px] w-full flex-col justify-between rounded-2xl border p-4 text-left transition-colors duration-150 cursor-pointer",
+                  "flex min-h-[96px] w-full flex-col justify-between rounded-2xl border p-4 text-left transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue",
                   fillsLastMobileRow && "flex-row items-center gap-4 lg:flex-col lg:items-stretch lg:gap-0",
                   clear ? "border-aura-line bg-aura-s1 hover:border-aura-line2" : item.urgent ? "border-accent-red/40 bg-accent-red/5 hover:border-accent-red/60" : "border-accent-amber/40 bg-accent-amber/5 hover:border-accent-amber/60",
                 )}

@@ -19,7 +19,7 @@ export function TopBar() {
   const status = program.data?.program;
 
   return (
-    <header className="sticky top-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-aura-line bg-aura-s1/90 px-4 py-3 backdrop-blur-md min-[520px]:grid-cols-[minmax(0,1fr)_auto_auto] md:px-8 lg:h-20 lg:py-0">
+    <header className="sticky top-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-aura-line bg-aura-s1/90 px-4 py-3 backdrop-blur-md min-[520px]:grid-cols-[minmax(0,1fr)_auto_auto] md:grid-cols-[minmax(0,1fr)_auto] md:px-8 lg:h-20 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:py-0">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-aura-s3 text-xs font-bold text-text-primary">
           {initialsOf(patient.displayName)}
@@ -28,13 +28,13 @@ export function TopBar() {
           <p className="text-xs font-semibold text-text-muted">
             Healthoraa · Patient
           </p>
-          <p className="truncate text-base font-bold tracking-tight text-white lg:text-lg">
+          <p className="truncate text-base font-bold tracking-tight text-white md:overflow-visible md:text-clip md:whitespace-normal lg:text-lg">
             {patient.displayName}
           </p>
         </div>
       </div>
 
-      <div className="col-span-2 row-start-2 flex min-w-0 flex-wrap items-center gap-2 min-[520px]:col-span-1 min-[520px]:col-start-2 min-[520px]:row-start-auto">
+      <div className="col-span-2 row-start-2 flex min-w-0 flex-wrap items-center gap-2 min-[520px]:col-span-1 min-[520px]:col-start-2 min-[520px]:row-start-auto md:col-span-2 md:col-start-1 md:row-start-2 lg:col-span-1 lg:col-start-2 lg:row-start-auto">
         {status && (
           <Badge tone="emerald" className="text-xs">
             <span aria-hidden="true" className="sm:hidden">
@@ -66,7 +66,7 @@ export function TopBar() {
       </div>
 
       {!isPrototype ? (
-        <div className="col-start-2 row-start-1 min-[520px]:col-start-3 min-[520px]:row-start-auto">
+        <div className="col-start-2 row-start-1 min-[520px]:col-start-3 min-[520px]:row-start-auto md:col-start-2 md:row-start-1 lg:col-start-3 lg:row-start-auto">
           <AccountMenu
             email={user.email}
             role={user.role}

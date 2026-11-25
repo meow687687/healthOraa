@@ -24,10 +24,10 @@ function Field({
         <label htmlFor={id} className={LABEL}>
           {label}
         </label>
-        {hint && <span className="font-mono text-[11px] text-text-muted">{hint}</span>}
+        {hint && <span id={`${id}-hint`} className="font-mono text-[11px] text-text-muted">{hint}</span>}
       </div>
       {children}
-      {error && <p className={ERROR_TEXT}>{error}</p>}
+      {error && <p id={`${id}-error`} className={ERROR_TEXT}>{error}</p>}
     </div>
   );
 }
@@ -46,7 +46,8 @@ export function PracticeConfigFields({ form }: { form: UseFormReturn<UpdatePract
             id="profile-qualification"
             type="text"
             aria-invalid={Boolean(errors.qualification)}
-            className={INPUT}
+            aria-describedby={errors.qualification ? "profile-qualification-error" : undefined}
+            className={cn(INPUT, "min-h-[44px]")}
             {...register("qualification")}
           />
         </Field>
@@ -63,7 +64,8 @@ export function PracticeConfigFields({ form }: { form: UseFormReturn<UpdatePract
               step="0.01"
               min={0}
               aria-invalid={Boolean(errors.consultation_fee_inr)}
-              className={cn(INPUT, "pl-8 font-mono tabular-nums")}
+              aria-describedby={errors.consultation_fee_inr ? "profile-fee-error" : undefined}
+              className={cn(INPUT, "min-h-[44px] pl-8 font-mono tabular-nums")}
               {...register("consultation_fee_inr", { valueAsNumber: true })}
             />
           </div>
@@ -73,7 +75,8 @@ export function PracticeConfigFields({ form }: { form: UseFormReturn<UpdatePract
           <select
             id="profile-slot"
             aria-invalid={Boolean(errors.slot_duration_minutes)}
-            className={INPUT}
+            aria-describedby={errors.slot_duration_minutes ? "profile-slot-error" : undefined}
+            className={cn(INPUT, "min-h-[44px]")}
             {...register("slot_duration_minutes", { setValueAs: (value: string) => Number(value) })}
           >
             {PRACTICE_SLOT_DURATIONS.map((minutes) => (
@@ -93,7 +96,8 @@ export function PracticeConfigFields({ form }: { form: UseFormReturn<UpdatePract
             min={0}
             max={70}
             aria-invalid={Boolean(errors.years_of_experience)}
-            className={cn(INPUT, "font-mono tabular-nums")}
+            aria-describedby={errors.years_of_experience ? "profile-experience-error" : undefined}
+            className={cn(INPUT, "min-h-[44px] font-mono tabular-nums")}
             {...register("years_of_experience", { valueAsNumber: true })}
           />
         </Field>
@@ -106,6 +110,10 @@ export function PracticeConfigFields({ form }: { form: UseFormReturn<UpdatePract
           id="profile-bio"
           rows={4}
           aria-invalid={Boolean(errors.bio)}
+          aria-describedby={[
+            errors.bio ? "profile-bio-error" : null,
+            "profile-bio-hint",
+          ].filter(Boolean).join(" ")}
           className={cn(INPUT, "resize-y")}
           {...register("bio")}
         />

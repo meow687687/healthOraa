@@ -1,4 +1,11 @@
-import { lazy, Suspense, useEffect, useState, useTransition } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import type { ComponentType, LazyExoticComponent } from "react";
 import { SkeletonBlock, SkipLink } from "@healthoraa/ui";
 import { OverviewView } from "./components/overview/OverviewView";
@@ -27,6 +34,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [isPending, startTransition] = useTransition();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const mainContentRef = useRef<HTMLElement>(null);
+  const shouldFocusMainAfterTabChange = useRef(false);
   const { user, isDemoData, signOut } = useAuth();
   const { item, group } = findNav(activeTab);
 
@@ -42,7 +51,15 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    if (!shouldFocusMainAfterTabChange.current) return;
+
+    shouldFocusMainAfterTabChange.current = false;
+    mainContentRef.current?.focus();
+  }, [activeTab]);
+
   const select = (id: TabId) => {
+    shouldFocusMainAfterTabChange.current = id !== activeTab;
     startTransition(() => setActiveTab(id));
     setPaletteOpen(false);
   };
@@ -64,10 +81,14 @@ export default function App() {
         />
 
         <main
+          ref={mainContentRef}
           id="main-content"
           tabIndex={-1}
+          aria-label={`${item.label} content`}
           aria-busy={isPending}
-          className={cn("flex-1 p-4 pb-24 md:p-6 md:pb-8 lg:p-8")}
+          className={cn(
+            "flex-1 p-4 pb-24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-blue md:p-6 md:pb-8 lg:p-8",
+          )}
         >
           <div
             key={activeTab}

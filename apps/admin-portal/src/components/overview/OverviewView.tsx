@@ -45,7 +45,7 @@ export function OverviewView({ onNavigate }: { onNavigate: (id: TabId) => void }
               aria-pressed={days === option}
               onClick={() => setDays(option)}
               className={cn(
-                "min-h-[40px] rounded-full px-4 text-[13px] font-semibold transition-colors duration-150 cursor-pointer",
+                "min-h-[44px] rounded-full px-4 text-[13px] font-semibold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue",
                 days === option ? "bg-aura-s3 text-text-primary" : "text-text-muted hover:text-text-primary",
               )}
             >

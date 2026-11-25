@@ -1,14 +1,16 @@
 import type { ConsultationItem, DoctorOption } from "../types/consultations";
+import { SEEDED_DEMO_PRACTITIONER_ID } from "@healthoraa/types";
 
 export const FALLBACK_DOCTORS: DoctorOption[] = [
   {
-    id: "11111111-1111-1111-1111-111111111111",
+    id: SEEDED_DEMO_PRACTITIONER_ID,
     displayName: "Dr. Arishta Sharma",
-    qualification: "MBBS, MD (General Medicine)",
+    qualification: "MBBS, Dermatology",
     feeInr: 799,
     slotDurationMinutes: 30,
     avatarUrl: null,
     dataSource: "mock",
+    isDemoRecord: true,
   },
   {
     id: "fb-doctor-dermatology",
@@ -18,13 +20,16 @@ export const FALLBACK_DOCTORS: DoctorOption[] = [
     slotDurationMinutes: 30,
     avatarUrl: null,
     dataSource: "mock",
+    isDemoRecord: true,
   },
 ];
 
 // Demo history, dated relative to now, used only when the consultations query fails.
 export const buildFallbackConsultations = (now: Date): ConsultationItem[] => {
-  const daysAgo = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString();
-  const plusMinutes = (iso: string) => new Date(new Date(iso).getTime() + 30 * 60_000).toISOString();
+  const daysAgo = (days: number) =>
+    new Date(now.getTime() - days * 86_400_000).toISOString();
+  const plusMinutes = (iso: string) =>
+    new Date(new Date(iso).getTime() + 30 * 60_000).toISOString();
   const pastDate = daysAgo(19);
   const olderDate = daysAgo(47);
 
@@ -45,8 +50,20 @@ export const buildFallbackConsultations = (now: Date): ConsultationItem[] => {
         diagnosis: "PCOD with hormonal acne, Grade I",
         followupDays: 14,
         medicines: [
-          { name: "Metformin 500mg", dosage: "1 tablet", frequency: "Twice daily after meals", durationDays: 90, instructions: "Take with food" },
-          { name: "Adapalene 0.1% gel", dosage: "Pea-sized amount", frequency: "Once daily at night", durationDays: 60, instructions: "Apply after moisturiser" },
+          {
+            name: "Metformin 500mg",
+            dosage: "1 tablet",
+            frequency: "Twice daily after meals",
+            durationDays: 90,
+            instructions: "Take with food",
+          },
+          {
+            name: "Adapalene 0.1% gel",
+            dosage: "Pea-sized amount",
+            frequency: "Once daily at night",
+            durationDays: 60,
+            instructions: "Apply after moisturiser",
+          },
         ],
       },
     },

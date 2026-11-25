@@ -2,9 +2,14 @@ import { lazy, Suspense, useState, useTransition } from "react";
 import { Calendar, Stethoscope, UserCheck, Users } from "lucide-react";
 import { PortalRail, SkeletonBlock } from "@healthoraa/ui";
 import { TopBar } from "./components/shell/TopBar";
+import { useDoctor } from "./context/DoctorContext";
 
-const ConsultationQueueView = lazy(() => import("./components/queue/ConsultationQueueView"));
-const PractitionerProfileView = lazy(() => import("./components/profile/PractitionerProfileView"));
+const ConsultationQueueView = lazy(
+  () => import("./components/queue/ConsultationQueueView"),
+);
+const PractitionerProfileView = lazy(
+  () => import("./components/profile/PractitionerProfileView"),
+);
 const PatientsView = lazy(() => import("./components/patients/PatientsView"));
 const ScheduleView = lazy(() => import("./components/schedule/ScheduleView"));
 
@@ -33,21 +38,35 @@ const GROUPS = [
 export default function App() {
   const [view, setView] = useState<DoctorView>("queue");
   const [isPending, startTransition] = useTransition();
+  const { activeConsultationId, setActiveConsultationId } = useDoctor();
 
   const selectView = (nextView: DoctorView): void => {
+    if (nextView !== "queue") setActiveConsultationId(null);
     startTransition(() => setView(nextView));
   };
+
+  const pageTitle =
+    view === "queue" && activeConsultationId
+      ? "Consultation room"
+      : PAGE_TITLES[view];
 
   return (
     <div className="min-h-screen w-full bg-aura-canvas font-sans text-text-primary antialiased">
       <PortalRail groups={GROUPS} active={view} onSelect={selectView} />
 
       <div className="flex min-h-screen min-w-0 flex-col md:pl-16 xl:pl-[232px]">
-        <TopBar pageTitle={PAGE_TITLES[view]} />
-        <main aria-busy={isPending} className="mx-auto w-full max-w-5xl flex-1 p-4 pb-32 md:p-6 md:pb-8 lg:p-8">
+        <TopBar pageTitle={pageTitle} />
+        <main
+          aria-busy={isPending}
+          className="mx-auto w-full max-w-5xl flex-1 p-4 pb-32 md:p-6 md:pb-8 lg:p-8"
+        >
           <Suspense
             fallback={
-              <div aria-busy="true" aria-label="Loading workspace" className="min-h-[20rem] space-y-5">
+              <div
+                aria-busy="true"
+                aria-label="Loading workspace"
+                className="min-h-[20rem] space-y-5"
+              >
                 <SkeletonBlock className="h-8 w-48" />
                 <div className="grid gap-4 md:grid-cols-2">
                   <SkeletonBlock className="h-36" />

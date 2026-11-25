@@ -1,18 +1,32 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { uploadDocumentSchema, DOCUMENT_ACCEPTED_TYPES, DOCUMENT_MAX_BYTES } from "@healthoraa/validation";
-import type { DocumentCategory, UploadDocumentInput } from "@healthoraa/validation";
-import type { Enums } from "@healthoraa/types";
+import {
+  uploadDocumentSchema,
+  DOCUMENT_ACCEPTED_TYPES,
+  DOCUMENT_MAX_BYTES,
+} from "@healthoraa/validation";
+import type {
+  DocumentCategory,
+  UploadDocumentInput,
+} from "@healthoraa/validation";
+import type { Database, Enums } from "@healthoraa/types";
 import { supabase } from "../lib/supabase";
 import { usePatient } from "../context/PatientContext";
 import { buildBiomarkers } from "../lib/biomarkers";
 import type { BiomarkerRow } from "../lib/biomarkers";
 import { FALLBACK_BIOMARKERS, FALLBACK_DOCUMENTS } from "../lib/lockerFallback";
-import type { Biomarker, HealthLockerData, LockerDocument } from "../types/locker";
+import type {
+  Biomarker,
+  HealthLockerData,
+  LockerDocument,
+} from "../types/locker";
 
-const recordsKey = (patientId: string) => ["locker", "records", patientId] as const;
-const biomarkersKey = (patientId: string) => ["locker", "biomarkers", patientId] as const;
-const uploadsKey = (patientId: string) => ["locker", "uploads", patientId] as const;
+const recordsKey = (patientId: string) =>
+  ["locker", "records", patientId] as const;
+const biomarkersKey = (patientId: string) =>
+  ["locker", "biomarkers", patientId] as const;
+const uploadsKey = (patientId: string) =>
+  ["locker", "uploads", patientId] as const;
 
 interface DocumentRow {
   id: string;
@@ -22,30 +36,49 @@ interface DocumentRow {
   file_path: string;
   file_size_bytes: number | null;
   mime_type: string;
+  extracted_metadata: Database["public"]["Tables"]["patient_documents"]["Row"]["extracted_metadata"];
 }
 
-const toDocument = (row: DocumentRow): LockerDocument => ({
-  id: row.id,
-  title: row.title,
-  category: row.category as DocumentCategory,
-  documentDate: row.document_date,
-  fileType: row.mime_type.includes("pdf") ? "pdf" : "image",
-  fileSizeBytes: row.file_size_bytes,
-  source: "record",
-  summary: null,
-  file: null,
-  filePath: row.file_path,
-  canOpen: true,
-});
+const isDemoDocument = (metadata: DocumentRow["extracted_metadata"]): boolean =>
+  typeof metadata === "object" &&
+  metadata !== null &&
+  !Array.isArray(metadata) &&
+  metadata.demo_only === true;
+
+const toDocument = (row: DocumentRow): LockerDocument => {
+  const isDemo = isDemoDocument(row.extracted_metadata);
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category as DocumentCategory,
+    documentDate: row.document_date,
+    fileType: row.mime_type.includes("pdf") ? "pdf" : "image",
+    fileSizeBytes: row.file_size_bytes,
+    source: isDemo ? "demo" : "record",
+    summary: isDemo
+      ? "Synthetic sample PDF stored in the private demo vault. It contains no patient information or clinical results."
+      : null,
+    file: null,
+    filePath: row.file_path,
+    canOpen: true,
+  };
+};
 
 // Anonymous reads are filtered by row-level security, so an empty result cannot be told apart from a
 // failed read. Both use the demo value.
-const loadOrDemo = async <T>(load: () => Promise<T[]>, demo: T[], label: string): Promise<T[]> => {
+const loadOrDemo = async <T>(
+  load: () => Promise<T[]>,
+  demo: T[],
+  label: string,
+): Promise<T[]> => {
   try {
     const rows = await load();
     if (rows.length > 0) return rows;
   } catch (err) {
-    console.warn(`[patient-portal] ${label}: query failed, using client fallback`, err);
+    console.warn(
+      `[patient-portal] ${label}: query failed, using client fallback`,
+      err,
+    );
   }
   return demo;
 };
@@ -59,11 +92,13 @@ const useRecords = () => {
         async () => {
           const { data, error } = await supabase
             .from("patient_documents")
-            .select("id, title, category, document_date, file_path, file_size_bytes, mime_type")
+            .select(
+              "id, title, category, document_date, file_path, file_size_bytes, mime_type, extracted_metadata",
+            )
             .eq("patient_id", patient.id)
             .order("document_date", { ascending: false });
           if (error) throw new Error(error.message);
-          return ((data ?? []) as DocumentRow[]).map(toDocument);
+          return (data ?? []).map(toDocument);
         },
         FALLBACK_DOCUMENTS,
         "patient documents",
@@ -84,9 +119,13 @@ const useBiomarkers = () => {
           .order("tested_at", { ascending: true });
         if (error) throw new Error(error.message);
         const biomarkers = buildBiomarkers((data ?? []) as BiomarkerRow[]);
-        if (biomarkers.length > 0) return { biomarkers, source: "live" as const };
+        if (biomarkers.length > 0)
+          return { biomarkers, source: "live" as const };
       } catch (err) {
-        console.warn("[patient-portal] patient biomarkers: query failed, using client fallback", err);
+        console.warn(
+          "[patient-portal] patient biomarkers: query failed, using client fallback",
+          err,
+        );
       }
       return { biomarkers: FALLBACK_BIOMARKERS, source: "demo" as const };
     },
@@ -134,7 +173,8 @@ export interface UploadDocumentRequest extends UploadDocumentInput {
 }
 
 export const validateDocumentFile = (file: File): string | null => {
-  if (!(DOCUMENT_ACCEPTED_TYPES as readonly string[]).includes(file.type)) return "Upload a PDF, JPEG or PNG file.";
+  if (!(DOCUMENT_ACCEPTED_TYPES as readonly string[]).includes(file.type))
+    return "Upload a PDF, JPEG or PNG file.";
   if (file.size > DOCUMENT_MAX_BYTES) return "Files must be 10 MB or smaller.";
   if (file.size === 0) return "This file is empty.";
   return null;
@@ -148,7 +188,10 @@ export const useUploadDocument = () => {
   return useMutation<LockerDocument, Error, UploadDocumentRequest>({
     mutationFn: async ({ file, ...fields }) => {
       const parsed = uploadDocumentSchema.safeParse(fields);
-      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Check the document details.");
+      if (!parsed.success)
+        throw new Error(
+          parsed.error.issues[0]?.message ?? "Check the document details.",
+        );
 
       const fileError = validateDocumentFile(file);
       if (fileError) throw new Error(fileError);
@@ -169,7 +212,10 @@ export const useUploadDocument = () => {
       return document;
     },
     onSuccess: (document) => {
-      queryClient.setQueryData<LockerDocument[]>(uploadsKey(patient.id), (previous) => [document, ...(previous ?? [])]);
+      queryClient.setQueryData<LockerDocument[]>(
+        uploadsKey(patient.id),
+        (previous) => [document, ...(previous ?? [])],
+      );
     },
   });
 };

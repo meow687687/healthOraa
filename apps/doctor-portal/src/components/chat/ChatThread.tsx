@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Send } from "lucide-react";
 import { Badge, ERROR_BOX, cn } from "@healthoraa/ui";
-import { useConsultationChat, useSendMessage } from "../../hooks/useConsultationChat";
+import {
+  useConsultationChat,
+  useSendMessage,
+} from "../../hooks/useConsultationChat";
 import { useDoctor } from "../../context/DoctorContext";
 import { daysRemaining, isWindowOpen } from "../../lib/followupWindow";
 import { formatDate } from "../../lib/prescriptionOptions";
@@ -10,7 +13,8 @@ import type { QueueConsultation } from "../../types/queue";
 import type { ChatMessage } from "../../types/chat";
 import { formatTime } from "../queue/consultationMeta";
 
-const WINDOW_CLOSED_TEXT = "7-Day follow-up window closed. Patient must book a follow-up consultation.";
+const WINDOW_CLOSED_TEXT =
+  "7-Day follow-up window closed. The patient must book a new consultation to message you.";
 
 // Re-renders every minute so the countdown stays current.
 function useNow(intervalMs: number): number {
@@ -23,7 +27,11 @@ function useNow(intervalMs: number): number {
 }
 
 // The 7-day follow-up thread. Used inside the consultation room.
-export function ChatThread({ consultation }: { consultation: QueueConsultation }) {
+export function ChatThread({
+  consultation,
+}: {
+  consultation: QueueConsultation;
+}) {
   const { doctor } = useDoctor();
   const now = useNow(60_000);
   const thread = useConsultationChat(consultation.id);
@@ -33,6 +41,14 @@ export function ChatThread({ consultation }: { consultation: QueueConsultation }
 
   const expiresAt = consultation.followupExpiresAt;
   const open = isWindowOpen(expiresAt, now);
+  const noWindowMessage =
+    expiresAt === null
+      ? consultation.status === "scheduled"
+        ? "Follow-up chat becomes available after the consultation is completed."
+        : consultation.status === "in_progress"
+          ? "Complete the consultation to open the seven-day follow-up chat."
+          : "Follow-up chat is not available for this consultation."
+      : WINDOW_CLOSED_TEXT;
   const messageCount = thread.data?.length ?? 0;
 
   // Scroll the thread itself, not the drawer, so the header and composer stay in place.
@@ -42,7 +58,8 @@ export function ChatThread({ consultation }: { consultation: QueueConsultation }
   }, [messageCount]);
 
   const countdown = (() => {
-    if (expiresAt === null) return { label: "Chat Window: not open", tone: "neutral" as const };
+    if (expiresAt === null)
+      return { label: "Chat Window: not open", tone: "neutral" as const };
     if (!open) return { label: "Chat Window: closed", tone: "red" as const };
     const days = daysRemaining(expiresAt, now);
     return {
@@ -54,42 +71,78 @@ export function ChatThread({ consultation }: { consultation: QueueConsultation }
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!open || send.isPending) return;
-    send.mutate({ content: draft, followupExpiresAt: expiresAt }, { onSuccess: () => setDraft("") });
+    send.mutate(
+      { content: draft, followupExpiresAt: expiresAt },
+      { onSuccess: () => setDraft("") },
+    );
   };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-text-secondary">
-          Consultation on {formatDate(new Date(consultation.slotStart))} at {formatTime(consultation.slotStart)}
+          Consultation on {formatDate(new Date(consultation.slotStart))} at{" "}
+          {formatTime(consultation.slotStart)}
         </p>
-        <Badge tone={countdown.tone} className="tabular-nums">{countdown.label}</Badge>
+        <Badge tone={countdown.tone} className="tabular-nums">
+          {countdown.label}
+        </Badge>
       </div>
 
       {!open && (
-        <div role="status" className="mt-6 rounded-2xl border border-accent-red/30 bg-accent-red/10 px-4 py-3 text-sm text-accent-red">
-          {WINDOW_CLOSED_TEXT}
+        <div
+          role="status"
+          className={cn(
+            "mt-6 rounded-2xl border px-4 py-3 text-sm",
+            expiresAt === null
+              ? "border-aura-line bg-aura-s2 text-text-secondary"
+              : "border-accent-red/30 bg-accent-red/10 text-accent-red",
+          )}
+        >
+          {noWindowMessage}
         </div>
       )}
 
       <div className="flex min-h-0 flex-1 flex-col py-4">
-        {thread.isLoading && <p className="text-xs text-text-muted">Loading conversation...</p>}
-        {thread.isError && <div className={ERROR_BOX}>Could not load the conversation.</div>}
+        {thread.isLoading && (
+          <p className="text-xs text-text-muted">Loading conversation...</p>
+        )}
+        {thread.isError && (
+          <div className={ERROR_BOX}>Could not load the conversation.</div>
+        )}
         {thread.data && thread.data.length === 0 && (
-          <p className="py-8 text-center text-xs text-text-muted">No messages yet. Start the conversation below.</p>
+          <p className="py-8 text-center text-xs text-text-muted">
+            {open
+              ? "No messages yet. Start the conversation below."
+              : "No messages in this conversation yet."}
+          </p>
         )}
         {thread.data && thread.data.length > 0 && (
-          <ol ref={listRef} aria-label="Messages" className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+          <ol
+            ref={listRef}
+            aria-label="Messages"
+            className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1"
+          >
             {thread.data.map((message) => (
-              <MessageBubble key={message.id} message={message} isDoctor={message.senderId === doctor.id} />
+              <MessageBubble
+                key={message.id}
+                message={message}
+                isDoctor={message.senderId === doctor.id}
+              />
             ))}
           </ol>
         )}
       </div>
 
-      {send.isError && <div className={cn(ERROR_BOX, "mb-4")}>{send.error.message}</div>}
+      {send.isError && (
+        <div className={cn(ERROR_BOX, "mb-4")}>{send.error.message}</div>
+      )}
 
-      <form onSubmit={onSubmit} noValidate className="flex items-center gap-2 border-t border-aura-line pt-4">
+      <form
+        onSubmit={onSubmit}
+        noValidate
+        className="flex items-center gap-2 border-t border-aura-line pt-4"
+      >
         <label htmlFor="chat-input" className="sr-only">
           Message to patient
         </label>
@@ -116,7 +169,13 @@ export function ChatThread({ consultation }: { consultation: QueueConsultation }
   );
 }
 
-function MessageBubble({ message, isDoctor }: { message: ChatMessage; isDoctor: boolean }) {
+function MessageBubble({
+  message,
+  isDoctor,
+}: {
+  message: ChatMessage;
+  isDoctor: boolean;
+}) {
   return (
     <li className={cn("flex flex-col", isDoctor ? "items-end" : "items-start")}>
       <div

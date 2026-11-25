@@ -8,6 +8,7 @@ export interface DoctorOption {
   slotDurationMinutes: number;
   avatarUrl: string | null;
   dataSource: "live" | "mock";
+  isDemoRecord: boolean;
 }
 
 export interface SlotOption {
@@ -37,7 +38,12 @@ export interface PrescriptionRecord {
 
 // awaiting_payment: sent to the clinic, payment not yet verified.
 // held_on_device: could not be sent, kept in this browser only.
-export type ConsultationState = "awaiting_payment" | "confirmed" | "held_on_device" | "completed" | "cancelled";
+export type ConsultationState =
+  | "awaiting_payment"
+  | "confirmed"
+  | "held_on_device"
+  | "completed"
+  | "cancelled";
 
 export interface ConsultationItem {
   id: string;

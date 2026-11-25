@@ -1,5 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 
@@ -8,7 +14,7 @@ export interface DoctorProfile {
   id: string;
   displayName: string;
   qualification: string;
-  registrationNumber: string;
+  registrationNumber: string | null;
   consultationFeeInr: number;
   slotDurationMinutes: number;
 }
@@ -16,8 +22,8 @@ export interface DoctorProfile {
 export const DEV_DOCTOR: DoctorProfile = {
   id: "11111111-1111-1111-1111-111111111111",
   displayName: "Dr. Arishta Sharma, MD",
-  qualification: "MBBS, MD (General Medicine)",
-  registrationNumber: "NMC-2018-99412",
+  qualification: "MBBS, Dermatology",
+  registrationNumber: "NMC-DEMO-001",
   consultationFeeInr: 799,
   slotDurationMinutes: 30,
 };
@@ -35,15 +41,22 @@ const DoctorContext = createContext<DoctorContextValue | null>(null);
 export function DoctorProvider({ children }: { children: ReactNode }) {
   const { user, isPrototype } = useAuth();
   const [isAccepting, setIsAccepting] = useState(true);
-  const [activeConsultationId, setActiveConsultationId] = useState<string | null>(null);
+  const [activeConsultationId, setActiveConsultationId] = useState<
+    string | null
+  >(null);
 
-  const toggleAccepting = useCallback(() => setIsAccepting((prev) => !prev), []);
+  const toggleAccepting = useCallback(
+    () => setIsAccepting((prev) => !prev),
+    [],
+  );
 
   const doctor = useMemo<DoctorProfile>(
     () => ({
       ...DEV_DOCTOR,
       id: user.id,
       displayName: isPrototype ? DEV_DOCTOR.displayName : user.fullName,
+      qualification: isPrototype ? DEV_DOCTOR.qualification : "",
+      registrationNumber: isPrototype ? DEV_DOCTOR.registrationNumber : null,
     }),
     [user, isPrototype],
   );
@@ -59,7 +72,9 @@ export function DoctorProvider({ children }: { children: ReactNode }) {
     [doctor, isAccepting, toggleAccepting, activeConsultationId],
   );
 
-  return <DoctorContext.Provider value={value}>{children}</DoctorContext.Provider>;
+  return (
+    <DoctorContext.Provider value={value}>{children}</DoctorContext.Provider>
+  );
 }
 
 export function useDoctor(): DoctorContextValue {

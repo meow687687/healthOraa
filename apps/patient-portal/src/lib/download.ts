@@ -26,9 +26,13 @@ export const downloadLocalDocument = (doc: LockerDocument): void => {
 // Database records download through a fresh 60-second signed link.
 export const downloadRecord = async (doc: LockerDocument): Promise<void> => {
   if (!doc.filePath) return;
-  const url = await createRecordLink(doc.filePath);
+  const fileName =
+    doc.fileType === "pdf" && !doc.title.toLowerCase().endsWith(".pdf")
+      ? `${doc.title}.pdf`
+      : doc.title;
+  const url = await createRecordLink(doc.filePath, fileName);
   const link = document.createElement("a");
   link.href = url;
-  link.download = doc.title;
+  link.download = fileName;
   link.click();
 };

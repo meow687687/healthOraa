@@ -6,7 +6,7 @@
 
 The walkthrough covers three web roles against a freshly seeded local Supabase database:
 
-1. **Admin:** review the verified synthetic practitioner and sample program, catalog, banner, and order records.
+1. **Admin:** inspect the synthetic practitioner record (its seeded status is for demo discovery only), plus sample program, catalog, banner, and order records.
 2. **Practitioner:** review the synthetic schedule and patient history, then publish future availability.
 3. **Patient:** browse the sample program catalog, open a program overview, browse products, view the seeded prescription/history, and submit a consultation request.
 
@@ -22,6 +22,7 @@ From the repository root:
 pnpm install
 pnpm exec supabase start
 pnpm exec supabase db reset
+pnpm demo:seed-storage
 pnpm db:types
 ```
 
@@ -50,8 +51,8 @@ Open the local URLs printed by Vite (default ports: admin `5180`, practitioner `
 ### 1. Admin portal
 
 - Open the admin portal and sign in as Demo Admin.
-- Open **Doctors** and show Dr. Arishta Sharma with the seeded verified status.
-- Open **Programs**, **Shop**, **Orders**, and **Banners** to show the sample catalog and operational states. Identify the records as examples; do not imply that prices, labels, inventory, fulfillment, or provider transactions are client-approved or real.
+- Open **Doctors** and identify Dr. Arishta Sharma as a synthetic demo record. Its seeded “Verified” status is not evidence of a real credential review; there are no submitted documents and review actions are disabled for this sample.
+- Open **Programs**, **Shop**, **Orders**, and **Banners** to show the sample catalog and operational states. The sample banners are inactive because approved copy and artwork have not been supplied; the admin preview labels them and prevents activation. Identify all records as examples; do not imply that prices, labels, inventory, fulfillment, or provider transactions are client-approved or real.
 - The admin program editor supports an optional HTTPS introduction-video link. Do not add a placeholder link to the presenter dataset; show a video only after the client supplies and approves the actual asset.
 - Keep the demo read-only in these sections. The patient flow below creates a pending booking request; it does not require a payment action from admin.
 
@@ -77,6 +78,7 @@ The patient booking consumes a local slot, and schedule publishing changes local
 
 ```bash
 pnpm exec supabase db reset
+pnpm demo:seed-storage
 ```
 
 Then reopen the portals. Repeat the same three role steps from the beginning. No manual database edits are part of the presenter workflow.
@@ -84,6 +86,9 @@ Then reopen the portals. Repeat the same three role steps from the beginning. No
 ## Known limits and troubleshooting
 
 - The native iOS/Android app has not been rehearsed on a device. The Expo web preview is not a substitute for the native patient sign-in journey; omit it from the client demo until a device rehearsal passes.
+- The three Health Locker PDFs are synthetic demo files. `pnpm demo:seed-storage` uploads them and marks their matching seeded rows only in a loopback local Supabase instance; the bucket remains private.
+- The seeded practitioner has no credential documents. Its database status exists so synthetic patient discovery can be demonstrated; it must never be described as an actual credential verification.
+- Sample banners are intentionally inactive until the client supplies approved copy and artwork. Do not activate or present the example banner titles as client-approved campaigns.
 - Razorpay checkout, order creation, capture, refund, reconciliation, and real charges are outside this demo. The database may contain seeded payment examples; those rows are synthetic and are not evidence of transactions.
 - Practitioner identity, product facts, clinical copy, program pricing/content/video, enrollment CTA, contact route, images, legal disclosures, and payment/reservation policy need client confirmation. Do not invent or imply approval.
 - If a portal cannot connect, first confirm the local Supabase stack is running and the portal `.env.local` contains the local URL and publishable key. Restart the affected Vite server after changing environment files.
@@ -94,11 +99,13 @@ Then reopen the portals. Repeat the same three role steps from the beginning. No
 
 Record each rehearsal with the date, commit SHA, reset result, three role outcomes, and any visible errors. Keep screenshots in ignored `.audit/evidence/phase1/`; do not store real patient data, secrets, or provider credentials there.
 
-| Check | Result |
-|---|---|
-| Payment enable flags/credentials absent in the local demo environment | Verified 2026-11-24 by a redacted name-only check of the portal and function env files plus the current process environment; no values were printed. |
-| Clean database reset and type generation | Verified 2026-11-25 on merged commit `42a7eb2`; all migrations applied and generated DB types had no diff. |
-| Full 33-test lifecycle, regression, and security run, rehearsal 1 | Passed after a clean reset on the PR #8 code; includes program discovery/video, inactive-program RLS, HTTPS validation, payment/refund recovery, private storage, push-token ownership, account-deletion retry, and cleanup of 1,001-record batches. |
-| Full 33-test lifecycle, regression, and security run, rehearsal 2 | Passed 2026-11-25 after a second independent clean reset on merged commit `42a7eb2`. |
-| Responsive web review | Patient catalog/detail, patient shop, practitioner queue, and admin overview were rendered at 375×812, 768×1024, and 1280×720 with no browser console errors. Shop screenshots are in ignored `.gstack/browse-reports/2026-11-25-phase1-render/screenshots/`; earlier evidence is in `.audit/evidence/phase1/`. |
-| Keyboard, screen-reader, and rendered native-app review | Pending; see `docs/IMPLEMENTATION_PLAN.md` limitations. |
+| Check                                                                 | Result                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Payment enable flags/credentials absent in the local demo environment | Verified 2026-11-24 by a redacted name-only check of the portal and function env files plus the current process environment; no values were printed.                                                                                                                                                                                                            |
+| Clean database reset and type generation                              | Verified 2026-11-25 on merged commit `42a7eb2`; all migrations applied and generated DB types had no diff.                                                                                                                                                                                                                                                      |
+| Full 33-test lifecycle, regression, and security run, rehearsal 1     | Passed after a clean reset on the PR #8 code; includes program discovery/video, inactive-program RLS, HTTPS validation, payment/refund recovery, private storage, push-token ownership, account-deletion retry, and cleanup of 1,001-record batches.                                                                                                            |
+| Full 33-test lifecycle, regression, and security run, rehearsal 2     | Passed 2026-11-25 after a second independent clean reset on merged commit `42a7eb2`.                                                                                                                                                                                                                                                                            |
+| Current Phase 1 candidate verification                                | Passed 2026-11-25 on the worktree based on PR #16: `pnpm turbo build` and `pnpm test:e2e` (34/34). A read-only post-run check found 0 `E2E Sample` programs, 2 inactive sample banners, and 0 active sample banners. This candidate is not yet PR-reviewed or merged.                                                                                           |
+| Current responsive UI review                                          | GPT-6 Luna xhigh reviewed patient, practitioner, and admin surfaces at 375×812, 768×1024, and 1280×720; focused checks confirmed the patient demo card and admin filter/drawer states. Patient 6/10, practitioner 6.5/10, admin 6.5/10 (overall 6.3/10). Client-approved content/brand, keyboard/screen-reader checks, and native-device rehearsal remain open. |
+| Responsive web review                                                 | Patient catalog/detail, patient shop, practitioner queue, and admin overview were rendered at 375×812, 768×1024, and 1280×720 with no browser console errors. Shop screenshots are in ignored `.gstack/browse-reports/2026-11-25-phase1-render/screenshots/`; earlier evidence is in `.audit/evidence/phase1/`.                                                 |
+| Keyboard, screen-reader, and rendered native-app review               | Pending; see `docs/IMPLEMENTATION_PLAN.md` limitations.                                                                                                                                                                                                                                                                                                         |

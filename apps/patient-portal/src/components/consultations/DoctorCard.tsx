@@ -11,21 +11,39 @@ const initialsOf = (name: string): string =>
     .join("")
     .toUpperCase();
 
-export function DoctorCard({ doctor, onBook }: { doctor: DoctorOption; onBook: () => void }) {
+export function DoctorCard({
+  doctor,
+  onBook,
+}: {
+  doctor: DoctorOption;
+  onBook: () => void;
+}) {
   return (
-    <article className={cn(PANEL, "flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between")}>
+    <article
+      className={cn(
+        PANEL,
+        "flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between",
+      )}
+    >
       <div className="flex min-w-0 items-center gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-aura-s3 text-sm font-bold text-text-primary">
           {initialsOf(doctor.displayName)}
         </div>
         <div className="min-w-0 space-y-1.5">
-          <h3 className="truncate text-sm font-semibold text-text-primary">{doctor.displayName}</h3>
+          <h3 className="truncate text-sm font-semibold text-text-primary">
+            {doctor.displayName}
+          </h3>
           <div className="flex flex-wrap gap-2">
             <Badge tone="blue">{doctor.qualification}</Badge>
-            <Badge tone="emerald">NMC verified</Badge>
+            <Badge tone={doctor.isDemoRecord ? "violet" : "emerald"}>
+              {doctor.isDemoRecord
+                ? "Demo · not audited"
+                : "Credentials reviewed"}
+            </Badge>
           </div>
           <p className="font-mono text-xs text-text-muted">
-            {formatPaise(rupeesToPaise(doctor.feeInr))} · {doctor.slotDurationMinutes}-minute slots
+            {formatPaise(rupeesToPaise(doctor.feeInr))} ·{" "}
+            {doctor.slotDurationMinutes}-minute slots
           </p>
         </div>
       </div>

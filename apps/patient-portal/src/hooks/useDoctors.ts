@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { withSingleFallback } from "@healthoraa/ui";
+import { isSeededDemoPractitionerId } from "@healthoraa/types";
 import { supabase } from "../lib/supabase";
 import { FALLBACK_DOCTORS } from "../lib/consultationFallback";
 import type { DoctorOption } from "../types/consultations";
@@ -24,7 +25,9 @@ export const useDoctors = () =>
     queryFn: () =>
       withSingleFallback(
         async () => {
-          const { data, error } = await supabase.rpc("get_verified_practitioners");
+          const { data, error } = await supabase.rpc(
+            "get_verified_practitioners",
+          );
           if (error) throw new Error(error.message);
           return ((data ?? []) as PractitionerRow[]).map((row) => ({
             id: row.id,
@@ -34,6 +37,7 @@ export const useDoctors = () =>
             slotDurationMinutes: row.slot_duration_minutes,
             avatarUrl: row.avatar_url,
             dataSource: "live" as const,
+            isDemoRecord: isSeededDemoPractitionerId(row.id),
           }));
         },
         FALLBACK_DOCTORS,

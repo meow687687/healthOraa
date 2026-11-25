@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState, useTransition } from "react";
 import type { ComponentType, LazyExoticComponent } from "react";
-import { SkeletonBlock } from "@healthoraa/ui";
+import { SkeletonBlock, SkipLink } from "@healthoraa/ui";
 import { OverviewView } from "./components/overview/OverviewView";
 import { AdminHeader } from "./components/shell/AdminHeader";
 import { AdminRail } from "./components/shell/AdminRail";
@@ -12,7 +12,9 @@ import { cn } from "./lib/cn";
 type PortalView = LazyExoticComponent<ComponentType>;
 
 const VIEWS: Record<Exclude<TabId, "overview">, PortalView> = {
-  practitioners: lazy(() => import("./components/practitioners/PractitionersView")),
+  practitioners: lazy(
+    () => import("./components/practitioners/PractitionersView"),
+  ),
   programs: lazy(() => import("./components/programs/ProgramsView")),
   shop: lazy(() => import("./components/shop/ShopView")),
   orders: lazy(() => import("./components/orders/OrdersView")),
@@ -47,6 +49,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-aura-canvas font-sans text-text-primary antialiased">
+      <SkipLink />
       <AdminRail active={activeTab} onSelect={select} />
 
       <div className="flex min-h-screen min-w-0 flex-col md:pl-16 xl:pl-[232px]">
@@ -60,14 +63,26 @@ export default function App() {
           onOpenSearch={() => setPaletteOpen(true)}
         />
 
-        <main aria-busy={isPending} className={cn("flex-1 p-4 pb-24 md:p-6 md:pb-8 lg:p-8")}>
-          <div key={activeTab} className="portal-view-enter mx-auto w-full max-w-7xl">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          aria-busy={isPending}
+          className={cn("flex-1 p-4 pb-24 md:p-6 md:pb-8 lg:p-8")}
+        >
+          <div
+            key={activeTab}
+            className="portal-view-enter mx-auto w-full max-w-7xl"
+          >
             {activeTab === "overview" ? (
               <OverviewView onNavigate={select} />
             ) : (
               <Suspense
                 fallback={
-                  <div aria-busy="true" aria-label={`Loading ${item.label}`} className="space-y-5">
+                  <div
+                    aria-busy="true"
+                    aria-label={`Loading ${item.label}`}
+                    className="space-y-5"
+                  >
                     <SkeletonBlock className="h-8 w-48" />
                     <div className="grid gap-4 md:grid-cols-2">
                       <SkeletonBlock className="h-36" />
@@ -87,7 +102,13 @@ export default function App() {
         </main>
       </div>
 
-      {paletteOpen ? <CommandPalette open onClose={() => setPaletteOpen(false)} onSelect={select} /> : null}
+      {paletteOpen ? (
+        <CommandPalette
+          open
+          onClose={() => setPaletteOpen(false)}
+          onSelect={select}
+        />
+      ) : null}
     </div>
   );
 }

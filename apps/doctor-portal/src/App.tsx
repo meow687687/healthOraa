@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useTransition } from "react";
 import { Calendar, Stethoscope, UserCheck, Users } from "lucide-react";
-import { PortalRail, SkeletonBlock } from "@healthoraa/ui";
+import { PortalRail, SkeletonBlock, SkipLink } from "@healthoraa/ui";
 import { TopBar } from "./components/shell/TopBar";
 import { useDoctor } from "./context/DoctorContext";
 
@@ -52,11 +52,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-full bg-aura-canvas font-sans text-text-primary antialiased">
+      <SkipLink />
       <PortalRail groups={GROUPS} active={view} onSelect={selectView} />
 
       <div className="flex min-h-screen min-w-0 flex-col md:pl-16 xl:pl-[232px]">
         <TopBar pageTitle={pageTitle} />
         <main
+          id="main-content"
+          tabIndex={-1}
           aria-busy={isPending}
           className="mx-auto w-full max-w-5xl flex-1 p-4 pb-32 md:p-6 md:pb-8 lg:p-8"
         >

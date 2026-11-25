@@ -59,9 +59,9 @@ ON CONFLICT (id) DO NOTHING;
 -- 2. Insert sample nutrition programs
 INSERT INTO public.programs (title, category, description, duration_days, price_inr, is_active)
 VALUES
-  ('60-Day PCOD/PCOS Reset', 'pcod_pcos', 'Hormonal rebalancing and insulin-resistance management via anti-inflammatory dietary plans.', 60, 4999.00, TRUE),
-  ('Metabolic Weight Management', 'weight_management', 'Customized calorie-deficit macro plans with weekly nutritionist check-ins.', 60, 3999.00, TRUE),
-  ('Clinical Dermato-Nutrition', 'dermato_nutrition', 'Targeted gut-skin axis nutrition protocol for chronic acne and barrier repair.', 60, 5499.00, TRUE)
+  ('PCOD/PCOS Nutrition Program (Sample)', 'pcod_pcos', 'Sample listing. Replace with client-approved program information before a client presentation or launch.', 60, 4999.00, TRUE),
+  ('Weight Management Program (Sample)', 'weight_management', 'Sample listing. Replace with client-approved program information before a client presentation or launch.', 60, 3999.00, TRUE),
+  ('Dermato-Nutrition Program (Sample)', 'dermato_nutrition', 'Sample listing. Replace with client-approved program information before a client presentation or launch.', 60, 5499.00, TRUE)
 ON CONFLICT DO NOTHING;
 
 -- 2b. Mock active program enrolments and day 18/day 42 progress logs.
@@ -69,10 +69,10 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.program_enrolments (id, program_id, patient_id, dietitian_id, started_at)
 VALUES
   ('abababab-0000-4000-8000-000000000001',
-    (SELECT id FROM public.programs WHERE title = '60-Day PCOD/PCOS Reset' LIMIT 1),
+    (SELECT id FROM public.programs WHERE title = 'PCOD/PCOS Nutrition Program (Sample)' LIMIT 1),
     '22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '17 days 12 hours'),
   ('abababab-0000-4000-8000-000000000002',
-    (SELECT id FROM public.programs WHERE title = 'Metabolic Weight Management' LIMIT 1),
+    (SELECT id FROM public.programs WHERE title = 'Weight Management Program (Sample)' LIMIT 1),
     '22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '41 days 12 hours')
 ON CONFLICT (id) DO NOTHING;
 
@@ -130,7 +130,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.app_banners (id, title, image_url, target_type, target_id, display_order, is_active)
 VALUES
   ('bbbbbbb1-0000-4000-8000-000000000001', '60-Day PCOD Reset: Launch Offer', 'https://images.example.com/banners/pcod-reset.jpg', 'program',
-    (SELECT id::text FROM public.programs WHERE title = '60-Day PCOD/PCOS Reset' LIMIT 1), 0, TRUE),
+    (SELECT id::text FROM public.programs WHERE title = 'PCOD/PCOS Nutrition Program (Sample)' LIMIT 1), 0, TRUE),
   ('bbbbbbb2-0000-4000-8000-000000000002', 'Book a Certified Doctor Consultation', 'https://images.example.com/banners/doctor-consult.jpg', 'doctor',
     '11111111-1111-1111-1111-111111111111', 1, TRUE)
 ON CONFLICT (id) DO NOTHING;

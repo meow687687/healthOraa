@@ -29,6 +29,7 @@ interface ProgramFormState {
   durationDays: string;
   priceInr: string;
   description: string;
+  introVideoUrl: string;
 }
 
 type ProgramFormErrors = Partial<Record<keyof ProgramFormState, string>>;
@@ -39,6 +40,7 @@ const INITIAL_FORM: ProgramFormState = {
   durationDays: "60",
   priceInr: "",
   description: "",
+  introVideoUrl: "",
 };
 
 const FORM_FIELD_BY_SCHEMA_KEY: Record<keyof CreateProgramInput, keyof ProgramFormState> = {
@@ -47,6 +49,7 @@ const FORM_FIELD_BY_SCHEMA_KEY: Record<keyof CreateProgramInput, keyof ProgramFo
   duration_days: "durationDays",
   price_inr: "priceInr",
   description: "description",
+  intro_video_url: "introVideoUrl",
 };
 
 const toSchemaInput = (form: ProgramFormState) => ({
@@ -55,6 +58,7 @@ const toSchemaInput = (form: ProgramFormState) => ({
   duration_days: form.durationDays.trim() === "" ? undefined : Number(form.durationDays),
   price_inr: form.priceInr.trim() === "" ? undefined : Number(form.priceInr),
   description: form.description,
+  intro_video_url: form.introVideoUrl.trim() === "" ? undefined : form.introVideoUrl,
 });
 
 const validateForm = (
@@ -81,6 +85,7 @@ const toFormState = (program: NutritionProgram | null | undefined): ProgramFormS
         durationDays: String(program.duration_days),
         priceInr: String(program.price_inr),
         description: program.description ?? "",
+        introVideoUrl: program.intro_video_url ?? "",
       }
     : INITIAL_FORM;
 
@@ -119,6 +124,7 @@ export default function CreateProgramDrawer({ isOpen, onClose, program }: Create
       duration_days: input.duration_days,
       price_inr: input.price_inr,
       description: input.description || null,
+      intro_video_url: input.intro_video_url || null,
     };
 
     if (program) {
@@ -231,9 +237,40 @@ export default function CreateProgramDrawer({ isOpen, onClose, program }: Create
               rows={5}
               value={form.description}
               onChange={(e) => update("description", e.target.value)}
-              placeholder="Target outcomes, inclusions and who this plan is for."
+              placeholder="Enter the approved program description and inclusions."
               className={cn(INPUT, "resize-none")}
             />
+            <p className="text-xs text-text-muted">
+              Publish client-approved wording only. Keep medical outcomes and product claims out until reviewed.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="program-intro-video" className={LABEL}>
+              Introduction video URL <span className="font-normal text-text-muted">(optional)</span>
+            </label>
+            <input
+              id="program-intro-video"
+              type="url"
+              value={form.introVideoUrl}
+              onChange={(e) => update("introVideoUrl", e.target.value)}
+              placeholder="https://…"
+              aria-invalid={Boolean(errors.introVideoUrl)}
+              aria-describedby={
+                errors.introVideoUrl
+                  ? "program-intro-video-help program-intro-video-error"
+                  : "program-intro-video-help"
+              }
+              className={INPUT}
+            />
+            <p id="program-intro-video-help" className="text-xs text-text-muted">
+              Add a public, client-approved video. Patients open it on its hosting site.
+            </p>
+            {errors.introVideoUrl && (
+              <p id="program-intro-video-error" className={ERROR_TEXT} role="alert">
+                {errors.introVideoUrl}
+              </p>
+            )}
           </div>
 
           {mutationError && <div role="alert" className={ERROR_BOX}>{mutationError.message}</div>}

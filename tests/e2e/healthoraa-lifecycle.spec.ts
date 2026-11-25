@@ -67,7 +67,7 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     cleanupSuiteRows();
   });
 
-  test("1. admin: Dr. Arishta is verified, and the 30-Day Gut Reset program persists", async () => {
+  test("1. admin: Dr. Arishta is verified, and a sample nutrition program persists", async () => {
     await signInAs(admin, "admin");
 
     await admin.getByRole("button", { name: "Doctors", exact: true }).click();
@@ -77,10 +77,14 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     await admin.getByRole("button", { name: "Create Program", exact: true }).click();
     const form = admin.locator("form").filter({ has: admin.locator("#program-title") });
     await admin.locator("#program-title").fill(PROGRAM_TITLE);
-    await form.getByRole("radio", { name: "Custom" }).click();
+    await form.getByRole("radio", { name: "Personalized Medical Nutrition" }).click();
     await admin.locator("#program-duration").fill("30");
     await admin.locator("#program-price").fill("1999");
-    await admin.locator("#program-description").fill("Thirty days of gut-friendly meals, fibre targets and check-ins.");
+    await admin.locator("#program-description").fill("Example listing for automated validation; pending client-approved content.");
+    await admin.locator("#program-intro-video").fill("http://example.com/program-intro");
+    await form.getByRole("button", { name: "Create Program", exact: true }).click();
+    await expect(form.getByText("Video links must use HTTPS.", { exact: true })).toBeVisible();
+    await admin.locator("#program-intro-video").fill("https://example.com/program-intro");
     await form.getByRole("button", { name: "Create Program", exact: true }).click();
     // Drawers stay mounted while closed, so wait for the new row in the table instead.
     await expect(admin.getByRole("row").filter({ hasText: PROGRAM_TITLE })).toBeVisible();
@@ -125,6 +129,20 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     });
 
     await signInAs(patient, "patient");
+    await patient.getByRole("button", { name: "Programs", exact: true }).click();
+    const programCard = patient.getByRole("article").filter({ hasText: PROGRAM_TITLE });
+    await expect(programCard).toBeVisible();
+    await expect(programCard).toContainText("30 days");
+    await expect(programCard).toContainText("pending client-approved content");
+    await expect(programCard).not.toContainText("₹");
+    await programCard.getByRole("button", { name: `View details for ${PROGRAM_TITLE}` }).click();
+    await expect(patient.getByRole("heading", { name: PROGRAM_TITLE, exact: true, level: 2 })).toBeVisible();
+    const introduction = patient.getByRole("link", { name: `Open the introduction video for ${PROGRAM_TITLE} in a new tab` });
+    await expect(introduction).toHaveAttribute("href", "https://example.com/program-intro");
+    await expect(introduction).toHaveAttribute("target", "_blank");
+    await expect(introduction).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(patient.getByRole("note")).toContainText("Enrollment and payment are not available");
+    await patient.getByRole("button", { name: "Back to programs", exact: true }).click();
     await patient.getByRole("button", { name: "Consultations", exact: true }).click();
     await patient.getByRole("button", { name: "Book consultation", exact: true }).first().click();
 

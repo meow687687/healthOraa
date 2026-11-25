@@ -589,14 +589,14 @@ isOneToOne: false
                   ]
                 },"programs": {
                   Row: {
-                    "category": Database["public"]['Enums']["program_category"],"created_at": string,"description": string | null,"duration_days": number,"id": string,"is_active": boolean,"price_inr": number,"title": string
+                    "category": Database["public"]['Enums']["program_category"],"created_at": string,"description": string | null,"duration_days": number,"id": string,"intro_video_url": string | null,"is_active": boolean,"price_inr": number,"title": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "category": Database["public"]['Enums']["program_category"],"created_at"?: string,"description"?: string | null,"duration_days"?: number,"id"?: string,"is_active"?: boolean,"price_inr": number,"title": string
+                    "category": Database["public"]['Enums']["program_category"],"created_at"?: string,"description"?: string | null,"duration_days"?: number,"id"?: string,"intro_video_url"?: string | null,"is_active"?: boolean,"price_inr": number,"title": string
                   }
                   Update: {
-                    "category"?: Database["public"]['Enums']["program_category"],"created_at"?: string,"description"?: string | null,"duration_days"?: number,"id"?: string,"is_active"?: boolean,"price_inr"?: number,"title"?: string
+                    "category"?: Database["public"]['Enums']["program_category"],"created_at"?: string,"description"?: string | null,"duration_days"?: number,"id"?: string,"intro_video_url"?: string | null,"is_active"?: boolean,"price_inr"?: number,"title"?: string
                   }
                   Relationships: [
 
@@ -729,7 +729,7 @@ isOneToOne: false
 { Args: { "p_limit"?: number }; Returns: number
                            },
 "fulfill_program_enrolment":
-{ Args: { "p_order_id": string,"p_patient_id": string,"p_program_id": string }; Returns: string | null
+{ Args: { "p_order_id": string,"p_patient_id": string,"p_program_id": string }; Returns: string
                            },
 "generate_consultation_slots":
 { Args: { "p_date": string,"p_practitioner_id": string }; Returns: number
@@ -844,7 +844,7 @@ isOneToOne: false
 { Args: { "p_gateway_payment_id": string }; Returns: string
                            },
 "record_and_reconcile_razorpay_refund_event":
-{ Args: { "p_amount_paise": number,"p_gateway_order_id": string | null,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: string
+{ Args: { "p_amount_paise": number,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: string
                            },
 "record_captured_payment_refund_review":
 { Args: { "p_automatic_refund"?: boolean,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_preserve_fulfilled_order"?: boolean,"p_reason": string,"p_user_id": string }; Returns: string
@@ -853,10 +853,10 @@ isOneToOne: false
 { Args: { "p_gateway_payment_id": string,"p_refund_id": string }; Returns: string
                            },
 "record_razorpay_payment_capture":
-{ Args: { "p_amount_inr": number,"p_consultation_id": string | null,"p_currency": string,"p_error_code": string | null,"p_error_description": string | null,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_order_id": string | null,"p_status": Database["public"]['Enums']["payment_status"] }; Returns: Database["public"]['Enums']["payment_status"] | null
+{ Args: { "p_amount_inr": number,"p_consultation_id": string,"p_currency": string,"p_error_code": string,"p_error_description": string,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_order_id": string,"p_status": Database["public"]['Enums']["payment_status"] }; Returns: Database["public"]['Enums']["payment_status"]
                            },
 "record_razorpay_refund_event":
-{ Args: { "p_amount_paise": number,"p_gateway_order_id": string | null,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: boolean
+{ Args: { "p_amount_paise": number,"p_gateway_order_id": string,"p_gateway_payment_id": string,"p_refund_id": string,"p_status": string }; Returns: boolean
                            },
 "register_patient_push_token":
 { Args: { "p_expo_push_token": string }; Returns: undefined

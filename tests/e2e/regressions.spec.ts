@@ -630,4 +630,32 @@ test.describe.serial("review fixes", () => {
     );
     expect(Number(found)).toBe(names.length);
   });
+
+  test("program introduction links require HTTPS at the database boundary", async () => {
+    const title = `${run} video validation`;
+    expect(() =>
+      psql(`
+        insert into programs (title, category, duration_days, price_inr, intro_video_url)
+        values (${lit(title)}, 'custom', 30, 1999, 'http://example.com/program-intro');
+      `),
+    ).toThrow(/programs_intro_video_url_https_check/);
+    expect(psql(`select count(*) from programs where title = ${lit(title)}`)).toBe("0");
+  });
+
+  test("the patient program catalog cannot read inactive programs", async () => {
+    const activeId = crypto.randomUUID();
+    const inactiveId = crypto.randomUUID();
+    script(`
+      insert into programs (id, title, category, duration_days, price_inr, is_active)
+      values
+        ('${activeId}', ${lit(`${run} active program`)}, 'custom', 30, 1999, true),
+        ('${inactiveId}', ${lit(`${run} inactive program`)}, 'custom', 30, 1999, false);
+    `);
+
+    const patientToken = await accessToken("patient");
+    const response = await api(patientToken, "GET", `/programs?id=in.(${activeId},${inactiveId})&select=id,is_active`);
+    expect(response.status, JSON.stringify(response.body)).toBe(200);
+    const visible = response.body as Array<{ id: string; is_active: boolean }>;
+    expect(visible).toEqual([{ id: activeId, is_active: true }]);
+  });
 });

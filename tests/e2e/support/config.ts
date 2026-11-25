@@ -16,4 +16,4 @@ export const PERSONAS = {
 
 // Marks every row this suite creates, so reruns can clean up and never touch seeded data.
 export const CHIEF_COMPLAINT_PREFIX = "E2E lifecycle";
-export const PROGRAM_TITLE = "30-Day Gut Reset";
+export const PROGRAM_TITLE = "30-Day Nutrition Program (E2E Sample)";

@@ -28,9 +28,21 @@ export default function PatientShopView() {
         </aside>
       )}
 
-      {products.isError && <div className={ERROR_BOX} role="alert">{products.error.message}</div>}
-
-      {productList.length === 0 ? (
+      {products.isError ? (
+        <div className="space-y-2">
+          <div className={ERROR_BOX} role="alert">
+            Catalog could not be loaded. {products.error.message}
+          </div>
+          <button
+            type="button"
+            onClick={() => void products.refetch()}
+            disabled={products.isFetching}
+            className="min-h-11 rounded-xl px-3 text-sm font-semibold text-text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue disabled:opacity-60"
+          >
+            {products.isFetching ? "Retrying..." : "Try again"}
+          </button>
+        </div>
+      ) : productList.length === 0 ? (
         <EmptyState
           icon={ShoppingBag}
           title="No products to preview"

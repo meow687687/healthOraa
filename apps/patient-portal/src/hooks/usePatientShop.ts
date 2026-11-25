@@ -1,7 +1,5 @@
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { withSingleFallback } from "@healthoraa/ui";
 import { supabase } from "../lib/supabase";
-import { FALLBACK_PRODUCTS } from "../lib/shopFallback";
 import type { ShopProduct } from "../types/shop";
 
 export const shopProductsKey = ["shop", "products"] as const;
@@ -10,23 +8,18 @@ export const shopProductsKey = ["shop", "products"] as const;
 export const useShopProducts = (): UseQueryResult<ShopProduct[], Error> =>
   useQuery<ShopProduct[], Error>({
     queryKey: shopProductsKey,
-    queryFn: () =>
-      withSingleFallback(
-        async () => {
-          const { data, error } = await supabase
-            .from("products")
-            .select("id, title, category, description")
-            .eq("is_active", true)
-            .order("title", { ascending: true });
-          if (error) throw new Error(error.message);
-          return (data ?? []).map((row) => ({
-            id: row.id,
-            title: row.title,
-            category: row.category,
-            description: row.description ?? "Product information is pending approval.",
-          }));
-        },
-        FALLBACK_PRODUCTS,
-        "shop products",
-      ),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, title, category, description")
+        .eq("is_active", true)
+        .order("title", { ascending: true });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        category: row.category,
+        description: row.description ?? "Product information is pending approval.",
+      }));
+    },
   });

@@ -1,16 +1,10 @@
-import { Badge, BTN_PRIMARY, PANEL, cn } from "@healthoraa/ui";
-import { formatPaise, rupeesToPaise } from "../../lib/money";
+import { Badge, PANEL, cn } from "@healthoraa/ui";
 import { CATEGORY_LABEL, CATEGORY_VISUAL } from "../../lib/categoryMeta";
 import type { ShopProduct } from "../../types/shop";
 
-// Stock below this shows an amber warning, so the patient can decide before adding.
-export const LOW_STOCK_THRESHOLD = 5;
-
-export function ProductCard({ product, onAdd, adding }: { product: ShopProduct; onAdd: () => void; adding: boolean }) {
+export function ProductCard({ product, sampleOnly }: { product: ShopProduct; sampleOnly: boolean }) {
   const visual = CATEGORY_VISUAL[product.category];
   const Icon = visual.icon;
-  const soldOut = product.stock <= 0;
-  const low = !soldOut && product.stock < LOW_STOCK_THRESHOLD;
 
   return (
     <article className={cn(PANEL, "flex flex-col gap-4 p-4")}>
@@ -24,25 +18,21 @@ export function ProductCard({ product, onAdd, adding }: { product: ShopProduct; 
 
       <div className="flex items-center justify-between gap-2">
         <Badge tone="neutral">{CATEGORY_LABEL[product.category]}</Badge>
-        <span className="font-mono text-[11px] text-text-muted">{product.sku}</span>
+        {sampleOnly && <Badge tone="violet">Sample listing</Badge>}
       </div>
 
       <div className="min-w-0 flex-1 space-y-1.5">
-        <h3 className="text-sm font-semibold text-text-primary">{product.title}</h3>
-        <p className="line-clamp-2 text-xs leading-relaxed text-text-secondary">{product.description}</p>
+        <h3 className="text-sm font-semibold text-text-primary">
+          {sampleOnly ? `Sample ${CATEGORY_LABEL[product.category]} listing` : product.title}
+        </h3>
+        <p className="line-clamp-2 text-xs leading-relaxed text-text-secondary">
+          {sampleOnly ? "Product information is pending client approval." : product.description}
+        </p>
       </div>
 
-      <div className="flex items-end justify-between gap-3">
-        <div className="space-y-1">
-          <p className="font-mono text-base font-bold tabular-nums text-white">{formatPaise(rupeesToPaise(product.priceInr))}</p>
-          {soldOut && <p className="text-xs font-semibold text-accent-red">Out of stock</p>}
-          {low && <p className="text-xs font-semibold text-accent-amber">Only {product.stock} left</p>}
-          {!soldOut && !low && <p className="text-xs text-text-muted">In stock</p>}
-        </div>
-        <button type="button" onClick={onAdd} disabled={soldOut || adding} className={cn(BTN_PRIMARY, "shrink-0 px-4 py-2 text-xs")}>
-          {adding ? "Adding..." : "Add to Cart"}
-        </button>
-      </div>
+      <p className="border-t border-aura-line pt-3 text-xs text-text-muted">
+        {sampleOnly ? "Pricing and availability are not approved." : "Ordering is not available in this preview."}
+      </p>
     </article>
   );
 }

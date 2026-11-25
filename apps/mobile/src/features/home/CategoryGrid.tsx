@@ -5,7 +5,6 @@ import { ChevronRight } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE } from '../../../constants/theme';
 import { Button, Card, ErrorBox, Skeleton, monoStyle } from '../../components/primitives';
 import { Sheet } from '../../components/Sheet';
-import { formatPaise, rupeesToPaise } from '../../lib/money';
 import { HOME_CATEGORIES, useCategoryPrograms, useProgramCounts, type ProgramCategory } from './queries';
 
 // Four programme categories. Each card shows how many programmes are open in it and lists them when tapped.
@@ -65,9 +64,7 @@ function CategorySheet({
         <Card key={program.id}>
           <Text style={styles.tileTitle}>{program.title}</Text>
           {program.description ? <Text style={styles.tileBlurb}>{program.description}</Text> : null}
-          <Text style={[styles.count, monoStyle]}>
-            {program.duration_days} days · {formatPaise(rupeesToPaise(Number(program.price_inr)))}
-          </Text>
+          <Text style={[styles.count, monoStyle]}>{program.duration_days} days</Text>
           <EnrolButton programId={program.id} title={program.title} />
         </Card>
       ))}

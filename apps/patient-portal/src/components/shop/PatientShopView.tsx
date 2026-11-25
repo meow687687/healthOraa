@@ -1,84 +1,48 @@
-import { useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import { ERROR_BOX, EmptyState, LABEL } from "@healthoraa/ui";
-import { useAddToCart, useCart, useRemoveCartItem, useUpdateCartQuantity } from "../../hooks/usePatientShop";
-import type { ShopProduct } from "../../types/shop";
+import { useAuth } from "../../context/AuthContext";
+import { useShopProducts } from "../../hooks/usePatientShop";
 import { ProductCard } from "./ProductCard";
-import { CartPill } from "./CartPill";
-import { CartDrawer } from "./CartDrawer";
 
 export default function PatientShopView() {
-  const cart = useCart();
-  const addToCart = useAddToCart();
-  const updateQuantity = useUpdateCartQuantity();
-  const removeItem = useRemoveCartItem();
-  const [cartOpen, setCartOpen] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const { isDemoData } = useAuth();
+  const products = useShopProducts();
 
-  if (cart.isPending) {
+  if (products.isPending) {
     return <p className="py-16 text-center text-sm text-text-secondary">Loading the shop...</p>;
   }
 
-  const products = cart.products.data ?? [];
-  const busy = updateQuantity.isPending || removeItem.isPending;
-
-  const add = (product: ShopProduct) => {
-    setNotice(null);
-    addToCart.mutate(product, { onError: (error) => setNotice(error.message) });
-  };
-  const changeQuantity = (product: ShopProduct, quantity: number) => {
-    setNotice(null);
-    updateQuantity.mutate({ product, quantity }, { onError: (error) => setNotice(error.message) });
-  };
-  const remove = (productId: string) => {
-    setNotice(null);
-    removeItem.mutate(productId, { onError: (error) => setNotice(error.message) });
-  };
+  const productList = products.data ?? [];
 
   return (
     <div className="space-y-8">
       <header className="space-y-1.5">
         <p className={LABEL}>Wellness shop</p>
         <h2 className="text-xl font-bold tracking-tight text-white">Supplements, skincare and equipment</h2>
-        <p className="text-sm text-text-secondary">Free standard delivery across India.</p>
+        <p className="text-sm text-text-secondary">Catalog preview. Ordering is not available here.</p>
       </header>
 
-      {notice && <div className={ERROR_BOX} role="alert">{notice}</div>}
+      {isDemoData && (
+        <aside aria-label="Sample catalog notice" className="rounded-2xl border border-aura-line bg-aura-s2 p-4 text-sm text-text-secondary">
+          Sample listings only. Product claims, prices, stock, and delivery terms need client approval.
+        </aside>
+      )}
 
-      {products.length === 0 ? (
+      {products.isError && <div className={ERROR_BOX} role="alert">{products.error.message}</div>}
+
+      {productList.length === 0 ? (
         <EmptyState
           icon={ShoppingBag}
-          title="No products are available right now"
-          description="New wellness products appear here as they are added."
-          action={{ label: "Refresh shop", onClick: () => void cart.products.refetch() }}
+          title="No products to preview"
+          description="Example products will appear here when they are available."
+          action={{ label: "Refresh catalog", onClick: () => void products.refetch() }}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              adding={addToCart.isPending && addToCart.variables?.id === product.id}
-              onAdd={() => add(product)}
-            />
+          {productList.map((product) => (
+            <ProductCard key={product.id} product={product} sampleOnly={isDemoData} />
           ))}
         </div>
-      )}
-
-      {cart.summary.units > 0 && (
-        <CartPill units={cart.summary.units} subtotalPaise={cart.summary.subtotalPaise} onOpen={() => setCartOpen(true)} />
-      )}
-
-      {cartOpen && (
-        <CartDrawer
-          entries={cart.entries}
-          summary={cart.summary}
-          unavailableCount={cart.unavailableCount}
-          busy={busy}
-          onQuantity={changeQuantity}
-          onRemove={remove}
-          onClose={() => setCartOpen(false)}
-        />
       )}
     </div>
   );

@@ -10,7 +10,7 @@ The walkthrough covers three web roles against a freshly seeded local Supabase d
 2. **Practitioner:** review the synthetic schedule and patient history, then publish future availability.
 3. **Patient:** browse the sample program catalog, open a program overview, browse products, view the seeded prescription/history, and submit a consultation request.
 
-The consultation request intentionally ends as **Pending payment · not confirmed**. No payment provider is called, no gateway order is created, and no charge or refund occurs. The automated test suite has a separate test-only callback to exercise post-payment clinical transitions; do not use that callback as part of a client presentation or describe its result as a real payment.
+The consultation request intentionally ends as **Pending payment · not confirmed**. No payment provider is called, no gateway order is created, and no charge or refund occurs. The shop is a read-only catalog preview: it creates no cart, order, mock payment, or order-confirmation state. Product claims, prices, stock, and delivery terms are sample data awaiting client approval. The automated test suite has a separate test-only callback to exercise post-payment clinical transitions; do not use that callback as part of a client presentation or describe its result as a real payment.
 
 ## Local setup
 
@@ -66,7 +66,7 @@ Open the local URLs printed by Vite (default ports: admin `5180`, practitioner `
 
 - Open the patient portal and sign in as Demo Patient.
 - Open **Programs**, browse the sample listings, and open a detail page. The page omits price and explains that enrollment/payment are unavailable; no video is seeded, so do not imply an introduction video exists.
-- Browse the product catalog and show the existing seeded history/prescription. Explain that sample content and assets need client approval before release.
+- Browse the read-only product catalog and show the existing seeded history/prescription. Explain that sample content and assets need client approval before release. Do not add items to a cart or present product prices, stock, or delivery terms as approved.
 - Open **Consultations**, choose an available slot, complete the intake, and review the summary.
 - Confirm the page says **No payment will be taken** before submitting.
 - Submit **Booking request**. Confirm the visible state says **Pending payment · not confirmed**. This is the end of the booking journey for Phase 1; do not call it paid, confirmed, or scheduled with the practitioner.

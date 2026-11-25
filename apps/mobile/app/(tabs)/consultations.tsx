@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Screen, Button, ErrorBox, Heading, Skeleton, EmptyState } from '../../src/components/primitives';
+import { Screen, ErrorBox, Heading, Skeleton, EmptyState } from '../../src/components/primitives';
 import { BookingSheet } from '../../src/features/consultations/BookingSheet';
 import { ChatSheet, type ChatTarget } from '../../src/features/consultations/ChatSheet';
 import { ConsultationList } from '../../src/features/consultations/ConsultationList';

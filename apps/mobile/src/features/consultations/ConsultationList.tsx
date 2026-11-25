@@ -4,9 +4,10 @@ import { CalendarX } from 'lucide-react-native';
 import { COLORS, SPACE } from '../../../constants/theme';
 import { Button, Card, EmptyState, ErrorBox, Pill, Skeleton, monoStyle } from '../../components/primitives';
 import { formatIstDateTime } from '../../lib/time';
+import { useNow } from '../../hooks/useNow';
 import { useMyConsultations } from './queries';
 import { RAZORPAY_PAYMENTS_ENABLED, startCheckout } from '../../lib/payments';
-import { ChatSheet, type ChatTarget } from './ChatSheet';
+import type { ChatTarget } from './ChatSheet';
 
 export type ConsultationRowData = NonNullable<ReturnType<typeof useMyConsultations>['data']>[number];
 
@@ -19,11 +20,11 @@ const isUpcoming = (row: ConsultationRowData, now: number): boolean =>
 export function ConsultationList({ onOpenChat }: { onOpenChat: (target: ChatTarget) => void }) {
   const consultations = useMyConsultations();
   const [tab, setTab] = useState<Tab>('upcoming');
+  const now = useNow().getTime();
 
   if (consultations.isPending && !consultations.data) return <Skeleton height={120} />;
   if (consultations.isError && !consultations.data) return <ErrorBox message={consultations.error.message} />;
 
-  const now = Date.now();
   const rows = (consultations.data ?? []).filter((row) => (tab === 'upcoming') === isUpcoming(row, now));
 
   return (

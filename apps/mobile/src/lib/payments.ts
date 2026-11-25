@@ -32,6 +32,8 @@ let checkoutInProgress = false;
 // every runtime, so a plain import could stop the whole app from starting.
 function loadRazorpayCheckout(): { open: (options: Record<string, unknown>) => Promise<unknown> } | null {
   try {
+    // Keep the native SDK lazy so web and Expo Go can load the app without the native module.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const loaded = require('react-native-razorpay') as { default?: unknown };
     return (loaded.default ?? loaded) as { open: (options: Record<string, unknown>) => Promise<unknown> };
   } catch {

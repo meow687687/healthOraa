@@ -1,9 +1,16 @@
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import {
+  AndroidImportance,
+  getExpoPushTokenAsync,
+  getPermissionsAsync,
+  requestPermissionsAsync,
+  setNotificationChannelAsync,
+  setNotificationHandler,
+} from 'expo-notifications';
 import { supabase } from './supabase';
 
 // Shown while the app is open as well as in the background.
-Notifications.setNotificationHandler({
+setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
     shouldShowList: true,
@@ -40,16 +47,16 @@ export async function registerPushToken(userId: string): Promise<PushRegistratio
   if (blockedRegistrations.has(userId) || Platform.OS === 'web' || !PROJECT_ID) return 'skipped';
   try {
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
+      await setNotificationChannelAsync('default', {
         name: 'Appointments and chat',
-        importance: Notifications.AndroidImportance.HIGH,
+        importance: AndroidImportance.HIGH,
       });
     }
-    const current = await Notifications.getPermissionsAsync();
-    const status = current.status === 'granted' ? current.status : (await Notifications.requestPermissionsAsync()).status;
+    const current = await getPermissionsAsync();
+    const status = current.status === 'granted' ? current.status : (await requestPermissionsAsync()).status;
     if (status !== 'granted') return 'denied';
 
-    const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId: PROJECT_ID });
+    const { data: token } = await getExpoPushTokenAsync({ projectId: PROJECT_ID });
     return serializeTokenOperation(async () => {
       if (blockedRegistrations.has(userId)) return 'skipped';
       const { error } = await supabase.rpc('register_patient_push_token', {

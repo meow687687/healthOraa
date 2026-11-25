@@ -7,7 +7,7 @@ import { useAuth } from '../../auth/AuthProvider';
 
 export type ProgramCategory = Enums<'program_category'>;
 
-export const HOME_CATEGORIES: ReadonlyArray<{ value: ProgramCategory; label: string; blurb: string }> = [
+export const HOME_CATEGORIES: readonly { value: ProgramCategory; label: string; blurb: string }[] = [
   { value: 'weight_management', label: 'Weight Management', blurb: 'Explore available programmes and review each plan before enrolling.' },
   { value: 'pcod_pcos', label: 'PCOD / PCOS Management', blurb: 'Review programme details and practitioner support before enrolling.' },
   { value: 'dermato_nutrition', label: 'Dermato-Nutrition', blurb: 'Explore available programmes and their included support.' },

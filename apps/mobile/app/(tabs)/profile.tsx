@@ -8,8 +8,7 @@ import { useAuth } from '../../src/auth/AuthProvider';
 import { Button, Card, EmptyState, ErrorBox, Heading, Pill, Screen, Skeleton, monoStyle } from '../../src/components/primitives';
 import { OrdersSection } from '../../src/features/profile/OrdersSection';
 import { UploadDocumentSheet } from '../../src/features/profile/UploadDocumentSheet';
-import { useDeleteAccount, useHealthLocker, useProfile } from '../../src/features/profile/queries';
-import { openLockerDocument } from '../../src/features/profile/queries';
+import { openLockerDocument, useDeleteAccount, useHealthLocker, useProfile } from '../../src/features/profile/queries';
 import { formatIstDate } from '../../src/lib/time';
 
 const DELETE_MESSAGE =

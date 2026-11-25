@@ -1,6 +1,7 @@
 import { availabilityWindowSchema, slotDurationSchema, timeToMinutes } from "@healthoraa/validation";
 import type { ConsultationSlot, ScheduleSnapshot, WindowDraft } from "../types/schedule";
 import { FALLBACK_ANCHOR } from "./fallbackData";
+import { indiaDateKey, startOfIndiaDay } from "./indiaTime";
 
 export const UPCOMING_DAYS = 7;
 
@@ -32,7 +33,7 @@ export const slotsForDay = (rules: WindowDraft[], dayOfWeek: number, durationMin
       0,
     );
 
-// Slots for `days` consecutive days from `from`, starting at local midnight. Only active windows count.
+// Slots for `days` consecutive days from `from`, starting at midnight in India. Only active windows count.
 export const generateSlots = (
   rules: WindowDraft[],
   durationMinutes: number,
@@ -40,15 +41,17 @@ export const generateSlots = (
   days: number,
 ): ConsultationSlot[] => {
   const slots: ConsultationSlot[] = [];
-  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const start = startOfIndiaDay(from);
   for (let offset = 0; offset < days; offset += 1) {
-    const day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + offset);
+    const day = new Date(start.getTime() + offset * 86_400_000);
+    const [year, month, date] = indiaDateKey(day).split("-").map(Number);
+    const dayOfWeek = new Date(Date.UTC(year, month - 1, date)).getUTCDay();
     for (const rule of rules) {
-      if (!rule.is_active || rule.day_of_week !== day.getDay()) continue;
+      if (!rule.is_active || rule.day_of_week !== dayOfWeek) continue;
       const windowStart = timeToMinutes(rule.start_time);
       const windowEnd = timeToMinutes(rule.end_time);
       for (let minute = windowStart; minute + durationMinutes <= windowEnd; minute += durationMinutes) {
-        const slotStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, minute);
+        const slotStart = new Date(day.getTime() + minute * 60_000);
         const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60_000);
         slots.push({
           id: `${slotStart.toISOString()}`,

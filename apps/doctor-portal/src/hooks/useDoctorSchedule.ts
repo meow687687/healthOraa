@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { useDoctor } from "../context/DoctorContext";
 import { FALLBACK_RULES, UPCOMING_DAYS, buildFallbackSlots, validateSnapshot } from "../lib/scheduleGenerator";
 import { readScheduleStore, writeScheduleStore } from "../lib/scheduleStore";
+import { startOfIndiaDay } from "../lib/indiaTime";
 import type { ConsultationSlot, ScheduleBase, ScheduleSnapshot, ScheduleView, WindowDraft } from "../types/schedule";
 
 export const scheduleKey = (practitionerId: string) => ["schedule", practitionerId] as const;
@@ -18,11 +19,6 @@ const touchSchedule = (queryClient: QueryClient, practitionerId: string): void =
 
 // Times come back from Postgres as HH:MM:SS. The UI and validation use HH:MM.
 const toHHMM = (time: string): string => time.slice(0, 5);
-
-const startOfToday = (): Date => {
-  const day = new Date();
-  return new Date(day.getFullYear(), day.getMonth(), day.getDate());
-};
 
 const loadBase = async (practitionerId: string, durationMinutes: number): Promise<ScheduleBase> => {
   const rules = await withFallback<WindowDraft>(
@@ -46,7 +42,7 @@ const loadBase = async (practitionerId: string, durationMinutes: number): Promis
     "availability rules",
   );
 
-  const from = startOfToday();
+  const from = startOfIndiaDay();
   const to = new Date(from.getTime() + UPCOMING_DAYS * 86_400_000);
   const slots = await withFallback<ConsultationSlot>(
     async () => {

@@ -1,13 +1,8 @@
 import { useState } from "react";
 import { Badge, Drawer, DrawerHeader, INPUT, LABEL } from "@healthoraa/ui";
 import type { ConsultationSlot } from "../../types/schedule";
+import { formatIndiaDateTime, indiaDateKey } from "../../lib/indiaTime";
 import { formatTime } from "../queue/consultationMeta";
-
-const dateKey = (date: Date): string => {
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${mm}-${dd}`;
-};
 
 // Shows the published slots for one date, with open and booked counts.
 export function SlotPreviewDrawer({
@@ -21,16 +16,16 @@ export function SlotPreviewDrawer({
   slots: ConsultationSlot[];
   publishedAt: string | null;
 }) {
-  const todayKey = dateKey(new Date());
+  const todayKey = indiaDateKey(new Date());
   const [selected, setSelected] = useState(todayKey);
-  const daySlots = slots.filter((slot) => dateKey(new Date(slot.slotStart)) === selected);
+  const daySlots = slots.filter((slot) => indiaDateKey(slot.slotStart) === selected);
   const bookedCount = daySlots.filter((slot) => slot.status === "booked").length;
   const openCount = daySlots.length - bookedCount;
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} labelledBy="slot-preview-title" className="max-w-lg p-6 md:p-8">
       <DrawerHeader
-        eyebrow={publishedAt ? `Published ${new Date(publishedAt).toLocaleString("en-IN")}` : "Not yet published"}
+        eyebrow={publishedAt ? `Published ${formatIndiaDateTime(publishedAt)}` : "Not yet published"}
         title="Slot Preview"
         titleId="slot-preview-title"
         onClose={onClose}

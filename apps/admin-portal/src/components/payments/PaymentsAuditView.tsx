@@ -83,18 +83,6 @@ export default function PaymentsAuditView() {
     ? payments?.find((payment) => payment.id === selected.id) ?? selected
     : null;
 
-  const counts = useMemo<Record<FilterValue, number>>(() => {
-    const base: Record<FilterValue, number> = { all: payments?.length ?? 0, captured: 0, refund_review: 0, failed: 0, refunded: 0 };
-    for (const p of payments ?? []) {
-      if (p.status === "refund_review" || p.refund_review?.status === "pending") {
-        base.refund_review += 1;
-      } else if (p.status === "captured" || p.status === "failed" || p.status === "refunded") {
-        base[p.status] += 1;
-      }
-    }
-    return base;
-  }, [payments]);
-
   const capturedTotal = useMemo(
     () => (payments ?? []).filter((p) => p.status === "captured").reduce((sum, p) => sum + p.amount_inr, 0),
     [payments],
@@ -185,7 +173,7 @@ export default function PaymentsAuditView() {
 
   const statusFilter: DataFilter<PaymentWithCustomer> = {
     active: filter,
-    options: FILTERS.map((option) => ({ id: option.id, label: `${option.label} ${counts[option.id]}` })),
+    options: FILTERS,
     onChange: (id) => setFilter(id as FilterValue),
     match: (payment, id) => id === "all" || (id === "refund_review"
       ? payment.status === "refund_review" || payment.refund_review?.status === "pending"

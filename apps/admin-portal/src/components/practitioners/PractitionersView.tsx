@@ -1,5 +1,5 @@
 import { DataTable, EmptyState, type DataColumn, type DataFilter } from "@healthoraa/ui";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { FileSearch, ShieldCheck, Stethoscope } from "lucide-react";
 import { usePractitioners, useTogglePractitionerActive } from "../../hooks/usePractitioners";
 import type { PractitionerWithProfile } from "../../hooks/usePractitioners";
@@ -37,16 +37,6 @@ export default function PractitionersView() {
   const busyId = toggleActive.isPending ? toggleActive.variables?.id : undefined;
   const activeCount = practitioners?.filter((p) => p.is_active).length ?? 0;
   const auditTarget = practitioners?.find((p) => p.id === auditId) ?? null;
-
-  const counts = useMemo(() => {
-    const rows = practitioners ?? [];
-    return {
-      all: rows.length,
-      pending: rows.filter((r) => matchesFilter(r, "pending")).length,
-      verified: rows.filter((r) => matchesFilter(r, "verified")).length,
-      inactive: rows.filter((r) => matchesFilter(r, "inactive")).length,
-    };
-  }, [practitioners]);
 
   const handleToggle = (row: PractitionerWithProfile) =>
     toggleActive.mutate({ id: row.id, isActive: !row.is_active });
@@ -129,10 +119,10 @@ export default function PractitionersView() {
   const statusFilter: DataFilter<PractitionerWithProfile> = {
     active: filter,
     options: [
-      { id: "all", label: `All ${counts.all}` },
-      { id: "pending", label: `Pending review ${counts.pending}` },
-      { id: "verified", label: `Verified ${counts.verified}` },
-      { id: "inactive", label: `Inactive ${counts.inactive}` },
+      { id: "all", label: "All" },
+      { id: "pending", label: "Pending review" },
+      { id: "verified", label: "Verified" },
+      { id: "inactive", label: "Inactive" },
     ],
     onChange: (id) => setFilter(id as FilterId),
     match: matchesFilter,

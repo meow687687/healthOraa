@@ -25,7 +25,7 @@ export function Heading({ eyebrow, title }: { eyebrow?: string; title: string })
   return (
     <View style={styles.heading}>
       {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      <Text style={styles.title}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.title}>{title}</Text>
     </View>
   );
 }

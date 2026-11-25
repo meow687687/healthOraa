@@ -15,7 +15,11 @@ export function QuickActions({ onDietPrograms }: { onDietPrograms: () => void })
     { label: 'Book Doctor', icon: Stethoscope, onPress: () => router.navigate('/(tabs)/consultations') },
     { label: 'Diet Programs', icon: Apple, onPress: onDietPrograms },
     { label: 'Wellness Shop', icon: ShoppingBag, onPress: () => router.navigate('/(tabs)/shop') },
-    { label: 'Health Locker', icon: FolderLock, onPress: () => router.navigate('/(tabs)/profile') },
+    {
+      label: 'Health Locker',
+      icon: FolderLock,
+      onPress: () => router.navigate({ pathname: '/(tabs)/profile', params: { section: 'locker' } }),
+    },
   ];
   return (
     <View style={styles.grid}>

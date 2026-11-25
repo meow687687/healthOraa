@@ -25,7 +25,7 @@ export default function HomeScreen() {
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={[styles.eyebrow, monoStyle]}>Healthoraa</Text>
-          <Text style={styles.greeting}>{firstName ? `Your health, ${firstName}` : 'Your health today'}</Text>
+          <Text accessibilityRole="header" style={styles.greeting}>{firstName ? `Welcome, ${firstName}` : 'Welcome'}</Text>
         </View>
         <QuickActions onDietPrograms={scrollToProgrammes} />
         <BannerCarousel />
@@ -51,7 +51,7 @@ export default function HomeScreen() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
       {children}
     </View>
   );

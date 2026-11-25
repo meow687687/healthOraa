@@ -238,7 +238,7 @@ function SlotPicker({
       {blocks.map((block) =>
         block.items.length === 0 ? null : (
           <View key={block.title} style={styles.block}>
-            <Text style={styles.blockTitle}>{block.title}</Text>
+            <Text accessibilityRole="header" style={styles.blockTitle}>{block.title}</Text>
             <View style={styles.chips}>
               {block.items.map((slot) => {
                 const on = selected?.id === slot.id;

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { FileText, LogOut, ShieldAlert, Trash2, Upload } from 'lucide-react-native';
 import { COLORS, RADIUS, SPACE } from '../../constants/theme';
 import { GRIEVANCE_OFFICER, LEGAL_COPY_APPROVED, MEDICAL_DISCLAIMERS, hasPendingLegalDetails } from '../../src/constants/legal';
@@ -16,14 +17,32 @@ const DELETE_MESSAGE =
 
 export default function ProfileScreen() {
   const { session, signOut, signOutAfterAccountDeletion, setNotice } = useAuth();
+  const { section } = useLocalSearchParams<{ section?: string }>();
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const focusedLocker = useRef(false);
   const profile = useProfile();
   const locker = useHealthLocker();
+  const [lockerTop, setLockerTop] = useState<number | null>(null);
   const deleteAccount = useDeleteAccount();
   const [lockerError, setLockerError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    if (section !== 'locker') {
+      focusedLocker.current = false;
+      return;
+    }
+    if (lockerTop === null || focusedLocker.current) return;
+
+    focusedLocker.current = true;
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: Math.max(lockerTop - SPACE.lg, 0), animated: false });
+      router.setParams({ section: undefined });
+    });
+  }, [lockerTop, section]);
 
   const openDocument = async (filePath: string | null) => {
     setLockerError(null);
@@ -59,7 +78,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <Heading eyebrow="Account" title="Profile" />
 
         {__DEV__ && (!LEGAL_COPY_APPROVED || hasPendingLegalDetails()) ? (
@@ -75,6 +94,7 @@ export default function ProfileScreen() {
 
         <Section
           title="Health locker"
+          onLayout={(event) => setLockerTop(event.nativeEvent.layout.y)}
           action={
             <Pressable accessibilityRole="button" onPress={() => setUploading(true)} style={styles.inlineAction}>
               <Upload color={COLORS.accentBlue} size={16} />
@@ -168,11 +188,21 @@ export default function ProfileScreen() {
   );
 }
 
-function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+function Section({
+  title,
+  action,
+  children,
+  onLayout,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  onLayout?: (event: LayoutChangeEvent) => void;
+}) {
   return (
-    <View style={styles.section}>
+    <View style={styles.section} onLayout={onLayout}>
       <View style={styles.sectionHead}>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
         {action}
       </View>
       {children}

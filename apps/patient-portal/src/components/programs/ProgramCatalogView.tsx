@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { ERROR_BOX, EmptyState, LABEL } from "@healthoraa/ui";
 import { useProgramCatalog } from "../../hooks/useProgramCatalog";
+import type { ProgramCatalogItem } from "../../hooks/useProgramCatalog";
 import { ProgramCard } from "./ProgramCard";
 import {
   ProgramCatalogFilters,
@@ -9,12 +10,16 @@ import {
 } from "./ProgramCatalogFilters";
 import { ProgramDetail } from "./ProgramDetail";
 
+const EMPTY_PROGRAMS: ProgramCatalogItem[] = [];
+
 export default function ProgramCatalogView() {
   const query = useProgramCatalog();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<ProgramCategoryFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const programs = query.data ?? [];
+  const catalogHeadingRef = useRef<HTMLHeadingElement>(null);
+  const restoreCatalogFocus = useRef(false);
+  const programs = query.data ?? EMPTY_PROGRAMS;
   const selected = programs.find((program) => program.id === selectedId);
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -30,16 +35,34 @@ export default function ProgramCatalogView() {
     });
   }, [category, programs, search]);
 
+  useEffect(() => {
+    if (!selectedId && restoreCatalogFocus.current) {
+      catalogHeadingRef.current?.focus();
+      restoreCatalogFocus.current = false;
+    }
+  }, [selectedId]);
+
   if (selected)
     return (
-      <ProgramDetail program={selected} onBack={() => setSelectedId(null)} />
+      <ProgramDetail
+        program={selected}
+        onBack={() => {
+          restoreCatalogFocus.current = true;
+          setSelectedId(null);
+        }}
+      />
     );
 
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <p className={LABEL}>Nutrition programs</p>
-        <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+        <h2
+          ref={catalogHeadingRef}
+          id="program-catalog-title"
+          tabIndex={-1}
+          className="rounded-sm text-xl font-bold tracking-tight text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue focus-visible:ring-offset-2 focus-visible:ring-offset-aura-canvas sm:text-2xl"
+        >
           Find a program
         </h2>
         <p className="max-w-2xl text-sm leading-relaxed text-text-secondary">
@@ -67,6 +90,20 @@ export default function ProgramCatalogView() {
         onSearchChange={setSearch}
         onCategoryChange={setCategory}
       />
+
+      <p
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {!query.isPending && !(query.isError && programs.length === 0) && (
+          <>
+            {filtered.length} {filtered.length === 1 ? "program" : "programs"}{" "}
+            found.
+          </>
+        )}
+      </p>
 
       {query.isPending ? (
         <div

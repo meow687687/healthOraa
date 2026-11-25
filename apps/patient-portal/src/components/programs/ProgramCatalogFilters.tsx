@@ -33,7 +33,7 @@ export function ProgramCatalogFilters({
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Search programs"
-          className="min-h-12 w-full rounded-2xl border border-aura-line bg-aura-s1 pl-11 pr-14 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-blue focus:outline-none focus:ring-2 focus:ring-accent-blue/30"
+          className="min-h-12 w-full rounded-2xl border border-aura-line3 bg-aura-s1 pl-11 pr-14 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-blue focus:outline-none focus:ring-2 focus:ring-accent-blue/30"
         />
         {search && (
           <button
@@ -87,7 +87,7 @@ function CategoryButton({
       className={`min-h-11 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue ${
         active
           ? "border-accent-blue bg-aura-s3 text-text-primary"
-          : "border-aura-line bg-aura-s1 text-text-secondary hover:text-text-primary"
+          : "border-aura-line3 bg-aura-s1 text-text-secondary hover:text-text-primary"
       }`}
     >
       {label}

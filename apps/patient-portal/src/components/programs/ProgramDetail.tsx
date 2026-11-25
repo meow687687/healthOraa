@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { ArrowLeft, ExternalLink, Play } from "lucide-react";
 import { PANEL, cn } from "@healthoraa/ui";
 import type { ProgramCatalogItem } from "../../hooks/useProgramCatalog";
@@ -10,8 +11,13 @@ export function ProgramDetail({
   program: ProgramCatalogItem;
   onBack: () => void;
 }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const meta = PROGRAM_CATEGORY_META[program.category];
   const Icon = meta.icon;
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -41,8 +47,10 @@ export function ProgramDetail({
                 {meta.label}
               </p>
               <h2
+                ref={titleRef}
                 id="program-detail-title"
-                className="text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl"
+                tabIndex={-1}
+                className="rounded-sm text-xl font-bold leading-tight tracking-tight text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue focus-visible:ring-offset-2 focus-visible:ring-offset-aura-canvas sm:text-2xl"
               >
                 {program.title}
               </h2>
@@ -54,21 +62,22 @@ export function ProgramDetail({
         </header>
 
         <div className="space-y-6 p-5 sm:p-7">
-          <section
-            aria-labelledby="program-overview-title"
-            className="space-y-2"
-          >
-            <h3
-              id="program-overview-title"
-              className="text-sm font-semibold text-text-primary"
+          {program.description?.trim() && (
+            <section
+              aria-labelledby="program-overview-title"
+              className="space-y-2"
             >
-              Program overview
-            </h3>
-            <p className="max-w-3xl whitespace-pre-line text-sm leading-7 text-text-secondary">
-              {program.description?.trim() ||
-                "A program overview has not been added yet."}
-            </p>
-          </section>
+              <h3
+                id="program-overview-title"
+                className="text-sm font-semibold text-text-primary"
+              >
+                Program overview
+              </h3>
+              <p className="max-w-3xl whitespace-pre-line text-sm leading-7 text-text-secondary">
+                {program.description.trim()}
+              </p>
+            </section>
+          )}
 
           {program.intro_video_url && (
             <section

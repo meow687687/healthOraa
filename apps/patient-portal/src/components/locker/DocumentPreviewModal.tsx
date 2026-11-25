@@ -18,8 +18,19 @@ export function DocumentPreviewModal({
   onDownloadError: (message: string) => void;
 }) {
   return (
-    <Modal isOpen={document !== null} onClose={onClose} labelledBy="preview-title" className="max-w-2xl">
-      {document && <PreviewBody document={document} onClose={onClose} onDownloadError={onDownloadError} />}
+    <Modal
+      isOpen={document !== null}
+      onClose={onClose}
+      labelledBy="preview-title"
+      className="max-w-2xl"
+    >
+      {document && (
+        <PreviewBody
+          document={document}
+          onClose={onClose}
+          onDownloadError={onDownloadError}
+        />
+      )}
     </Modal>
   );
 }
@@ -51,7 +62,11 @@ function PreviewBody({
       if (isRecord) await downloadRecord(document);
       else downloadLocalDocument(document);
     } catch (err) {
-      onDownloadError(err instanceof Error ? err.message : "The file could not be downloaded.");
+      onDownloadError(
+        err instanceof Error
+          ? err.message
+          : "The file could not be downloaded.",
+      );
     }
   };
 
@@ -59,30 +74,60 @@ function PreviewBody({
     <div className="flex min-h-0 flex-col gap-5">
       <header className="space-y-2 border-b border-aura-line pb-5">
         <p className={LABEL}>
-          Preview · {formatDocumentDate(document.documentDate)} · {formatFileSize(document.fileSizeBytes)}
+          Preview · {formatDocumentDate(document.documentDate)} ·{" "}
+          {formatFileSize(document.fileSizeBytes)}
         </p>
-        <h2 id="preview-title" className="text-lg font-bold tracking-tight text-white">
+        <h2
+          id="preview-title"
+          className="text-lg font-bold tracking-tight text-white"
+        >
           {document.title}
         </h2>
+        {document.source === "upload" && (
+          <p
+            role="note"
+            className="rounded-xl border border-accent-amber/30 bg-accent-amber/10 px-4 py-3 text-xs leading-relaxed text-text-primary"
+          >
+            Session only. This file has not been saved to your medical vault and
+            will be removed when you reload the page.
+          </p>
+        )}
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {url && document.fileType === "image" && (
-          <img src={url} alt={document.title} className="mx-auto max-h-[60vh] rounded-xl border border-aura-line object-contain" />
+          <img
+            src={url}
+            alt={document.title}
+            className="mx-auto max-h-[60vh] rounded-xl border border-aura-line object-contain"
+          />
         )}
         {url && document.fileType === "pdf" && (
-          <iframe title={document.title} src={url} className="h-[60vh] w-full rounded-xl border border-aura-line bg-white" />
+          <iframe
+            title={document.title}
+            src={url}
+            className="h-[60vh] w-full rounded-xl border border-aura-line bg-white"
+          />
         )}
-        {isRecord && link.isPending && <p className="py-10 text-center text-sm text-text-secondary">Opening a secure link...</p>}
+        {isRecord && link.isPending && (
+          <p className="py-10 text-center text-sm text-text-secondary">
+            Opening a secure link...
+          </p>
+        )}
         {isRecord && link.isError && (
           <p className="rounded-xl border border-accent-red/30 bg-accent-red/10 px-4 py-3 text-xs text-accent-red">
-            This file could not be opened. Records need a signed-in session. {link.error.message}
+            This file could not be opened. Records need a signed-in session.{" "}
+            {link.error.message}
           </p>
         )}
         {!isRecord && !url && document.summary && (
           <div className="space-y-3 rounded-2xl border border-aura-line bg-aura-s2 p-5">
-            <p className="text-sm leading-relaxed text-text-primary">{document.summary}</p>
-            <p className="text-xs text-text-muted">Demo summary. The original file is not stored yet.</p>
+            <p className="text-sm leading-relaxed text-text-primary">
+              {document.summary}
+            </p>
+            <p className="text-xs text-text-muted">
+              Demo summary. The original file is not stored yet.
+            </p>
           </div>
         )}
       </div>

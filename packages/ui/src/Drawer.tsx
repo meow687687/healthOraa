@@ -15,11 +15,18 @@ interface DrawerProps {
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-const FIELD = "input:not([disabled]):not([type='hidden']), select:not([disabled]), textarea:not([disabled])";
+const FIELD =
+  "input:not([disabled]):not([type='hidden']), select:not([disabled]), textarea:not([disabled])";
 
 // Shared slide-out hull for every form drawer and detail drawer.
 // Owns Escape-to-close, focus entry/trap/restore, and body scroll lock.
-export function Drawer({ isOpen, onClose, labelledBy, children, className }: DrawerProps) {
+export function Drawer({
+  isOpen,
+  onClose,
+  labelledBy,
+  children,
+  className,
+}: DrawerProps) {
   const asideRef = useRef<HTMLElement>(null);
   // Keep the latest onClose without re-running the focus effect on every parent render.
   const onCloseRef = useRef(onClose);
@@ -30,12 +37,17 @@ export function Drawer({ isOpen, onClose, labelledBy, children, className }: Dra
   useEffect(() => {
     if (!isOpen) return;
 
-    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const trigger =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     const focusables = (): HTMLElement[] =>
-      Array.from(asideRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []);
+      Array.from(
+        asideRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
+      );
 
     // Wait one frame so the aside is no longer inert/translated before focusing.
     const frame = requestAnimationFrame(() => {
@@ -57,6 +69,7 @@ export function Drawer({ isOpen, onClose, labelledBy, children, className }: Dra
       const last = items[items.length - 1];
       const active = document.activeElement;
       const outside = !asideRef.current?.contains(active);
+      const activeIsFocusable = items.includes(active as HTMLElement);
 
       if (event.shiftKey && (active === first || outside)) {
         event.preventDefault();
@@ -64,6 +77,24 @@ export function Drawer({ isOpen, onClose, labelledBy, children, className }: Dra
       } else if (!event.shiftKey && (active === last || outside)) {
         event.preventDefault();
         first.focus();
+      } else if (active instanceof HTMLElement && !activeIsFocusable) {
+        const adjacent = event.shiftKey
+          ? [...items]
+              .reverse()
+              .find((item) =>
+                Boolean(
+                  active.compareDocumentPosition(item) &
+                  Node.DOCUMENT_POSITION_PRECEDING,
+                ),
+              )
+          : items.find((item) =>
+              Boolean(
+                active.compareDocumentPosition(item) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+              ),
+            );
+        event.preventDefault();
+        (adjacent ?? (event.shiftKey ? last : first)).focus();
       }
     };
 
@@ -85,7 +116,10 @@ export function Drawer({ isOpen, onClose, labelledBy, children, className }: Dra
       )}
       aria-hidden={!isOpen}
     >
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => onCloseRef.current()} />
+      <div
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={() => onCloseRef.current()}
+      />
       <aside
         ref={asideRef}
         role="dialog"
@@ -111,12 +145,22 @@ interface DrawerHeaderProps {
   children?: ReactNode;
 }
 
-export function DrawerHeader({ eyebrow, title, titleId, onClose, children }: DrawerHeaderProps) {
+export function DrawerHeader({
+  eyebrow,
+  title,
+  titleId,
+  onClose,
+  children,
+}: DrawerHeaderProps) {
   return (
     <header className="flex items-start justify-between gap-4 pb-6 border-b border-aura-line">
       <div className="min-w-0 space-y-2">
         {eyebrow && <p className={LABEL}>{eyebrow}</p>}
-        <h2 id={titleId} className="text-lg font-bold text-white tracking-tight break-words">
+        <h2
+          id={titleId}
+          tabIndex={-1}
+          className="rounded-sm text-lg font-bold text-white tracking-tight break-words focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue focus-visible:ring-offset-2 focus-visible:ring-offset-aura-s1"
+        >
           {title}
         </h2>
         {children}
@@ -125,7 +169,7 @@ export function DrawerHeader({ eyebrow, title, titleId, onClose, children }: Dra
         type="button"
         onClick={onClose}
         aria-label="Close drawer"
-        className="shrink-0 w-9 h-9 rounded-full bg-aura-s2 border border-aura-line flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+        className="shrink-0 flex h-11 w-11 items-center justify-center rounded-full border border-aura-line bg-aura-s2 text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue focus-visible:ring-offset-2 focus-visible:ring-offset-aura-s1"
       >
         <X className="w-4 h-4" />
       </button>

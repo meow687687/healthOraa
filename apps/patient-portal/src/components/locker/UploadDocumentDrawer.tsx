@@ -2,23 +2,51 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DOCUMENT_CATEGORIES, localTodayKey, uploadDocumentSchema } from "@healthoraa/validation";
+import {
+  DOCUMENT_CATEGORIES,
+  localTodayKey,
+  uploadDocumentSchema,
+} from "@healthoraa/validation";
 import type { UploadDocumentInput } from "@healthoraa/validation";
-import { Drawer, DrawerHeader, ERROR_TEXT, INPUT, LABEL, cn } from "@healthoraa/ui";
-import { useUploadDocument, validateDocumentFile } from "../../hooks/useHealthLocker";
+import {
+  Drawer,
+  DrawerHeader,
+  ERROR_TEXT,
+  INPUT,
+  LABEL,
+  cn,
+} from "@healthoraa/ui";
+import {
+  useUploadDocument,
+  validateDocumentFile,
+} from "../../hooks/useHealthLocker";
 import { DOCUMENT_CATEGORY_LABEL } from "./categoryLabels";
 import { FileDropzone } from "./FileDropzone";
 
 const SUBMIT =
   "bg-accent-blue hover:bg-accent-blue/90 text-aura-canvas rounded-xl font-semibold py-2.5 px-6 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue disabled:opacity-60 disabled:cursor-not-allowed";
 
-const Field = ({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) => (
+const Field = ({
+  id,
+  label,
+  error,
+  children,
+}: {
+  id: string;
+  label: string;
+  error?: string;
+  children: ReactNode;
+}) => (
   <div className="space-y-1.5">
     <label htmlFor={id} className={LABEL}>
       {label}
     </label>
     {children}
-    {error && <p className={ERROR_TEXT}>{error}</p>}
+    {error && (
+      <p id={`${id}-error`} className={ERROR_TEXT}>
+        {error}
+      </p>
+    )}
   </div>
 );
 
@@ -42,6 +70,7 @@ export function UploadDocumentDrawer({ onClose }: { onClose: () => void }) {
   const onSubmit = async (values: UploadDocumentInput) => {
     if (!file) {
       setFileError("Choose a file to upload.");
+      document.getElementById("upload-file")?.focus();
       return;
     }
     try {
@@ -53,26 +82,65 @@ export function UploadDocumentDrawer({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Drawer isOpen onClose={onClose} labelledBy="upload-title" className="max-w-xl p-6 md:p-8">
-      <DrawerHeader eyebrow="Health Locker" title="Upload a document" titleId="upload-title" onClose={onClose} />
+    <Drawer
+      isOpen
+      onClose={onClose}
+      labelledBy="upload-title"
+      className="max-w-xl p-6 md:p-8"
+    >
+      <DrawerHeader
+        eyebrow="Health Locker"
+        title="Upload a document"
+        titleId="upload-title"
+        onClose={onClose}
+      />
 
-      <form id="upload-document" noValidate onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-6 py-6">
-        <FileDropzone id="upload-file" file={file} error={fileError} onPick={pick} />
+      <form
+        id="upload-document"
+        noValidate
+        onSubmit={handleSubmit(onSubmit)}
+        className="flex-1 space-y-6 py-6"
+      >
+        <FileDropzone
+          id="upload-file"
+          file={file}
+          error={fileError}
+          onPick={pick}
+        />
 
-        <Field id="upload-title-input" label="Document title" error={errors.title?.message}>
+        <Field
+          id="upload-title-input"
+          label="Document title"
+          error={errors.title?.message}
+        >
           <input
             id="upload-title-input"
             type="text"
             placeholder="For example: Lipid profile, October 2026"
             aria-invalid={Boolean(errors.title)}
+            aria-describedby={
+              errors.title ? "upload-title-input-error" : undefined
+            }
             className={INPUT}
             {...register("title")}
           />
         </Field>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field id="upload-category" label="Category" error={errors.category?.message}>
-            <select id="upload-category" aria-invalid={Boolean(errors.category)} className={INPUT} {...register("category")}>
+          <Field
+            id="upload-category"
+            label="Category"
+            error={errors.category?.message}
+          >
+            <select
+              id="upload-category"
+              aria-invalid={Boolean(errors.category)}
+              aria-describedby={
+                errors.category ? "upload-category-error" : undefined
+              }
+              className={INPUT}
+              {...register("category")}
+            >
               <option value="">Select a category</option>
               {DOCUMENT_CATEGORIES.map((category) => (
                 <option key={category} value={category}>
@@ -82,12 +150,19 @@ export function UploadDocumentDrawer({ onClose }: { onClose: () => void }) {
             </select>
           </Field>
 
-          <Field id="upload-date" label="Date on document" error={errors.document_date?.message}>
+          <Field
+            id="upload-date"
+            label="Date on document"
+            error={errors.document_date?.message}
+          >
             <input
               id="upload-date"
               type="date"
               max={localTodayKey()}
               aria-invalid={Boolean(errors.document_date)}
+              aria-describedby={
+                errors.document_date ? "upload-date-error" : undefined
+              }
               className={cn(INPUT, "font-mono")}
               {...register("document_date")}
             />
@@ -95,14 +170,21 @@ export function UploadDocumentDrawer({ onClose }: { onClose: () => void }) {
         </div>
 
         <p className="rounded-xl border border-aura-line bg-aura-s2 px-4 py-3 text-xs text-text-secondary">
-          Kept for this session only. The file is not sent to the medical vault yet, so it is cleared when the page reloads.
+          Kept for this session only. The file is not sent to the medical vault
+          yet, so it is cleared when the page reloads.
         </p>
 
-        {upload.isError && <p className={ERROR_TEXT}>{upload.error.message}</p>}
+        {upload.isError && (
+          <p role="alert" className={ERROR_TEXT}>
+            {upload.error.message}
+          </p>
+        )}
 
         <div className="flex justify-end border-t border-aura-line pt-5">
           <button type="submit" disabled={upload.isPending} className={SUBMIT}>
-            {upload.isPending ? "Uploading..." : "Securely Upload to Medical Vault"}
+            {upload.isPending
+              ? "Keeping for this session..."
+              : "Add for this session"}
           </button>
         </div>
       </form>

@@ -25,22 +25,34 @@ export function TopBar() {
           {initialsOf(patient.displayName)}
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-text-muted">Patient account</p>
-          <h1 className="truncate text-base font-bold tracking-tight text-white lg:text-lg">{patient.displayName}</h1>
+          <p className="text-xs font-semibold text-text-muted">
+            Patient account
+          </p>
+          <p className="truncate text-base font-bold tracking-tight text-white lg:text-lg">
+            {patient.displayName}
+          </p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         {status && (
           <Badge tone="emerald">
-            {status.protocolLabel} • Day {status.currentDay}/{status.durationDays}
+            {status.protocolLabel} • Day {status.currentDay}/
+            {status.durationDays}
           </Badge>
         )}
         {isDemoData ? (
-          <Badge tone="violet" className="text-xs">Demo data · synthetic records</Badge>
+          <Badge tone="violet" className="text-xs">
+            Demo data · synthetic records
+          </Badge>
         ) : null}
         {!isPrototype ? (
-          <AccountMenu email={user.email} role={user.role} displayName={patient.displayName} onSignOut={() => void signOut()} />
+          <AccountMenu
+            email={user.email}
+            role={user.role}
+            displayName={patient.displayName}
+            onSignOut={() => void signOut()}
+          />
         ) : null}
       </div>
     </header>

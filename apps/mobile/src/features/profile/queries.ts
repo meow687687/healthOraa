@@ -67,7 +67,7 @@ export const useOrders = () => {
       if (!userId) throw new Error('Not signed in');
       const { data, error } = await supabase
         .from('orders')
-        .select('id, created_at, status, total_amount_inr, tracking_number, order_items(quantity, unit_price_inr, products(title))')
+        .select('id, created_at, status, total_amount_inr, tracking_number, tracking_url, order_items(quantity, unit_price_inr, products(title))')
         .eq('customer_id', userId)
         .order('created_at', { ascending: false });
       if (error) throw new Error(error.message);

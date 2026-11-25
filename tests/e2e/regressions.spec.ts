@@ -735,6 +735,20 @@ test.describe.serial("review fixes", () => {
     expect(Number(found)).toBe(names.length);
   });
 
+  test("carrier tracking links require HTTPS at the database boundary", async () => {
+    const orderId = crypto.randomUUID();
+    script(`
+      insert into orders (id, customer_id, total_amount_inr, status, shipping_address)
+      values ('${orderId}', '${PATIENT}', 100, 'shipped', ${lit(`${run} tracking order`)});
+    `);
+    expect(() => psql(`update orders set tracking_url = 'http://carrier.example/track' where id = '${orderId}'`)).toThrow(
+      /orders_tracking_url_https_check/,
+    );
+    const trackingUrl = "https://carrier.example/track?id=sample-123";
+    script(`update orders set tracking_url = ${lit(trackingUrl)} where id = '${orderId}';`);
+    expect(psql(`select tracking_url from orders where id = '${orderId}'`)).toBe(trackingUrl);
+  });
+
   test("program introduction links require HTTPS at the database boundary", async () => {
     const title = `${run} video validation`;
     expect(() =>

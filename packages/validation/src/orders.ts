@@ -44,4 +44,13 @@ export const updateOrderStatusSchema = z.object({
     .trim()
     .max(60, "Tracking number must be 60 characters or fewer.")
     .optional(),
+  tracking_url: z
+    .string()
+    .trim()
+    .max(2048, "Tracking URL must be 2048 characters or fewer.")
+    .refine(
+      (value) => value === "" || /^https:\/\/[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?(?::\d{1,5})?(?:[/?#][^\s]*)?$/.test(value),
+      "Enter a valid HTTPS tracking URL.",
+    )
+    .optional(),
 });

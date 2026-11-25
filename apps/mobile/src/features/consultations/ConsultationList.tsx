@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { CalendarX } from 'lucide-react-native';
 import { COLORS, SPACE } from '../../../constants/theme';
 import { Button, Card, EmptyState, ErrorBox, Pill, Skeleton, monoStyle } from '../../components/primitives';
 import { formatIstDateTime } from '../../lib/time';
 import { useNow } from '../../hooks/useNow';
-import { useMyConsultations } from './queries';
+import { useCancelPendingConsultation, useMyConsultations } from './queries';
 import { RAZORPAY_PAYMENTS_ENABLED, startCheckout } from '../../lib/payments';
 import type { ChatTarget } from './ChatSheet';
 
@@ -88,7 +88,7 @@ function ConsultationRow({
       </View>
       <Text style={[styles.meta, monoStyle]}>{formatIstDateTime(row.slot_start)} IST</Text>
       {row.chief_complaint ? <Text style={styles.complaint}>{row.chief_complaint}</Text> : null}
-      {row.booking_status === 'pending_payment' ? <PayNowButton consultationId={row.id} doctorName={doctorName} /> : null}
+      {row.booking_status === 'pending_payment' ? <PendingBookingActions consultationId={row.id} doctorName={doctorName} /> : null}
       {followUpAvailable ? (
         <Button
           label="Follow-up chat"
@@ -117,9 +117,10 @@ const styles = StyleSheet.create({
   complaint: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 18 },
 });
 
-function PayNowButton({ consultationId, doctorName }: { consultationId: string; doctorName: string }) {
+function PendingBookingActions({ consultationId, doctorName }: { consultationId: string; doctorName: string }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const cancellation = useCancelPendingConsultation();
   const onPress = async () => {
     setBusy(true);
     setFailure(null);
@@ -141,6 +142,20 @@ function PayNowButton({ consultationId, doctorName }: { consultationId: string; 
         busy={busy}
         onPress={() => void onPress()}
       />
+      <Button
+        label="Cancel booking request"
+        variant="secondary"
+        busy={cancellation.isPending}
+        onPress={() => Alert.alert(
+          'Cancel this booking request?',
+          'The held time will be released. If a payment is already processing, a later capture will be sent for refund review.',
+          [
+            { text: 'Keep request', style: 'cancel' },
+            { text: 'Cancel request', style: 'destructive', onPress: () => cancellation.mutate(consultationId) },
+          ],
+        )}
+      />
+      {cancellation.error ? <ErrorBox message={cancellation.error.message} /> : null}
     </>
   );
 }

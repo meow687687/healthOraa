@@ -192,6 +192,16 @@ Deno.serve(async (request) => {
   }
 
   const errorEntity = isObject(payment.error) ? payment.error : {};
+  const errorCode = typeof payment.error_code === "string"
+    ? payment.error_code
+    : typeof errorEntity.code === "string"
+    ? errorEntity.code
+    : null;
+  const errorDescription = typeof payment.error_description === "string"
+    ? payment.error_description
+    : typeof errorEntity.description === "string"
+    ? errorEntity.description
+    : null;
   const transaction = {
     gateway: "razorpay",
     gateway_payment_id: paymentId,
@@ -199,16 +209,8 @@ Deno.serve(async (request) => {
     amount_inr: (amount as number) / 100,
     currency,
     status,
-    error_code: status === "captured"
-      ? null
-      : typeof errorEntity.code === "string"
-      ? errorEntity.code
-      : null,
-    error_description: status === "captured"
-      ? null
-      : typeof errorEntity.description === "string"
-      ? errorEntity.description
-      : null,
+    error_code: status === "captured" ? null : errorCode,
+    error_description: status === "captured" ? null : errorDescription,
     order_id: orderLog.entity_type === "shop_order" ? orderLog.entity_id : null,
     consultation_id: orderLog.entity_type === "consultation"
       ? orderLog.entity_id

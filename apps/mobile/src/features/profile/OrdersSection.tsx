@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { Package } from 'lucide-react-native';
 import { COLORS, SPACE } from '../../../constants/theme';
 import { Button, Card, EmptyState, ErrorBox, LabelLine, Pill, Skeleton, monoStyle } from '../../components/primitives';
 import { formatPaise, rupeesToPaise } from '../../lib/money';
 import { RAZORPAY_PAYMENTS_ENABLED, startCheckout } from '../../lib/payments';
 import { formatIstDateTime } from '../../lib/time';
-import { useOrders } from './queries';
+import { useCancelPendingShopOrder, useOrders } from './queries';
 
 const STEPS = ['pending', 'paid', 'shipped', 'delivered'] as const;
 const STEP_LABEL: Record<(typeof STEPS)[number], string> = {
@@ -36,6 +36,7 @@ export function OrdersSection() {
 type OrderRow = NonNullable<ReturnType<typeof useOrders>['data']>[number];
 
 function OrderCard({ order }: { order: OrderRow }) {
+  const cancellation = useCancelPendingShopOrder();
   const reference = `HX-${order.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
   const cancelled = order.status === 'cancelled';
   const reached = STEPS.indexOf(order.status as (typeof STEPS)[number]);
@@ -73,7 +74,25 @@ function OrderCard({ order }: { order: OrderRow }) {
 
       <LabelLine label="Total incl. GST" value={formatPaise(rupeesToPaise(Number(order.total_amount_inr)))} strong />
       {order.tracking_number ? <LabelLine label="Tracking" value={order.tracking_number} /> : null}
-      {order.status === 'pending' ? <PayOrderButton orderId={order.id} /> : null}
+      {order.status === 'pending' ? (
+        <>
+          <PayOrderButton orderId={order.id} />
+          {cancellation.error ? <ErrorBox message={cancellation.error.message} /> : null}
+          <Button
+            label="Cancel order"
+            variant="secondary"
+            busy={cancellation.isPending}
+            onPress={() => Alert.alert(
+              'Cancel this order?',
+              'The reserved stock will be released. If a payment is already processing, a later capture will be sent for refund review.',
+              [
+                { text: 'Keep order', style: 'cancel' },
+                { text: 'Cancel order', style: 'destructive', onPress: () => cancellation.mutate(order.id) },
+              ],
+            )}
+          />
+        </>
+      ) : null}
     </Card>
   );
 }

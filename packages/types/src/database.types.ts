@@ -700,6 +700,12 @@ isOneToOne: false
 "can_start_mobile_payment":
 { Args: { "p_entity_id": string,"p_entity_type": string,"p_user_id": string }; Returns: boolean
                            },
+"cancel_pending_consultation_booking":
+{ Args: { "p_consultation_id": string }; Returns: boolean
+                           },
+"cancel_pending_shop_order":
+{ Args: { "p_order_id": string }; Returns: boolean
+                           },
 "claim_push_alerts_for_dispatch":
 { Args: { "p_outbox_ids": (string)[] }; Returns: {
               "attempts": number,"body": string,"data": Json,"expo_push_token": string,"id": string,"recipient_id": string,"registration_version": string,"title": string

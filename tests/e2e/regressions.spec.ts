@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { PERSONAS, PUBLISHABLE_KEY, SUPABASE_URL } from "./support/config";
 import { lit, psql, script } from "./support/db";
 import { accessToken, api } from "./support/api";
-import { sendPaymentCaptured, sendRefundProcessed } from "./support/webhook";
+import { sendPaymentCaptured, sendPaymentFailed, sendRefundProcessed } from "./support/webhook";
 
 // Regression checks for the review fixes. Each one fails if its bug comes back. They call the
 // database and the webhook directly, so they do not depend on the portals' screens.
@@ -29,10 +29,13 @@ const cleanup = (): void => {
     delete from payment_transactions where gateway_payment_id like ${lit(`pay_${run}%`)};
     delete from razorpay_order_logs where order_id like ${lit(`order_${run}%`)};
     delete from orders where shipping_address like ${lit(`${run}%`)};
-    delete from consultation_slots where start_time = '${FAR_FUTURE} 04:30:00+00';
+    delete from consultation_slots where id in (
+      select slot_id from consultations where chief_complaint like ${lit(`${run}%`)} and slot_id is not null
+    ) or start_time = '${FAR_FUTURE} 04:30:00+00';
     delete from consultations where chief_complaint like ${lit(`${run}%`)};
     delete from program_enrolments where program_id in (select id from programs where title like ${lit(`${run}%`)});
     delete from programs where title like ${lit(`${run}%`)};
+    delete from products where sku = ${lit(`${run}-cancel-stock`)};
   `);
 };
 
@@ -96,6 +99,107 @@ test.describe.serial("review fixes", () => {
     expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(`pay_${run}_late`)}`)).toBe(
       "captured",
     );
+  });
+
+  test("failed payment diagnostics persist and a delayed failure cannot downgrade capture", async () => {
+    const id = crypto.randomUUID();
+    const orderId = `order_${run}_failed_then_captured`;
+    const failedPaymentId = `pay_${run}_failed_attempt`;
+    const capturedPaymentId = `pay_${run}_successful_attempt`;
+    insertConsultation(id, "scheduled", "pending_payment", orderId);
+    script(`
+      update consultations set payment_expires_at = now() + interval '10 minutes' where id = '${id}';
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(orderId)}, '${PATIENT}', 79900, 'INR', 'created', 'consultation', '${id}');
+    `);
+
+    const failed = await sendPaymentFailed({ orderId, amountPaise: 79900, currency: "INR", paymentId: failedPaymentId });
+    expect(failed.status, JSON.stringify(failed.body)).toBe(200);
+    expect(failed.body.status).toBe("failed");
+    expect(psql(`select booking_status from consultations where id = '${id}'`)).toBe("pending_payment");
+    expect(psql(`select error_code || '|' || error_description from payment_transactions where gateway_payment_id = ${lit(failedPaymentId)}`)).toBe("BAD_REQUEST_ERROR|Payment failed");
+
+    const captured = await sendPaymentCaptured({ orderId, amountPaise: 79900, currency: "INR", paymentId: capturedPaymentId });
+    expect(captured.status, JSON.stringify(captured.body)).toBe(200);
+    expect(psql(`select booking_status from consultations where id = '${id}'`)).toBe("confirmed");
+
+    const delayedFailure = await sendPaymentFailed({ orderId, amountPaise: 79900, currency: "INR", paymentId: capturedPaymentId });
+    expect(delayedFailure.status, JSON.stringify(delayedFailure.body)).toBe(200);
+    expect(delayedFailure.body.status).toBe("captured");
+    expect(psql(`select status from payment_transactions where gateway_payment_id = ${lit(capturedPaymentId)}`)).toBe("captured");
+  });
+
+  test("patients can cancel pending bookings exactly once and release the held slot", async () => {
+    const patientToken = await accessToken("patient");
+    const doctorToken = await accessToken("doctor");
+    const consultationId = crypto.randomUUID();
+    const slotId = crypto.randomUUID();
+    const slotStart = new Date(Date.now() + 400 * 24 * 60 * 60 * 1000 + Math.floor(Math.random() * 60_000)).toISOString();
+    const slotEnd = new Date(Date.parse(slotStart) + 30 * 60 * 1000).toISOString();
+    const orderId = `order_${run}_cancel_booking`;
+    script(`
+      insert into consultation_slots (id, practitioner_id, start_time, end_time)
+      values ('${slotId}', '${DOCTOR}', '${slotStart}', '${slotEnd}');
+      insert into consultations (id, patient_id, doctor_id, slot_start, slot_end, status, booking_status,
+                                 chief_complaint, amount_inr, payment_order_id, slot_id, payment_expires_at)
+      values ('${consultationId}', '${PATIENT}', '${DOCTOR}', '${slotStart}',
+              '${slotEnd}', 'scheduled', 'pending_payment', ${lit(`${run} cancellable booking`)},
+              799, ${lit(orderId)}, '${slotId}', now() + interval '10 minutes');
+      update consultation_slots set is_booked = true, consultation_id = '${consultationId}' where id = '${slotId}';
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(orderId)}, '${PATIENT}', 79900, 'INR', 'created', 'consultation', '${consultationId}');
+    `);
+
+    const denied = await api(doctorToken, "POST", "/rpc/cancel_pending_consultation_booking", { p_consultation_id: consultationId });
+    expect(denied.status, JSON.stringify(denied.body)).toBe(200);
+    expect(denied.body).toBe(false);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const cancelled = await api(patientToken, "POST", "/rpc/cancel_pending_consultation_booking", { p_consultation_id: consultationId });
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+      expect(cancelled.body).toBe(true);
+    }
+    expect(psql(`select booking_status::text || '|' || status::text from consultations where id = '${consultationId}'`)).toBe("cancelled|cancelled");
+    expect(psql(`select is_booked::text || '|' || (consultation_id is null)::text from consultation_slots where id = '${slotId}'`)).toBe("false|true");
+
+    const lateCapture = await sendPaymentCaptured({ orderId, amountPaise: 79900, currency: "INR", paymentId: `pay_${run}_cancel_booking_late` });
+    expect(lateCapture.status, JSON.stringify(lateCapture.body)).toBe(200);
+    expect(lateCapture.body.refund_review).toBe(true);
+    expect(psql(`select booking_status from consultations where id = '${consultationId}'`)).toBe("cancelled");
+  });
+
+  test("patients can cancel pending shop orders once, release stock, and prevent late capture fulfillment", async () => {
+    const patientToken = await accessToken("patient");
+    const orderId = crypto.randomUUID();
+    const gatewayOrderId = `order_${run}_cancel_shop`;
+    const sku = `${run}-cancel-stock`;
+    const paymentId = `pay_${run}_cancel_shop_late`;
+    script(`
+      insert into products (sku, title, category, price_inr, stock_count, is_active)
+      values (${lit(sku)}, ${lit(`${run} cancel test product`)}, 'supplements', 100, 10, true);
+      update products set stock_count = stock_count - 2 where sku = ${lit(sku)};
+      insert into orders (id, customer_id, total_amount_inr, status, shipping_address, reservation_expires_at)
+      values ('${orderId}', '${PATIENT}', 236, 'pending', ${lit(`${run} cancel test address`)}, now() + interval '10 minutes');
+      insert into order_items (order_id, product_id, quantity, unit_price_inr)
+      select '${orderId}', id, 2, 100 from products where sku = ${lit(sku)};
+      insert into razorpay_order_logs (order_id, user_id, amount_paise, currency, status, entity_type, entity_id)
+      values (${lit(gatewayOrderId)}, '${PATIENT}', 23600, 'INR', 'created', 'shop_order', '${orderId}');
+    `);
+    const stock = (): string => psql(`select stock_count from products where sku = ${lit(sku)}`);
+    expect(stock()).toBe("8");
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const cancelled = await api(patientToken, "POST", "/rpc/cancel_pending_shop_order", { p_order_id: orderId });
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+      expect(cancelled.body).toBe(true);
+    }
+    expect(stock()).toBe("10");
+    expect(psql(`select status::text || '|' || (stock_released_at is not null)::text from orders where id = '${orderId}'`)).toBe("cancelled|true");
+
+    const lateCapture = await sendPaymentCaptured({ orderId: gatewayOrderId, amountPaise: 23600, currency: "INR", paymentId });
+    expect(lateCapture.status, JSON.stringify(lateCapture.body)).toBe(200);
+    expect(lateCapture.body.refund_review).toBe(true);
+    expect(psql(`select status from orders where id = '${orderId}'`)).toBe("cancelled");
+    expect(stock()).toBe("10");
+    expect(psql(`select status from payment_refund_reviews where gateway_payment_id = ${lit(paymentId)}`)).toBe("pending");
   });
 
   test("a capture after consultation expiry is queued for refund before the expiry sweep", async () => {

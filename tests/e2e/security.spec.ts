@@ -365,6 +365,18 @@ test.describe("Phase 1 security boundaries", () => {
     });
     expect(documentInsert.status, JSON.stringify(documentInsert.body)).toBe(201);
 
+    const fakeDemoDocument = await api(patientToken, "POST", "/patient_documents", {
+      patient_id: PERSONAS.patient.id,
+      title: "Patient-supplied demo marker must be rejected",
+      file_path: recordPath,
+      mime_type: "application/pdf",
+      extracted_metadata: { demo_only: true },
+    });
+    expect(fakeDemoDocument.status).not.toBe(201);
+    expect(
+      psql(`select count(*) from patient_documents where title = 'Patient-supplied demo marker must be rejected'`),
+    ).toBe("0");
+
     const practitionerOwnedPath = `${PERSONAS.patient.id}/locker/practitioner-owned-${Date.now()}.pdf`;
     const practitionerUpload = await fetch(`${SUPABASE_URL}/storage/v1/object/medical-records/${practitionerOwnedPath}`, {
       method: "POST",

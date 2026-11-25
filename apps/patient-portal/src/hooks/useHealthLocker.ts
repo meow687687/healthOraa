@@ -39,6 +39,7 @@ interface DocumentRow {
   extracted_metadata: Database["public"]["Tables"]["patient_documents"]["Row"]["extracted_metadata"];
 }
 
+// RLS reserves this metadata flag for trusted seed/service writes.
 const isDemoDocument = (metadata: DocumentRow["extracted_metadata"]): boolean =>
   typeof metadata === "object" &&
   metadata !== null &&

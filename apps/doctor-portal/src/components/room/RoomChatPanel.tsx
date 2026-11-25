@@ -17,7 +17,7 @@ export function RoomChatPanel({
       // A fixed height keeps the thread scrolling inside the pane instead of growing the page.
       className={cn(
         PANEL,
-        "h-[min(28rem,calc(100dvh-24rem))] min-h-48 flex-col p-5 md:p-6 md:h-[min(30rem,calc(100dvh-24rem))] lg:h-[36rem] lg:min-h-0",
+        "h-[min(28rem,calc(100dvh-24rem))] min-h-[24rem] flex-col p-5 md:p-6 md:h-[min(30rem,calc(100dvh-24rem))] lg:h-[36rem] lg:min-h-0",
         pane === "chat" ? "flex" : "hidden lg:flex",
       )}
     >

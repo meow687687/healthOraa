@@ -32,6 +32,14 @@ export default function ConsultationQueueView() {
   const now = useNow();
   const [room, setRoom] = useState<OpenRoom | null>(null);
   const selectionSeq = useRef(0);
+
+  useEffect(
+    () => () => {
+      selectionSeq.current += 1;
+    },
+    [],
+  );
+
   const queue = data ?? [];
   const inProgress = queue.filter(
     (item) => item.status === "in_progress",

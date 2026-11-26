@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
+import { buildPrototypeDashboardSummary } from "../lib/dashboardPrototypeData";
 
 export interface Pair {
   current: number;
@@ -45,23 +46,42 @@ export interface DashboardSummary {
     completed: number;
   };
   heatmap: { weekday: number; hour: number; count: number }[];
-  top_products: { id: string; title: string; units: number; revenue_inr: number }[];
+  top_products: {
+    id: string;
+    title: string;
+    units: number;
+    revenue_inr: number;
+  }[];
 }
 
 // The function's output is checked for its main sections before the screens use it.
 export function isDashboardSummary(value: unknown): value is DashboardSummary {
   if (typeof value !== "object" || value === null) return false;
-  return "kpis" in value && "daily" in value && "attention" in value && "funnel" in value && "signals" in value;
+  return (
+    "kpis" in value &&
+    "daily" in value &&
+    "attention" in value &&
+    "funnel" in value &&
+    "signals" in value
+  );
 }
 
-export const useDashboardSummary = (days: number) =>
+export const useDashboardSummary = (
+  days: number,
+  isPrototype: boolean,
+): UseQueryResult<DashboardSummary, Error> =>
   useQuery<DashboardSummary, Error>({
-    queryKey: ["admin-dashboard", days],
+    queryKey: ["admin-dashboard", days, isPrototype],
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("admin_dashboard_summary", { p_days: days });
+      if (isPrototype) return buildPrototypeDashboardSummary(days);
+
+      const { data, error } = await supabase.rpc("admin_dashboard_summary", {
+        p_days: days,
+      });
       if (error) throw new Error(error.message);
-      if (!isDashboardSummary(data)) throw new Error("The dashboard returned data in an unexpected shape.");
+      if (!isDashboardSummary(data))
+        throw new Error("The dashboard returned data in an unexpected shape.");
       return data;
     },
   });

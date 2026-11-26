@@ -772,6 +772,8 @@ test.describe.serial("review fixes", () => {
     rejectTrackingUrl("https://127.1/track");
     rejectTrackingUrl("https://0x7f000001/track");
     rejectTrackingUrl("https://0x7f.1/track");
+    rejectTrackingUrl("https://0x/track");
+    rejectTrackingUrl("https://1.0x/track");
     persistTrackingUrl(ipv4TrackingUrl);
     script(`update orders set tracking_url = ${lit(ipv6TrackingUrl)} where id = '${orderId}';`);
     expect(psql(`select tracking_url from orders where id = '${orderId}'`)).toBe(ipv6TrackingUrl);
@@ -807,6 +809,12 @@ test.describe.serial("review fixes", () => {
     }).success).toBe(false);
     expect(updateOrderStatusSchema.safeParse({
       tracking_url: "https://0x7f.1/track",
+    }).success).toBe(false);
+    expect(updateOrderStatusSchema.safeParse({
+      tracking_url: "https://0x/track",
+    }).success).toBe(false);
+    expect(updateOrderStatusSchema.safeParse({
+      tracking_url: "https://1.0x/track",
     }).success).toBe(false);
     expect(updateOrderStatusSchema.safeParse({
       tracking_url: ipv4TrackingUrl,

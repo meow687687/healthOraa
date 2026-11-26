@@ -17,7 +17,7 @@ ALTER TABLE public.orders
                 ELSE TRUE
             END
             AND CASE
-                WHEN tracking_url ~ '^https://(?:[A-Za-z0-9.-]+\.)?(?:[0-9]+|0[xX][0-9A-Fa-f]+)(?::[0-9]{1,5})?([/?#]|$)'
+                WHEN tracking_url ~ '^https://(?:[A-Za-z0-9.-]+\.)?(?:[0-9]+|0[xX][0-9A-Fa-f]*)(?::[0-9]{1,5})?([/?#]|$)'
                 THEN tracking_url ~ '^https://(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}(?::[0-9]{1,5})?([/?#]|$)'
                 ELSE TRUE
             END

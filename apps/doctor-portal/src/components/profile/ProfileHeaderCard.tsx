@@ -1,4 +1,5 @@
 import { Badge, PANEL, cn } from "@healthoraa/ui";
+import { isSeededDemoPractitionerId } from "@healthoraa/types";
 import { useDoctor } from "../../context/DoctorContext";
 import type { PractitionerProfile, VerificationStatus } from "../../types/profile";
 
@@ -21,7 +22,11 @@ const initialsOf = (name: string): string =>
 export function ProfileHeaderCard({ profile }: { profile: PractitionerProfile }) {
   // Same state as the top bar toggle, so the two controls never disagree.
   const { isAccepting, toggleAccepting } = useDoctor();
-  const verification = VERIFICATION[profile.verificationStatus];
+  const isDemoProfile = isSeededDemoPractitionerId(profile.id);
+  const isVerified = !isDemoProfile && profile.verificationStatus === "verified";
+  const verification = isDemoProfile
+    ? { tone: "violet" as const, label: "Demo · not audited" }
+    : VERIFICATION[profile.verificationStatus];
 
   return (
     <section aria-label="Doctor profile" className={cn(PANEL, "flex flex-wrap items-center gap-5 md:flex-nowrap")}>
@@ -46,28 +51,34 @@ export function ProfileHeaderCard({ profile }: { profile: PractitionerProfile })
         </p>
       </div>
 
-      <button
-        type="button"
-        role="switch"
-        aria-checked={isAccepting}
-        onClick={toggleAccepting}
-        className="flex items-center gap-3 rounded-full border border-aura-line2 bg-aura-s2 py-2 pl-2 pr-4 transition-colors hover:bg-aura-s3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
-      >
-        <span
-          aria-hidden="true"
-          className={cn("relative h-5 w-9 rounded-full transition-colors", isAccepting ? "bg-accent-emerald" : "bg-aura-s3")}
+      {isVerified ? (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isAccepting}
+          onClick={toggleAccepting}
+          className="flex items-center gap-3 rounded-full border border-aura-line2 bg-aura-s2 py-2 pl-2 pr-4 transition-colors hover:bg-aura-s3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
         >
           <span
-            className={cn(
-              "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all",
-              isAccepting ? "left-[1.1rem]" : "left-0.5",
-            )}
-          />
-        </span>
-        <span className="text-xs font-semibold text-text-primary">
-          {isAccepting ? "Accepting consultations" : "Consultations paused"}
-        </span>
-      </button>
+            aria-hidden="true"
+            className={cn("relative h-5 w-9 rounded-full transition-colors", isAccepting ? "bg-accent-emerald" : "bg-aura-s3")}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all",
+                isAccepting ? "left-[1.1rem]" : "left-0.5",
+              )}
+            />
+          </span>
+          <span className="text-xs font-semibold text-text-primary">
+            {isAccepting ? "Accepting consultations" : "Consultations paused"}
+          </span>
+        </button>
+      ) : (
+        <Badge tone={isDemoProfile ? "violet" : "neutral"}>
+          {isDemoProfile ? "Preview only" : "Consultations paused"}
+        </Badge>
+      )}
     </section>
   );
 }

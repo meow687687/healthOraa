@@ -71,7 +71,11 @@ export function BookingDrawer({
       className="max-w-2xl p-6 md:p-8"
     >
       <DrawerHeader
-        eyebrow={`Book with ${doctor.displayName}`}
+        eyebrow={
+          doctor.isDemoRecord
+            ? "Demo booking preview"
+            : `Book with ${doctor.displayName}`
+        }
         title={TITLES[step]}
         titleId="booking-title"
         onClose={onClose}

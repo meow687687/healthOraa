@@ -41,7 +41,7 @@ export default function ConsultationsView() {
         ) : (
           <EmptyState
             icon={Stethoscope}
-            title="No consultation booked"
+            title="No upcoming consultation"
             description="Choose a doctor below and pick a time that suits you."
             action={{ label: "Book a visit", onClick: findDoctor }}
           />

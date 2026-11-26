@@ -277,7 +277,7 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
     await expect(demoDoctor).toContainText("Demo · not audited");
     await expect(demoDoctor).not.toContainText("NMC verified");
     await demoDoctor
-      .getByRole("button", { name: "Book consultation", exact: true })
+      .getByRole("button", { name: "Preview booking", exact: true })
       .click();
 
     const drawer = patient.getByRole("dialog");
@@ -458,9 +458,28 @@ test.describe.serial("Healthoraa clinical and commercial lifecycle", () => {
       doctor.getByRole("heading", { level: 1, name: "Queue" }),
     ).toBeVisible();
 
-    await card
-      .getByRole("button", { name: "Start Consultation", exact: true })
-      .click();
+    const startButton = card.getByRole("button", { name: /Starts in \d+ min/ });
+    await expect(startButton).toBeDisabled();
+    const slotId = psql(
+      `select slot_id from consultations where id = '${state.consultationId}'`,
+    );
+    const dueStart = new Date(Date.now() - 60_000).toISOString();
+    const dueEnd = new Date(Date.now() + 29 * 60_000).toISOString();
+    script(`
+      update consultation_slots
+      set start_time = '${dueStart}', end_time = '${dueEnd}'
+      where id = '${slotId}';
+      update consultations
+      set slot_start = '${dueStart}', slot_end = '${dueEnd}'
+      where id = '${state.consultationId}';
+    `);
+    await doctor.reload();
+    const readyStartButton = doctor
+      .getByRole("article")
+      .filter({ hasText: runTag })
+      .getByRole("button", { name: "Start Consultation", exact: true });
+    await expect(readyStartButton).toBeEnabled();
+    await readyStartButton.click();
     // Starting moves the consultation to in_progress in the database before the composer opens.
     await expect
       .poll(() =>

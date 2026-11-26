@@ -12,7 +12,10 @@ interface ConsultationQueueSectionsProps {
   now: number;
   isActiveRoom: (id: string) => boolean;
   isStarting: (id: string) => boolean;
-  onStart: (consultation: QueueConsultation, trigger?: HTMLButtonElement) => void;
+  onStart: (
+    consultation: QueueConsultation,
+    trigger?: HTMLButtonElement,
+  ) => void;
   onOpenRoom: (
     consultation: QueueConsultation,
     pane: RoomPane,
@@ -93,6 +96,7 @@ export function ConsultationQueueSections({
               <li key={consultation.id}>
                 <QueueCard
                   consultation={consultation}
+                  now={now}
                   isActiveRoom={isActiveRoom(consultation.id)}
                   isStarting={isStarting(consultation.id)}
                   onStart={onStart}
@@ -118,6 +122,7 @@ export function ConsultationQueueSections({
                 <QueueCard
                   compact
                   consultation={consultation}
+                  now={now}
                   isActiveRoom={isActiveRoom(consultation.id)}
                   isStarting={isStarting(consultation.id)}
                   onStart={onStart}

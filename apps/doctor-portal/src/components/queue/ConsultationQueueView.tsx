@@ -52,6 +52,8 @@ export default function ConsultationQueueView() {
     (item) => item.status === "in_progress",
   ).length;
   const scheduled = queue.filter((item) => item.status === "scheduled").length;
+  const completed = queue.filter((item) => item.status === "completed").length;
+  const cancelled = queue.filter((item) => item.status === "cancelled").length;
   const startingId = startConsultation.isPending
     ? (startConsultation.variables?.id ?? null)
     : null;
@@ -160,6 +162,16 @@ export default function ConsultationQueueView() {
             <Badge tone="amber" className="tabular-nums">
               {scheduled} scheduled
             </Badge>
+            {completed > 0 && (
+              <Badge tone="blue" className="tabular-nums">
+                {completed} completed
+              </Badge>
+            )}
+            {cancelled > 0 && (
+              <Badge tone="neutral" className="tabular-nums">
+                {cancelled} cancelled
+              </Badge>
+            )}
           </div>
         </section>
 

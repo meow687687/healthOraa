@@ -1,7 +1,10 @@
 import type { ProductCategory } from "@healthoraa/types";
 import type { Tone } from "../ui/tokens";
 
-export const PRODUCT_CATEGORY_META: Record<ProductCategory, { label: string; tone: Tone }> = {
+export const PRODUCT_CATEGORY_META: Record<
+  ProductCategory,
+  { label: string; tone: Tone }
+> = {
   supplements: { label: "Supplements", tone: "blue" },
   ayurvedic: { label: "Ayurvedic", tone: "emerald" },
   skincare: { label: "Skincare", tone: "violet" },
@@ -9,3 +12,8 @@ export const PRODUCT_CATEGORY_META: Record<ProductCategory, { label: string; ton
 };
 
 export const LOW_STOCK_THRESHOLD = 5;
+
+export const isLowStockProduct = (product: {
+  is_active: boolean;
+  stock_count: number;
+}): boolean => product.is_active && product.stock_count <= LOW_STOCK_THRESHOLD;

@@ -1,9 +1,10 @@
 import { BTN_PRIMARY, Badge, PANEL, cn } from "@healthoraa/ui";
 import type { QueueConsultation, RoomPane } from "../../types/queue";
-import { CONSULTATION_STATUS_META, formatTime } from "./consultationMeta";
+import { CONSULTATION_STATUS_META, formatTime, timingLine } from "./consultationMeta";
 
 export interface QueueCardProps {
   consultation: QueueConsultation;
+  now: number;
   isActiveRoom: boolean;
   isStarting: boolean;
   onStart: (consultation: QueueConsultation, trigger?: HTMLButtonElement) => void;
@@ -15,7 +16,7 @@ const SECONDARY_PILL =
 
 // Every actionable state opens the consultation room on the matching pane.
 // Starting a scheduled consultation moves it to in_progress first, then opens the same drawer.
-export function QueueAction({ consultation, isActiveRoom, isStarting, onStart, onOpenRoom }: QueueCardProps) {
+export function QueueAction({ consultation, now, isActiveRoom, isStarting, onStart, onOpenRoom }: QueueCardProps) {
   switch (consultation.status) {
     case "in_progress":
       return (
@@ -28,23 +29,25 @@ export function QueueAction({ consultation, isActiveRoom, isStarting, onStart, o
           Enter Telemedicine Room
         </button>
       );
-    case "scheduled":
+    case "scheduled": {
+      const canStart = Date.parse(consultation.slotStart) <= now;
       return (
         <>
           <button
             type="button"
             onClick={(event) => onStart(consultation, event.currentTarget)}
-            disabled={isStarting}
+            disabled={isStarting || !canStart}
             aria-busy={isStarting}
-            className={cn(BTN_PRIMARY, "min-h-[44px] px-4 py-2")}
+            className={cn(BTN_PRIMARY, "min-h-[44px] px-4 py-2", !canStart && "cursor-not-allowed opacity-60")}
           >
-            {isStarting ? "Starting..." : "Start Consultation"}
+            {isStarting ? "Starting..." : canStart ? "Start Consultation" : timingLine(consultation, now)}
           </button>
           <button type="button" onClick={(event) => onOpenRoom(consultation, "intake", event.currentTarget)} className={SECONDARY_PILL}>
             Review Intake Form
           </button>
         </>
       );
+    }
     case "completed":
       return (
         <>

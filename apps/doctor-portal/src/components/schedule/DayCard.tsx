@@ -5,9 +5,9 @@ import { DAY_NAMES } from "../../lib/scheduleGenerator";
 import { ToggleSwitch } from "./ToggleSwitch";
 
 const ADD_WINDOW_PILL =
-  "inline-flex items-center gap-1.5 rounded-full border border-aura-line2 bg-aura-s3 text-accent-blue hover:bg-aura-s2 text-xs font-semibold py-1.5 px-3 transition-colors";
+  "inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-aura-line2 bg-aura-s3 text-accent-blue hover:bg-aura-s2 text-xs font-semibold py-1.5 px-3 transition-colors";
 const REMOVE_BUTTON =
-  "shrink-0 rounded-full p-1.5 text-accent-red transition-colors hover:bg-accent-red/10";
+  "min-h-[44px] min-w-[44px] shrink-0 rounded-full p-1.5 text-accent-red transition-colors hover:bg-accent-red/10";
 
 export function DayCard({
   dayOfWeek,
@@ -74,7 +74,7 @@ export function DayCard({
                     aria-label={`${name} window ${index + 1} start`}
                     value={window.start_time}
                     onChange={(event) => onUpdate(window.id, { start_time: event.target.value })}
-                    className={cn(INPUT, "w-auto min-w-[6.5rem] py-1.5 font-mono text-xs")}
+                    className={cn(INPUT, "min-h-[44px] w-auto min-w-[6.5rem] py-1.5 font-mono text-xs")}
                   />
                   <span className="text-xs text-text-muted">to</span>
                   <input
@@ -82,7 +82,7 @@ export function DayCard({
                     aria-label={`${name} window ${index + 1} end`}
                     value={window.end_time}
                     onChange={(event) => onUpdate(window.id, { end_time: event.target.value })}
-                    className={cn(INPUT, "w-auto min-w-[6.5rem] py-1.5 font-mono text-xs")}
+                    className={cn(INPUT, "min-h-[44px] w-auto min-w-[6.5rem] py-1.5 font-mono text-xs")}
                   />
                   <button
                     type="button"

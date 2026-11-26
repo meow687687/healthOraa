@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { Menu } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../cn";
@@ -27,15 +33,31 @@ interface PortalRailProps<T extends string> {
 }
 
 // Three layouts from one list: a labelled rail (xl), an icon rail with tooltips (md to xl), and a bottom bar (phones).
-export function PortalRail<T extends string>({ groups, active, onSelect, footer, phonePrimary }: PortalRailProps<T>) {
+export function PortalRail<T extends string>({
+  groups,
+  active,
+  onSelect,
+  footer,
+  phonePrimary,
+}: PortalRailProps<T>) {
   const [moreOpen, setMoreOpen] = useState(false);
   // The icon tooltip sits outside the scrolling rail, so it is never clipped.
-  const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
+  const [tip, setTip] = useState<{
+    label: string;
+    top: number;
+    left: number;
+  } | null>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const all = groups.flatMap((group) => group.items);
-  const bar = all.length <= 4 ? all : all.filter((item) => (phonePrimary ?? all.slice(0, 3).map((i) => i.id)).includes(item.id));
-  const overflow = all.length <= 4 ? [] : all.filter((item) => !bar.includes(item));
+  const bar =
+    all.length <= 4
+      ? all
+      : all.filter((item) =>
+          (phonePrimary ?? all.slice(0, 3).map((i) => i.id)).includes(item.id),
+        );
+  const overflow =
+    all.length <= 4 ? [] : all.filter((item) => !bar.includes(item));
 
   // Opening moves focus into the sheet. Closing, by any route, returns focus to the More button.
   useEffect(() => {
@@ -54,7 +76,9 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
   // Tab and Shift+Tab cycle inside the sheet, so the page behind it cannot take focus.
   const trapFocus = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Tab" || !sheet.current) return;
-    const items = Array.from(sheet.current.querySelectorAll<HTMLElement>("button"));
+    const items = Array.from(
+      sheet.current.querySelectorAll<HTMLElement>("button"),
+    );
     if (items.length === 0) return;
     const first = items[0];
     const last = items[items.length - 1];
@@ -82,18 +106,29 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
         <nav className="mt-8 flex-1 space-y-6 overflow-y-auto">
           {groups.map((group) => (
             <div key={group.id}>
-              {group.title ? <p className="px-3 pb-2 text-[13px] font-semibold text-text-muted">{group.title}</p> : null}
+              {group.title ? (
+                <p className="px-3 pb-2 text-[13px] font-semibold text-text-muted">
+                  {group.title}
+                </p>
+              ) : null}
               <ul className="space-y-1">
                 {group.items.map((item) => (
                   <li key={item.id}>
-                    <NavButton item={item} active={active === item.id} onSelect={choose} layout="wide" />
+                    <NavButton
+                      item={item}
+                      active={active === item.id}
+                      onSelect={choose}
+                      layout="wide"
+                    />
                   </li>
                 ))}
               </ul>
             </div>
           ))}
         </nav>
-        {footer ? <div className="mt-4 px-3 text-[13px] text-text-muted">{footer}</div> : null}
+        {footer ? (
+          <div className="mt-4 px-3 text-[13px] text-text-muted">{footer}</div>
+        ) : null}
       </aside>
 
       <aside
@@ -103,7 +138,14 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
         <Brand compact />
         <nav className="flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto">
           {all.map((item) => (
-            <NavButton key={item.id} item={item} active={active === item.id} onSelect={choose} layout="icon" onHint={setTip} />
+            <NavButton
+              key={item.id}
+              item={item}
+              active={active === item.id}
+              onSelect={choose}
+              layout="icon"
+              onHint={setTip}
+            />
           ))}
         </nav>
       </aside>
@@ -112,12 +154,20 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
         aria-label="Main navigation"
         className={cn(
           "fixed inset-x-0 bottom-0 z-30 items-stretch border-t border-aura-line bg-aura-s1 px-1 md:hidden",
-          "grid h-16",
+          "grid h-[calc(4rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)]",
         )}
-        style={{ gridTemplateColumns: `repeat(${bar.length + (overflow.length ? 1 : 0)}, minmax(0, 1fr))` }}
+        style={{
+          gridTemplateColumns: `repeat(${bar.length + (overflow.length ? 1 : 0)}, minmax(0, 1fr))`,
+        }}
       >
         {bar.map((item) => (
-          <NavButton key={item.id} item={item} active={active === item.id} onSelect={choose} layout="bar" />
+          <NavButton
+            key={item.id}
+            item={item}
+            active={active === item.id}
+            onSelect={choose}
+            layout="bar"
+          />
         ))}
         {overflow.length > 0 ? (
           <button
@@ -128,7 +178,9 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
             aria-label="More sections"
             className={cn(
               "flex min-h-[44px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[11px] font-semibold cursor-pointer",
-              moreOpen || overflow.some((item) => item.id === active) ? "text-text-primary" : "text-text-muted",
+              moreOpen || overflow.some((item) => item.id === active)
+                ? "text-text-primary"
+                : "text-text-muted",
             )}
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
@@ -148,7 +200,10 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
       ) : null}
 
       {moreOpen ? (
-        <div className="fixed inset-0 z-40 md:hidden" onMouseDown={() => setMoreOpen(false)}>
+        <div
+          className="fixed inset-0 z-40 md:hidden"
+          onMouseDown={() => setMoreOpen(false)}
+        >
           <div className="absolute inset-0 bg-black/50" />
           <div
             ref={sheet}
@@ -161,11 +216,20 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
           >
             {groups.map((group) => (
               <div key={group.id} className="mb-4 last:mb-0">
-                {group.title ? <p className="px-2 pb-2 text-[13px] font-semibold text-text-muted">{group.title}</p> : null}
+                {group.title ? (
+                  <p className="px-2 pb-2 text-[13px] font-semibold text-text-muted">
+                    {group.title}
+                  </p>
+                ) : null}
                 <ul className="grid grid-cols-2 gap-2">
                   {group.items.map((item) => (
                     <li key={item.id}>
-                      <NavButton item={item} active={active === item.id} onSelect={choose} layout="wide" />
+                      <NavButton
+                        item={item}
+                        active={active === item.id}
+                        onSelect={choose}
+                        layout="wide"
+                      />
                     </li>
                   ))}
                 </ul>
@@ -180,16 +244,26 @@ export function PortalRail<T extends string>({ groups, active, onSelect, footer,
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={cn("flex items-center gap-3", compact ? "justify-center" : "px-2")}>
+    <div
+      className={cn(
+        "flex items-center gap-3",
+        compact ? "justify-center" : "px-2",
+      )}
+    >
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-blue">
         <span className="text-base font-extrabold text-aura-canvas">H</span>
       </div>
-      {compact ? null : <span className="text-[15px] font-semibold text-text-primary">Healthoraa</span>}
+      {compact ? null : (
+        <span className="text-[15px] font-semibold text-text-primary">
+          Healthoraa
+        </span>
+      )}
     </div>
   );
 }
 
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue";
+const FOCUS =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue";
 
 function NavButton<T extends string>({
   item,
@@ -205,14 +279,20 @@ function NavButton<T extends string>({
   onHint?: (tip: { label: string; top: number; left: number } | null) => void;
 }) {
   const Icon = item.icon;
-  const stateClass = active ? "bg-aura-s3 text-text-primary shadow-aura-elevated" : "text-text-muted hover:bg-aura-s2 hover:text-text-primary";
+  const stateClass = active
+    ? "bg-aura-s3 text-text-primary shadow-aura-elevated"
+    : "text-text-muted hover:bg-aura-s2 hover:text-text-primary";
   if (layout === "wide") {
     return (
       <button
         type="button"
         onClick={() => onSelect(item.id)}
         aria-current={active ? "page" : undefined}
-        className={cn("flex min-h-[44px] w-full items-center gap-3 rounded-2xl px-3 transition-colors duration-150 cursor-pointer", FOCUS, stateClass)}
+        className={cn(
+          "flex min-h-[44px] w-full items-center gap-3 rounded-2xl px-3 transition-colors duration-150 cursor-pointer",
+          FOCUS,
+          stateClass,
+        )}
       >
         <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
         <span className="text-sm font-medium">{item.label}</span>
@@ -226,16 +306,26 @@ function NavButton<T extends string>({
         onClick={() => onSelect(item.id)}
         aria-current={active ? "page" : undefined}
         aria-label={item.label}
-        className={cn("flex min-h-[44px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 transition-colors duration-150 cursor-pointer", FOCUS, stateClass)}
+        className={cn(
+          "flex min-h-[44px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 transition-colors duration-150 cursor-pointer",
+          FOCUS,
+          stateClass,
+        )}
       >
         <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-        <span className="max-w-full truncate text-[11px] font-semibold">{item.label}</span>
+        <span className="max-w-full truncate text-[11px] font-semibold">
+          {item.label}
+        </span>
       </button>
     );
   }
   const show = (element: HTMLElement) => {
     const rect = element.getBoundingClientRect();
-    onHint?.({ label: item.label, top: rect.top + rect.height / 2, left: rect.right + 12 });
+    onHint?.({
+      label: item.label,
+      top: rect.top + rect.height / 2,
+      left: rect.right + 12,
+    });
   };
   const hide = () => onHint?.(null);
   return (
@@ -248,7 +338,11 @@ function NavButton<T extends string>({
       onBlur={hide}
       aria-current={active ? "page" : undefined}
       aria-label={item.label}
-      className={cn("flex h-11 w-11 items-center justify-center rounded-2xl transition-colors duration-150 cursor-pointer", FOCUS, stateClass)}
+      className={cn(
+        "flex h-11 w-11 items-center justify-center rounded-2xl transition-colors duration-150 cursor-pointer",
+        FOCUS,
+        stateClass,
+      )}
     >
       <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
     </button>

@@ -65,11 +65,11 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-aura-canvas font-sans text-text-primary antialiased">
+    <div className="h-dvh overflow-hidden bg-aura-canvas font-sans text-text-primary antialiased md:h-auto md:min-h-screen md:overflow-visible">
       <SkipLink />
       <AdminRail active={activeTab} onSelect={select} />
 
-      <div className="flex min-h-screen min-w-0 flex-col md:pl-16 xl:pl-[232px]">
+      <div className="flex h-full min-h-0 min-w-0 flex-col md:h-auto md:min-h-screen md:pl-16 xl:pl-[232px]">
         <AdminHeader
           title={item.label}
           groupLabel={group.title ?? "Overview"}
@@ -87,7 +87,7 @@ export default function App() {
           aria-label={`${item.label} content`}
           aria-busy={isPending}
           className={cn(
-            "flex-1 p-4 pb-24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-blue md:p-6 md:pb-8 lg:p-8",
+            "mb-[calc(5rem+env(safe-area-inset-bottom))] min-h-0 flex-1 overflow-y-auto p-4 pb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-blue md:mb-0 md:overflow-visible md:p-6 md:pb-8 lg:p-8",
           )}
         >
           <div

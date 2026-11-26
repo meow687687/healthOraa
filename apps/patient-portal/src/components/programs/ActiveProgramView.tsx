@@ -24,7 +24,11 @@ const useNow = (): number => {
 };
 
 // The landing screen: what is next, today's plan, then the programme as a whole.
-export default function ActiveProgramView({ onOpenConsultations }: { onOpenConsultations: () => void }) {
+export default function ActiveProgramView({
+  onOpenConsultations,
+}: {
+  onOpenConsultations: () => void;
+}) {
   const patient = usePatient();
   const query = useActiveProgram();
   const now = useNow();
@@ -33,32 +37,54 @@ export default function ActiveProgramView({ onOpenConsultations }: { onOpenConsu
   return (
     <div className="space-y-6">
       <NextVisitCard now={now} onOpen={onOpenConsultations} />
-      {query.isPending && <p className="py-16 text-center text-sm text-text-secondary">Loading your program...</p>}
-      {!query.isPending && !query.data && (
-        <p className="py-16 text-center text-sm text-text-muted">Could not load your program.</p>
+      {query.isPending && (
+        <p className="py-16 text-center text-sm text-text-secondary">
+          Loading your program...
+        </p>
       )}
-      {query.data && <ProgramDashboard patientId={patient.id} data={query.data} />}
+      {!query.isPending && !query.data && (
+        <p className="py-16 text-center text-sm text-text-muted">
+          Could not load your program.
+        </p>
+      )}
+      {query.data && (
+        <ProgramDashboard patientId={patient.id} data={query.data} />
+      )}
     </div>
   );
 }
 
-function ProgramDashboard({ patientId, data }: { patientId: string; data: ActiveProgramData }) {
+function ProgramDashboard({
+  patientId,
+  data,
+}: {
+  patientId: string;
+  data: ActiveProgramData;
+}) {
   const { program, dayLogs } = data;
   const [chatOpen, setChatOpen] = useState(false);
   const save = useSaveDayLog(patientId, program);
 
-  const today: DayLog = dayLogs.find((day) => day.dayNumber === program.currentDay) ?? {
+  const today: DayLog = dayLogs.find(
+    (day) => day.dayNumber === program.currentDay,
+  ) ?? {
     dayNumber: program.currentDay,
     waterMl: 0,
     meals: [],
   };
 
-  const addWater = () => save.mutate({ ...today, waterMl: Math.min(today.waterMl + WATER_STEP_ML, WATER_MAX_ML) });
+  const addWater = () =>
+    save.mutate({
+      ...today,
+      waterMl: Math.min(today.waterMl + WATER_STEP_ML, WATER_MAX_ML),
+    });
 
   const toggleMeal = (meal: MealId) =>
     save.mutate({
       ...today,
-      meals: today.meals.includes(meal) ? today.meals.filter((item) => item !== meal) : [...today.meals, meal],
+      meals: today.meals.includes(meal)
+        ? today.meals.filter((item) => item !== meal)
+        : [...today.meals, meal],
     });
 
   return (
@@ -66,10 +92,21 @@ function ProgramDashboard({ patientId, data }: { patientId: string; data: Active
       <section aria-labelledby="today-plan-title" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 id="today-plan-title" className="text-lg font-semibold text-text-primary">Today&apos;s plan</h2>
-            <p className="text-sm text-text-secondary">Day {program.currentDay} of {program.durationDays}</p>
+            <h2
+              id="today-plan-title"
+              className="text-lg font-semibold text-text-primary"
+            >
+              Today&apos;s plan
+            </h2>
+            <p className="text-sm text-text-secondary">
+              Day {program.currentDay} of {program.durationDays}
+            </p>
           </div>
-          <button type="button" onClick={() => setChatOpen(true)} className={BTN_PRIMARY}>
+          <button
+            type="button"
+            onClick={() => setChatOpen(true)}
+            className={BTN_PRIMARY}
+          >
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
             Message dietitian
           </button>
@@ -78,17 +115,34 @@ function ProgramDashboard({ patientId, data }: { patientId: string; data: Active
           <WaterCard waterMl={today.waterMl} onAdd={addWater} />
           <MealComplianceCard meals={today.meals} onToggle={toggleMeal} />
         </div>
-        {save.isError && <p role="alert" className={ERROR_TEXT}>Could not save today&apos;s log: {save.error.message}</p>}
+        {save.isError && (
+          <p role="alert" className={ERROR_TEXT}>
+            Could not save today&apos;s log: {save.error.message}
+          </p>
+        )}
       </section>
 
-      <DietitianNoteBanner note={program.latestNote} nutritionistName={program.nutritionist?.name ?? null} />
+      <DietitianNoteBanner
+        note={program.latestNote}
+        nutritionistName={program.nutritionist?.name ?? null}
+        isSample={program.dataSource === "mock"}
+      />
 
       <section aria-labelledby="programme-title" className="space-y-4">
-        <h2 id="programme-title" className="text-lg font-semibold text-text-primary">Your programme</h2>
+        <h2
+          id="programme-title"
+          className="text-lg font-semibold text-text-primary"
+        >
+          Your programme
+        </h2>
         <ProgressTracker program={program} />
       </section>
 
-      <ProgramChatDrawer isOpen={chatOpen} onClose={() => setChatOpen(false)} program={program} />
+      <ProgramChatDrawer
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+        program={program}
+      />
     </div>
   );
 }

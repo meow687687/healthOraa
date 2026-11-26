@@ -738,6 +738,15 @@ test.describe.serial("review fixes", () => {
 
   test("tracking URLs require HTTPS and valid ports in app validation and the database", async () => {
     const orderId = crypto.randomUUID();
+    const rejectTrackingUrl = (url: string): void => {
+      const statement = "update orders set tracking_url = " + lit(url) + " where id = '" + orderId + "'";
+      expect(() => psql(statement)).toThrow(/orders_tracking_url_https_check/);
+    };
+    const persistTrackingUrl = (url: string): void => {
+      const update = "update orders set tracking_url = " + lit(url) + " where id = '" + orderId + "'";
+      script(update);
+      expect(psql("select tracking_url from orders where id = '" + orderId + "'")).toBe(url);
+    };
     script(`
       insert into orders (id, customer_id, total_amount_inr, status, shipping_address)
       values ('${orderId}', '${PATIENT}', 100, 'shipped', ${lit(`${run} tracking order`)});
@@ -755,6 +764,13 @@ test.describe.serial("review fixes", () => {
     script(`update orders set tracking_url = ${lit(maxPortTrackingUrl)} where id = '${orderId}';`);
     expect(psql(`select tracking_url from orders where id = '${orderId}'`)).toBe(maxPortTrackingUrl);
     const ipv6TrackingUrl = "https://[2001:db8::1]:443/track";
+    const ipv4TrackingUrl = "https://192.0.2.1:443/track";
+    rejectTrackingUrl("https://carrier.example/track?reference=order 123");
+    rejectTrackingUrl("https://user@carrier.example/track");
+    rejectTrackingUrl("https://[192.0.2.1]:443/track");
+    rejectTrackingUrl("https://999.999.999.999/track");
+    rejectTrackingUrl("https://127.1/track");
+    persistTrackingUrl(ipv4TrackingUrl);
     script(`update orders set tracking_url = ${lit(ipv6TrackingUrl)} where id = '${orderId}';`);
     expect(psql(`select tracking_url from orders where id = '${orderId}'`)).toBe(ipv6TrackingUrl);
     expect(updateOrderStatusSchema.safeParse({
@@ -769,6 +785,28 @@ test.describe.serial("review fixes", () => {
       status: "shipped",
       tracking_url: ipv6TrackingUrl,
     }).success).toBe(true);
+    expect(updateOrderStatusSchema.safeParse({
+      tracking_url: "https://carrier.example/track?reference=order 123",
+    }).success).toBe(false);
+    expect(updateOrderStatusSchema.safeParse({
+      tracking_url: "https://user@carrier.example/track",
+    }).success).toBe(false);
+    expect(updateOrderStatusSchema.safeParse({
+      tracking_url: "https://[192.0.2.1]:443/track",
+    }).success).toBe(false);
+    expect(updateOrderStatusSchema.safeParse({
+      tracking_url: "https://999.999.999.999/track",
+    }).success).toBe(false);
+    expect(updateOrderStatusSchema.safeParse({
+      tracking_url: "https://127.1/track",
+    }).success).toBe(false);
+    expect(updateOrderStatusSchema.safeParse({
+      tracking_url: ipv4TrackingUrl,
+    }).success).toBe(true);
+    expect(updateOrderStatusSchema.safeParse({
+      tracking_url: ipv6TrackingUrl,
+    }).success).toBe(true);
+    expect(updateOrderStatusSchema.safeParse({}).success).toBe(false);
   });
 
   test("program introduction links require HTTPS at the database boundary", async () => {

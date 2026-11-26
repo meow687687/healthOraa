@@ -13,7 +13,12 @@ ALTER TABLE public.orders
             AND tracking_url ~ '^https://(?:[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?([/?#][^[:space:]]*)?$'
             AND CASE
                 WHEN tracking_url ~ '^https://\[[0-9A-Fa-f:.]+\]'
-                THEN (regexp_match(tracking_url, '^https://\[([0-9A-Fa-f:.]+)\]'))[1]::INET IS NOT NULL
+                THEN family((regexp_match(tracking_url, '^https://\[([0-9A-Fa-f:.]+)\]'))[1]::INET) = 6
+                ELSE TRUE
+            END
+            AND CASE
+                WHEN tracking_url ~ '^https://[0-9.]+(?::[0-9]{1,5})?([/?#]|$)'
+                THEN tracking_url ~ '^https://(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}(?::[0-9]{1,5})?([/?#]|$)'
                 ELSE TRUE
             END
             AND CASE

@@ -44,7 +44,7 @@ export const useOrders = () => {
 
 export type UpdateOrderStatusArgs = {
   id: string;
-  status: OrderStatus;
+  status?: OrderStatus;
   trackingNumber?: string;
   trackingUrl?: string;
 };
@@ -64,7 +64,7 @@ export const useUpdateOrderStatus = () => {
       }
 
       const input: UpdateTables<"orders"> = {
-        status: parsed.data.status,
+        ...(parsed.data.status !== undefined && { status: parsed.data.status }),
         ...(parsed.data.tracking_number !== undefined && {
           tracking_number: parsed.data.tracking_number || null,
         }),

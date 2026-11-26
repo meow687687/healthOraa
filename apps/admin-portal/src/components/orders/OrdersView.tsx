@@ -198,7 +198,6 @@ export default function OrdersView() {
                   disabled={busy}
                   onClick={() => updateStatus.mutate({
                     id: order.id,
-                    status: order.status,
                     trackingNumber: trackingDraft[order.id] ?? order.tracking_number ?? "",
                     trackingUrl: trackingUrlDraft[order.id] ?? order.tracking_url ?? "",
                   })}

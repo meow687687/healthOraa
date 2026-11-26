@@ -1,6 +1,16 @@
 import { z } from "zod";
 
 const absoluteUrlSchema = z.string().url();
+const trackingUrlPattern = /^https:\/\/(?:[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?|\[[0-9a-fA-F:.]+\])(?::\d{1,5})?(?:[/?#][^\s]*)?$/;
+const numericHostPattern = /^[0-9.]+$/;
+const canonicalIpv4HostPattern = /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+
+const isValidTrackingUrl = (value: string): boolean => {
+  if (value === "") return true;
+  if (!trackingUrlPattern.test(value) || !absoluteUrlSchema.safeParse(value).success) return false;
+  const host = value.slice("https://".length).split(/[/:?#]/, 1)[0] ?? "";
+  return !numericHostPattern.test(host) || canonicalIpv4HostPattern.test(host);
+};
 
 // Shipping details for a wellness-shop order. Phone and PIN follow Indian formats.
 export const checkoutOrderSchema = z.object({
@@ -40,7 +50,7 @@ export type CheckoutOrderInput = z.infer<typeof checkoutOrderSchema>;
 export const ORDER_STATUS_VALUES = ["pending", "paid", "shipped", "delivered"] as const;
 
 export const updateOrderStatusSchema = z.object({
-  status: z.enum(ORDER_STATUS_VALUES, { error: "Select a valid order status." }),
+  status: z.enum(ORDER_STATUS_VALUES, { error: "Select a valid order status." }).optional(),
   tracking_number: z
     .string()
     .trim()
@@ -50,9 +60,10 @@ export const updateOrderStatusSchema = z.object({
     .string()
     .trim()
     .max(2048, "Tracking URL must be 2048 characters or fewer.")
-    .refine(
-      (value) => value === "" || (value.startsWith("https://") && absoluteUrlSchema.safeParse(value).success),
-      "Enter a valid HTTPS tracking URL.",
-    )
+    .refine(isValidTrackingUrl, "Enter a valid HTTPS tracking URL.")
     .optional(),
-});
+}).refine(
+  ({ status, tracking_number, tracking_url }) =>
+    status !== undefined || tracking_number !== undefined || tracking_url !== undefined,
+  "Choose an order status or provide tracking details.",
+);

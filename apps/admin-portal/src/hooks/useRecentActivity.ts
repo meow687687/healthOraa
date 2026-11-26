@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 
 export interface ActivityEvent {
@@ -10,15 +10,21 @@ export interface ActivityEvent {
 }
 
 // The latest orders, payments and sign-ups, merged and sorted by time.
-export const useRecentActivity = () =>
+export const useRecentActivity = (
+  isPrototype: boolean,
+): UseQueryResult<ActivityEvent[], Error> =>
   useQuery<ActivityEvent[], Error>({
-    queryKey: ["admin-activity"],
+    queryKey: ["admin-activity", isPrototype],
     refetchInterval: 60_000,
     queryFn: async () => {
+      if (isPrototype) return [];
+
       const [orders, payments, people] = await Promise.all([
         supabase
           .from("orders")
-          .select("id, total_amount_inr, status, created_at, profiles!orders_customer_id_fkey(full_name)")
+          .select(
+            "id, total_amount_inr, status, created_at, profiles!orders_customer_id_fkey(full_name)",
+          )
           .order("created_at", { ascending: false })
           .limit(10),
         supabase
@@ -26,7 +32,11 @@ export const useRecentActivity = () =>
           .select("id, amount_inr, status, created_at, gateway_payment_id")
           .order("created_at", { ascending: false })
           .limit(10),
-        supabase.from("profiles").select("id, full_name, role, created_at").order("created_at", { ascending: false }).limit(10),
+        supabase
+          .from("profiles")
+          .select("id, full_name, role, created_at")
+          .order("created_at", { ascending: false })
+          .limit(10),
       ]);
       const failure = orders.error ?? payments.error ?? people.error;
       if (failure) throw new Error(failure.message);

@@ -4,6 +4,7 @@ import { SkeletonBlock } from "@healthoraa/ui";
 import { ERROR_BOX } from "../ui/tokens";
 import { cn } from "../../lib/cn";
 import { formatCount, formatInrCompact, formatInrFull } from "../../lib/format";
+import { useAuth } from "../../context/AuthContext";
 import {
   useDashboardSummary,
   type DashboardSummary,
@@ -36,7 +37,8 @@ export function OverviewView({
   onNavigate: (id: TabId) => void;
 }) {
   const [days, setDays] = useState<number>(30);
-  const summary = useDashboardSummary(days);
+  const { isPrototype } = useAuth();
+  const summary = useDashboardSummary(days, isPrototype);
 
   return (
     <div className="space-y-3 md:space-y-8">
@@ -69,8 +71,21 @@ export function OverviewView({
         </div>
       </div>
 
+      {isPrototype ? (
+        <p
+          role="status"
+          className="rounded-2xl border border-aura-line bg-aura-s1 px-4 py-3 text-[13px] text-text-secondary"
+        >
+          <span className="font-semibold text-text-primary">
+            Prototype preview.
+          </span>{" "}
+          Figures are synthetic examples. Payment totals are zero, and no live
+          admin or payment records are queried.
+        </p>
+      ) : null}
+
       {summary.isPending ? (
-        <OverviewSkeleton />
+        <OverviewSkeleton isPrototype={isPrototype} />
       ) : summary.isError ? (
         <div className="space-y-3">
           <div role="alert" className={ERROR_BOX}>
@@ -212,7 +227,7 @@ function ChartFallback() {
   );
 }
 
-function OverviewSkeleton() {
+function OverviewSkeleton({ isPrototype }: { isPrototype: boolean }) {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading overview">
       <SkeletonBlock className="h-40" />
@@ -226,7 +241,9 @@ function OverviewSkeleton() {
         <SkeletonBlock className="h-80 lg:col-span-4" />
       </div>
       <p className="text-center text-[13px] text-text-muted">
-        Loading figures from the latest orders, payments and bookings.
+        {isPrototype
+          ? "Preparing synthetic prototype figures."
+          : "Loading figures from the latest orders, payments and bookings."}
       </p>
     </div>
   );

@@ -751,6 +751,9 @@ test.describe.serial("review fixes", () => {
     const trackingUrl = "https://carrier.example/track?id=sample-123";
     script(`update orders set tracking_url = ${lit(trackingUrl)} where id = '${orderId}';`);
     expect(psql(`select tracking_url from orders where id = '${orderId}'`)).toBe(trackingUrl);
+    const maxPortTrackingUrl = "https://carrier.example:65535/track";
+    script(`update orders set tracking_url = ${lit(maxPortTrackingUrl)} where id = '${orderId}';`);
+    expect(psql(`select tracking_url from orders where id = '${orderId}'`)).toBe(maxPortTrackingUrl);
     expect(updateOrderStatusSchema.safeParse({
       status: "shipped",
       tracking_url: "https://carrier.example:99999/track",

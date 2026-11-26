@@ -2,14 +2,14 @@ import { z } from "zod";
 
 const absoluteUrlSchema = z.string().url();
 const trackingUrlPattern = /^https:\/\/(?:[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?|\[[0-9a-fA-F:.]+\])(?::\d{1,5})?(?:[/?#][^\s]*)?$/;
-const numericHostPattern = /^[0-9.]+$/;
+const numericAddressSuffixPattern = /(?:^|\.)[0-9]+$|(?:^|\.)0x[0-9a-fA-F]+$/i;
 const canonicalIpv4HostPattern = /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
 
 const isValidTrackingUrl = (value: string): boolean => {
   if (value === "") return true;
   if (!trackingUrlPattern.test(value) || !absoluteUrlSchema.safeParse(value).success) return false;
   const host = value.slice("https://".length).split(/[/:?#]/, 1)[0] ?? "";
-  return !numericHostPattern.test(host) || canonicalIpv4HostPattern.test(host);
+  return !numericAddressSuffixPattern.test(host) || canonicalIpv4HostPattern.test(host);
 };
 
 // Shipping details for a wellness-shop order. Phone and PIN follow Indian formats.

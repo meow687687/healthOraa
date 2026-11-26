@@ -21,7 +21,7 @@ export function EmptyState({ icon: Icon, title, description, action, className }
       <p className="text-sm font-semibold text-text-primary">{title}</p>
       {description && <p className="max-w-sm text-xs text-text-muted">{description}</p>}
       {action && (
-        <button type="button" onClick={action.onClick} className={cn(BTN_PRIMARY, "mt-1 px-5 py-2")}>
+        <button type="button" onClick={action.onClick} className={cn(BTN_PRIMARY, "mt-1 min-h-[44px] px-5 py-2")}>
           {action.label}
         </button>
       )}

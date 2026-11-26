@@ -11,9 +11,9 @@ import { WeekGrid } from "./WeekGrid";
 import { SlotPreviewDrawer } from "./SlotPreviewDrawer";
 
 const PILL_OUTLINE =
-  "inline-flex items-center gap-2 rounded-full border border-aura-line bg-aura-s2 px-4 py-2 text-xs font-semibold text-text-secondary transition-colors hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-[44px] items-center gap-2 rounded-full border border-aura-line bg-aura-s2 px-4 py-2 text-xs font-semibold text-text-secondary transition-colors hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40";
 const PILL_PRIMARY =
-  "inline-flex items-center gap-2 rounded-xl bg-accent-blue px-4 py-2 text-xs font-semibold text-aura-canvas transition-colors hover:bg-accent-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-accent-blue px-4 py-2 text-xs font-semibold text-aura-canvas transition-colors hover:bg-accent-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue disabled:cursor-not-allowed disabled:opacity-40";
 
 // Working copy of the schedule. Edits stay here until saved as a draft or published.
 export function ScheduleEditor({ view }: { view: ScheduleView }) {
@@ -96,7 +96,7 @@ export function ScheduleEditor({ view }: { view: ScheduleView }) {
                   aria-checked={durationMinutes === minutes}
                   onClick={() => setDurationMinutes(minutes)}
                   className={cn(
-                    "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                    "min-h-[44px] min-w-[44px] rounded-full px-3 py-1 text-xs font-semibold transition-colors",
                     durationMinutes === minutes ? "bg-aura-s3 text-text-primary shadow-aura-elevated" : "text-text-muted hover:text-text-primary",
                   )}
                 >

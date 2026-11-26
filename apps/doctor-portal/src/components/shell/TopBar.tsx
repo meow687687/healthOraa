@@ -1,6 +1,8 @@
 import { AccountMenu, Badge } from "@healthoraa/ui";
+import { isSeededDemoPractitionerId } from "@healthoraa/types";
 import { useAuth } from "../../context/AuthContext";
 import { useDoctor } from "../../context/DoctorContext";
+import { usePractitionerProfile } from "../../hooks/usePractitionerProfile";
 
 // "Dr. Arishta Sharma, MD" -> "AS"
 const initialsOf = (displayName: string): string =>
@@ -15,6 +17,23 @@ const initialsOf = (displayName: string): string =>
 export function TopBar({ pageTitle }: { pageTitle: string }) {
   const { doctor, isAccepting, toggleAccepting } = useDoctor();
   const { user, isPrototype, isDemoData, signOut } = useAuth();
+  const profile = usePractitionerProfile();
+  const isDemoPractitioner = isSeededDemoPractitionerId(doctor.id);
+  const canToggleAcceptance =
+    !isDemoPractitioner &&
+    profile.data?.dataSource === "live" &&
+    profile.data.verificationStatus === "verified";
+  const blockedStatus = isDemoPractitioner
+    ? "Demo · not audited"
+    : profile.isPending
+      ? "Checking verification"
+      : profile.isError
+        ? "Acceptance unavailable"
+        : profile.data?.verificationStatus === "pending"
+          ? "Verification pending"
+          : profile.data?.verificationStatus === "rejected"
+            ? "Verification rejected"
+            : "Consultations paused";
 
   return (
     <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-aura-line bg-aura-s1/90 px-4 py-3 backdrop-blur-md lg:h-20 lg:flex-nowrap lg:px-8 lg:py-0">
@@ -46,22 +65,33 @@ export function TopBar({ pageTitle }: { pageTitle: string }) {
       </div>
 
       <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap">
-        <button
-          type="button"
-          onClick={toggleAccepting}
-          aria-pressed={isAccepting}
-          title="Toggle whether new consultations can be booked"
-          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
-        >
-          <Badge tone={isAccepting ? "emerald" : "neutral"}>
+        {canToggleAcceptance ? (
+          <button
+            type="button"
+            onClick={toggleAccepting}
+            aria-pressed={isAccepting}
+            title="Toggle whether new consultations can be booked"
+            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
+          >
+            <Badge tone={isAccepting ? "emerald" : "neutral"}>
+              <span className="sm:hidden">
+                {isAccepting ? "Accepting" : "Paused"}
+              </span>
+              <span className="hidden sm:inline">
+                {isAccepting
+                  ? "Accepting Consultations"
+                  : "Consultations Paused"}
+              </span>
+            </Badge>
+          </button>
+        ) : (
+          <Badge tone={isDemoPractitioner ? "violet" : "amber"}>
             <span className="sm:hidden">
-              {isAccepting ? "Accepting" : "Paused"}
+              {isDemoPractitioner ? "Demo · not audited" : "Paused"}
             </span>
-            <span className="hidden sm:inline">
-              {isAccepting ? "Accepting Consultations" : "Consultations Paused"}
-            </span>
+            <span className="hidden sm:inline">{blockedStatus}</span>
           </Badge>
-        </button>
+        )}
         {isDemoData ? (
           <Badge tone="violet" className="text-xs">
             <span className="sm:hidden">Demo records</span>

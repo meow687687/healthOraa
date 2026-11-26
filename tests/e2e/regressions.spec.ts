@@ -78,6 +78,22 @@ test.describe.serial("review fixes", () => {
     script(`update consultation_slots set is_booked = false, consultation_id = null where id = '${slotId}';`);
   });
 
+  test("a practitioner cannot start a consultation before its scheduled time", async () => {
+    const id = crypto.randomUUID();
+    insertConsultation(id, "scheduled", "confirmed", null);
+
+    const result = await api(
+      await accessToken("doctor"),
+      "PATCH",
+      `/consultations?id=eq.${id}`,
+      { status: "in_progress" },
+    );
+    expect(result.status).toBe(400);
+    expect(psql(`select status from consultations where id = '${id}'`)).toBe(
+      "scheduled",
+    );
+  });
+
   test("a late payment never confirms a cancelled booking", async () => {
     const id = crypto.randomUUID();
     const orderId = `order_${run}_late`;

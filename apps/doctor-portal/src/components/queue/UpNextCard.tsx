@@ -24,7 +24,7 @@ export function UpNextCard({ now, ...props }: QueueCardProps & { now: number }) 
       </header>
       <IntakeSummary consultation={consultation} />
       <div className="flex flex-wrap gap-2">
-        <QueueAction {...props} />
+        <QueueAction {...props} now={now} />
       </div>
     </article>
   );

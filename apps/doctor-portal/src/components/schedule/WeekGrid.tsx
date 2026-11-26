@@ -121,26 +121,13 @@ export function WeekGrid({
                   <div
                     key={rule.id}
                     title={`Available ${rule.start_time} to ${rule.end_time}`}
-                    className="absolute inset-x-1 overflow-hidden rounded-xl border border-accent-emerald/35 border-l-2 border-l-accent-emerald bg-gradient-to-br from-accent-emerald/20 via-accent-emerald/10 to-accent-blue/10 px-1 py-1 font-mono text-[10px] leading-tight tabular-nums text-text-primary shadow-sm"
+                    aria-hidden="true"
+                    className="absolute inset-x-1 overflow-hidden rounded-xl border border-accent-emerald/35 border-l-2 border-l-accent-emerald bg-gradient-to-br from-accent-emerald/20 via-accent-emerald/10 to-accent-blue/10 shadow-sm"
                     style={{
                       top: percent(start),
                       height: `${(visibleDuration / SPAN) * 100}%`,
                     }}
-                  >
-                    <span className="sr-only">Available {rule.start_time} to {rule.end_time}</span>
-                    {visibleDuration >= 120 && (
-                      <span aria-hidden="true" className="mb-0.5 flex items-center gap-1 text-[8px] font-semibold uppercase leading-none tracking-wider text-accent-emerald">
-                        <span className="h-1 w-1 rounded-full bg-accent-emerald" />
-                        Open
-                      </span>
-                    )}
-                    <span aria-hidden="true" className="block whitespace-nowrap leading-none">{visibleDuration >= 60 ? rule.start_time : ""}</span>
-                    {visibleDuration >= 120 && (
-                      <span aria-hidden="true" className="mt-0.5 block whitespace-nowrap text-[9px] leading-none text-accent-emerald">
-                        ↓ {rule.end_time}
-                      </span>
-                    )}
-                  </div>
+                  />
                 );
               })}
           </div>

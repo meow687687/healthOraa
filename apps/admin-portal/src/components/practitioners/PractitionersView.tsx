@@ -6,6 +6,7 @@ import {
   useTogglePractitionerActive,
 } from "../../hooks/usePractitioners";
 import { cn } from "../../lib/cn";
+import { isSeededDemoPractitioner } from "../../lib/practitioners";
 import { Badge } from "../ui/Badge";
 import { ViewHeader } from "../ui/ViewHeader";
 import { ERROR_BOX, PANEL } from "../ui/tokens";
@@ -24,7 +25,11 @@ export default function PractitionersView() {
   const busyId = toggleActive.isPending
     ? toggleActive.variables?.id
     : undefined;
-  const activeCount = practitioners.filter((row) => row.is_active).length;
+  const realPractitioners = practitioners.filter(
+    (row) => !isSeededDemoPractitioner(row.id),
+  );
+  const activeCount = realPractitioners.filter((row) => row.is_active).length;
+  const demoCount = practitioners.length - realPractitioners.length;
   const auditTarget = practitioners.find((row) => row.id === auditId) ?? null;
 
   const handleToggle = (row: PractitionerWithProfile): void => {
@@ -39,7 +44,7 @@ export default function PractitionersView() {
         title="Practitioners"
         subtitle={
           data
-            ? `${data.length} registered · ${activeCount} active`
+            ? `${realPractitioners.length} registered · ${activeCount} active${demoCount > 0 ? ` · ${demoCount} demo record${demoCount === 1 ? "" : "s"}` : ""}`
             : "Loading practitioners..."
         }
         action={

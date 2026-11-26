@@ -12,7 +12,8 @@ import { Badge } from "../ui/Badge";
 import { ActiveSwitch } from "../ui/Switch";
 import { MONEY, NUM, ROW_MICRO } from "../ui/tokens";
 
-export type PractitionerFilterId = "all" | "pending" | "verified" | "inactive";
+export type PractitionerFilterId =
+  "all" | "pending" | "verified" | "inactive" | "demo";
 
 interface PractitionerDataTableProps {
   rows: PractitionerWithProfile[];
@@ -54,12 +55,12 @@ function StatusBadge({
 
 function matchesFilter(row: PractitionerWithProfile, id: string): boolean {
   if (id === "all") return true;
+  const isDemoRecord = isSeededDemoPractitioner(row.id);
+  if (id === "demo") return isDemoRecord;
+  if (isDemoRecord) return false;
   if (id === "pending") return row.verification_status === "pending";
   if (id === "verified") {
-    return (
-      row.verification_status === "verified" &&
-      !isSeededDemoPractitioner(row.id)
-    );
+    return row.verification_status === "verified";
   }
   return !row.is_active;
 }
@@ -130,16 +131,19 @@ export function PractitionerDataTable({
     {
       id: "active",
       header: "Accepting patients",
-      cell: (row) => (
-        <div onClick={(event) => event.stopPropagation()}>
-          <ActiveSwitch
-            checked={row.is_active}
-            disabled={busyId === row.id}
-            label={`Toggle ${row.profiles.full_name} active`}
-            onChange={() => onToggleActive(row)}
-          />
-        </div>
-      ),
+      cell: (row) =>
+        isSeededDemoPractitioner(row.id) ? (
+          <Badge tone="violet">Preview only</Badge>
+        ) : (
+          <div onClick={(event) => event.stopPropagation()}>
+            <ActiveSwitch
+              checked={row.is_active}
+              disabled={busyId === row.id}
+              label={`Toggle ${row.profiles.full_name} active`}
+              onChange={() => onToggleActive(row)}
+            />
+          </div>
+        ),
     },
     {
       id: "audit",
@@ -169,6 +173,7 @@ export function PractitionerDataTable({
       { id: "pending", label: "Pending review" },
       { id: "verified", label: "Verified" },
       { id: "inactive", label: "Inactive" },
+      { id: "demo", label: "Demo" },
     ],
     onChange: (id) => onFilterChange(id as PractitionerFilterId),
     match: matchesFilter,

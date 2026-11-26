@@ -5,7 +5,7 @@ import type { Product } from "@healthoraa/types";
 import { useDeleteProduct, useProducts, useToggleProductActive } from "../../hooks/useProducts";
 import { formatInr } from "../programs/programMeta";
 import CreateProductDrawer from "./CreateProductDrawer";
-import { LOW_STOCK_THRESHOLD, PRODUCT_CATEGORY_META } from "./productMeta";
+import { isLowStockProduct, PRODUCT_CATEGORY_META } from "./productMeta";
 import { Badge } from "../ui/Badge";
 import { ActiveSwitch } from "../ui/Switch";
 import { RowActions } from "../ui/RowActions";
@@ -26,7 +26,7 @@ export default function ShopView() {
     : deleteProduct.isPending
       ? deleteProduct.variables
       : undefined;
-  const lowStockCount = products?.filter((p) => p.stock_count < LOW_STOCK_THRESHOLD).length ?? 0;
+  const lowStockCount = products?.filter(isLowStockProduct).length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -78,7 +78,7 @@ export default function ShopView() {
             {products.map((product) => {
               const busy = busyId === product.id;
               const meta = PRODUCT_CATEGORY_META[product.category];
-              const isLow = product.stock_count < LOW_STOCK_THRESHOLD;
+              const isLow = isLowStockProduct(product);
               return (
                 <article key={product.id} className="rounded-2xl border border-aura-line bg-aura-s2 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -130,7 +130,7 @@ export default function ShopView() {
                   const isSelected = selectedId === product.id;
                   const busy = busyId === product.id;
                   const meta = PRODUCT_CATEGORY_META[product.category];
-                  const isLow = product.stock_count < LOW_STOCK_THRESHOLD;
+                  const isLow = isLowStockProduct(product);
                   return (
                     <tr
                       key={product.id}

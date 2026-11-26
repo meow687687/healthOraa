@@ -2,7 +2,15 @@ import { MessageSquareText } from "lucide-react";
 import { formatDate } from "../../lib/format";
 import type { ProgramNote } from "../../types/program";
 
-export function DietitianNoteBanner({ note, nutritionistName }: { note: ProgramNote | null; nutritionistName: string | null }) {
+export function DietitianNoteBanner({
+  note,
+  nutritionistName,
+  isSample = false,
+}: {
+  note: ProgramNote | null;
+  nutritionistName: string | null;
+  isSample?: boolean;
+}) {
   return (
     <section
       aria-labelledby="dietitian-note-title"
@@ -12,13 +20,24 @@ export function DietitianNoteBanner({ note, nutritionistName }: { note: ProgramN
         <MessageSquareText className="h-4 w-4" />
       </div>
       <div className="min-w-0 space-y-1">
-        <h3 id="dietitian-note-title" className="text-sm font-semibold text-accent-violet">
-          Note from {nutritionistName ?? "your dietitian"}
+        <h3
+          id="dietitian-note-title"
+          className="text-sm font-semibold text-accent-violet"
+        >
+          {isSample
+            ? "Sample note"
+            : `Note from ${nutritionistName ?? "your dietitian"}`}
         </h3>
         <p className="text-sm leading-relaxed text-text-primary">
-          {note ? note.body : "No note from your dietitian yet."}
+          {isSample
+            ? "This shows where client-approved program guidance will appear."
+            : (note?.body ?? "No note from your dietitian yet.")}
         </p>
-        {note && <p className="font-mono text-[11px] text-text-muted">{formatDate(note.postedAt)}</p>}
+        {note && !isSample && (
+          <p className="font-mono text-[11px] text-text-muted">
+            {formatDate(note.postedAt)}
+          </p>
+        )}
       </div>
     </section>
   );

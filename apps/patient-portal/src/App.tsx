@@ -35,7 +35,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-aura-canvas font-sans text-text-primary antialiased">
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-aura-canvas font-sans text-text-primary antialiased lg:h-auto lg:min-h-screen lg:overflow-visible">
       <SkipLink />
       <TopBar />
       <PatientNav active={view} onSelect={selectView} />
@@ -45,7 +45,7 @@ export default function App() {
         id="main-content"
         tabIndex={-1}
         aria-busy={isPending}
-        className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-28 md:px-6 md:pt-6 lg:px-8 lg:pt-8 lg:pb-8"
+        className="mx-auto mb-[calc(5rem+env(safe-area-inset-bottom))] min-h-0 w-full max-w-5xl flex-1 overflow-y-auto px-4 pt-4 pb-6 md:px-6 md:pt-6 lg:mb-0 lg:overflow-visible lg:px-8 lg:pt-8 lg:pb-8"
       >
         <h1 className="sr-only">{PAGE_TITLE[view]}</h1>
         <Suspense

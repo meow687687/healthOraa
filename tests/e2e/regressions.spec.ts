@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { updateOrderStatusSchema } from "../../packages/validation/src/orders";
 import { PERSONAS, PUBLISHABLE_KEY, SUPABASE_URL } from "./support/config";
 import { lit, psql, script } from "./support/db";
 import { accessToken, api } from "./support/api";
@@ -735,7 +736,7 @@ test.describe.serial("review fixes", () => {
     expect(Number(found)).toBe(names.length);
   });
 
-  test("carrier tracking links require HTTPS at the database boundary", async () => {
+  test("tracking URLs require HTTPS and valid ports in app validation and the database", async () => {
     const orderId = crypto.randomUUID();
     script(`
       insert into orders (id, customer_id, total_amount_inr, status, shipping_address)
@@ -744,9 +745,20 @@ test.describe.serial("review fixes", () => {
     expect(() => psql(`update orders set tracking_url = 'http://carrier.example/track' where id = '${orderId}'`)).toThrow(
       /orders_tracking_url_https_check/,
     );
+    expect(() => psql(`update orders set tracking_url = 'https://carrier.example:99999/track' where id = '${orderId}'`)).toThrow(
+      /orders_tracking_url_https_check/,
+    );
     const trackingUrl = "https://carrier.example/track?id=sample-123";
     script(`update orders set tracking_url = ${lit(trackingUrl)} where id = '${orderId}';`);
     expect(psql(`select tracking_url from orders where id = '${orderId}'`)).toBe(trackingUrl);
+    expect(updateOrderStatusSchema.safeParse({
+      status: "shipped",
+      tracking_url: "https://carrier.example:99999/track",
+    }).success).toBe(false);
+    expect(updateOrderStatusSchema.safeParse({
+      status: "shipped",
+      tracking_url: "https://carrier.example:65535/track",
+    }).success).toBe(true);
   });
 
   test("program introduction links require HTTPS at the database boundary", async () => {

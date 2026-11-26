@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const absoluteUrlSchema = z.string().url();
+
 // Shipping details for a wellness-shop order. Phone and PIN follow Indian formats.
 export const checkoutOrderSchema = z.object({
   full_name: z
@@ -49,7 +51,7 @@ export const updateOrderStatusSchema = z.object({
     .trim()
     .max(2048, "Tracking URL must be 2048 characters or fewer.")
     .refine(
-      (value) => value === "" || /^https:\/\/[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?(?::\d{1,5})?(?:[/?#][^\s]*)?$/.test(value),
+      (value) => value === "" || (value.startsWith("https://") && absoluteUrlSchema.safeParse(value).success),
       "Enter a valid HTTPS tracking URL.",
     )
     .optional(),

@@ -754,6 +754,9 @@ test.describe.serial("review fixes", () => {
     const maxPortTrackingUrl = "https://carrier.example:65535/track";
     script(`update orders set tracking_url = ${lit(maxPortTrackingUrl)} where id = '${orderId}';`);
     expect(psql(`select tracking_url from orders where id = '${orderId}'`)).toBe(maxPortTrackingUrl);
+    const ipv6TrackingUrl = "https://[2001:db8::1]:443/track";
+    script(`update orders set tracking_url = ${lit(ipv6TrackingUrl)} where id = '${orderId}';`);
+    expect(psql(`select tracking_url from orders where id = '${orderId}'`)).toBe(ipv6TrackingUrl);
     expect(updateOrderStatusSchema.safeParse({
       status: "shipped",
       tracking_url: "https://carrier.example:99999/track",
@@ -761,6 +764,10 @@ test.describe.serial("review fixes", () => {
     expect(updateOrderStatusSchema.safeParse({
       status: "shipped",
       tracking_url: "https://carrier.example:65535/track",
+    }).success).toBe(true);
+    expect(updateOrderStatusSchema.safeParse({
+      status: "shipped",
+      tracking_url: ipv6TrackingUrl,
     }).success).toBe(true);
   });
 

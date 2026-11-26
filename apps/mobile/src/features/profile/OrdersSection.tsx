@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
-import { Package } from 'lucide-react-native';
+import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import { ExternalLink, Package } from 'lucide-react-native';
 import { COLORS, SPACE } from '../../../constants/theme';
 import { Button, Card, EmptyState, ErrorBox, LabelLine, Pill, Skeleton, monoStyle } from '../../components/primitives';
 import { formatPaise, rupeesToPaise } from '../../lib/money';
@@ -74,6 +74,7 @@ function OrderCard({ order }: { order: OrderRow }) {
 
       <LabelLine label="Total incl. GST" value={formatPaise(rupeesToPaise(Number(order.total_amount_inr)))} strong />
       {order.tracking_number ? <LabelLine label="Tracking" value={order.tracking_number} /> : null}
+      {order.tracking_url ? <TrackShipmentButton url={order.tracking_url} /> : null}
       {order.status === 'pending' ? (
         <>
           <PayOrderButton orderId={order.id} />
@@ -94,6 +95,29 @@ function OrderCard({ order }: { order: OrderRow }) {
         </>
       ) : null}
     </Card>
+  );
+}
+
+function TrackShipmentButton({ url }: { url: string }) {
+  const [failure, setFailure] = useState(false);
+  return (
+    <>
+      {failure ? <ErrorBox message="The carrier tracking page could not be opened." /> : null}
+      <Button
+        label="Track shipment"
+        variant="secondary"
+        icon={ExternalLink}
+        onPress={async () => {
+          try {
+            if (!url.startsWith('https://')) throw new Error('Tracking URL must use HTTPS.');
+            await Linking.openURL(url);
+            setFailure(false);
+          } catch {
+            setFailure(true);
+          }
+        }}
+      />
+    </>
   );
 }
 

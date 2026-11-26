@@ -101,7 +101,7 @@ Recorded client requests also require enough program detail to choose without ca
 | 0 | Reconcile signed scope, client requests, role journeys and deferred items | Product lead + client contact | Approved script/content/input list; no unapproved scope or claim |
 | 1 | Close PR #3 payment, security, idempotency and UI defects | App + Supabase engineer + reviewer | Complete: PR #3 merged as `52086dd`; build, clean reset/type generation, 31 E2E checks and Luna reviews passed |
 | 2 | Complete the client-facing program discovery/detail/video path | Product + app engineers | Structure and synthetic rehearsal merged in PR #8; client copy, video, price, CTA, and contact route remain pending |
-| 3 | Make local demo data and startup/reset repeatable; close three role journeys | Full-stack engineer | The current clean reset/type-generation and 37-test E2E run pass; the manual three-role walkthrough and native patient runtime remain open |
+| 3 | Make local demo data and startup/reset repeatable; close three role journeys | Full-stack engineer | Clean reset/type generation and the focused 26-test regression suite pass. The latest full 38-test E2E run had 34 passes, one doctor-queue lifecycle failure, and three tests skipped after that failure; the manual walkthrough and native patient runtime remain open |
 | 4 | Polish shown screens to the existing brand and accessibility bar | Product designer + app engineers | Four-surface rendered review, responsive/accessibility evidence, no high-impact UI defect |
 | 5 | Rehearse security, data isolation, errors and recovery on a fresh local database | Supabase engineer + independent reviewer | Reset/type/build and role/RLS checks pass; no unresolved high-severity issue |
 | 6 | Rehearse the client demo and prepare the acceptance handout | Demo owner | Evidence mapped to M1–M4, known limitations, commercial terminology and open inputs |
@@ -109,7 +109,7 @@ Recorded client requests also require enough program detail to choose without ca
 | 8 | Implement sandbox payment and controlled pilot readiness | Payments engineer + operations | Webhook/refund/reconciliation evidence; live mode stays off until written approval |
 | 9 | Prove broader-launch operations | Platform + security + operations | Backup/restore, failover, R2 recovery, monitoring, incident, capacity and rollback evidence |
 
-Step 1 is complete. Step 2 has the catalog/detail structure and synthetic rehearsal merged, but remains open until client-owned copy, video, price, CTA, and contact inputs are resolved. Step 3's earlier reset and E2E checks passed twice, and the current clean reset/type-generation and 37-test suite also pass; the step remains open until the manual three-role walkthrough—including the native patient runtime—passes without manual SQL edits. Client-facing claims, payment enablement, real-user data, app-store releases and production infrastructure cannot be completed without the listed owner approvals and account access.
+Step 1 is complete. Step 2 has the catalog/detail structure and synthetic rehearsal merged, but remains open until client-owned copy, video, price, CTA, and contact inputs are resolved. Step 3's earlier reset and E2E checks passed twice, and the current clean reset/type-generation and focused 26-test regression suite pass. The latest full 38-test run failed when the doctor queue did not show a payment-confirmed booking after the queue had been reloaded before payment; three later tests were skipped. Step 3 remains open until that lifecycle result is resolved and the manual three-role walkthrough—including the native patient runtime—passes without manual SQL edits. Client-facing claims, payment enablement, real-user data, app-store releases and production infrastructure cannot be completed without the listed owner approvals and account access.
 
 ## Phase 1 work detail and acceptance
 
@@ -165,14 +165,14 @@ Score each dimension 0, 1, or 2 using the evidence named below. **The client-rea
 
 ### Current engineering evidence score: 8/10
 
-This is a provisional engineering-readiness assessment, not client approval, and is separate from the UI-specific rating. Earlier clean-reset rehearsals passed twice; the current candidate passes a clean reset, type generation, full build and 37/37 E2E tests. The last full-surface UI review scored the web portals 6.3/10 overall. A later representative review scored 6.8/10 across the screens it rendered; this is not a refreshed full-portal score. The focused admin overview review after PR #26 scored 8.5/10. A presenter-led walkthrough, keyboard/screen-reader review, native device review, and client approval of copy/assets are still outstanding.
+This is a provisional engineering-readiness assessment, not client approval, and is separate from the UI-specific rating. Earlier clean-reset rehearsals passed twice. This candidate passes a clean reset, type generation, full build, admin/mobile lint, and the focused 26/26 regression suite. The latest full 38-test run had 34 passes, one failure in the doctor queue lifecycle after payment confirmation, and three later tests skipped. The last full-surface UI review scored the web portals 6.3/10 overall. A later representative review scored 6.8/10 across the screens it rendered; this is not a refreshed full-portal score. The focused admin overview review after PR #26 scored 8.5/10. A presenter-led walkthrough, keyboard/screen-reader review, native device review, and client approval of copy/assets are still outstanding.
 
 | Dimension | Current | Evidence and remaining gap |
 |---|---:|---|
 | Scope and honesty | 2/2 | Payment stays disabled, unpaid bookings remain unconfirmed, and synthetic data is labeled in demo mode. Client-owned content and assets still need approval. |
-| Complete journeys | 1/2 | The current 37-test lifecycle/regression/security suite passes after a clean reset; earlier clean-reset rehearsals also passed twice. The presenter has not completed the three-role runbook unaided. |
+| Complete journeys | 1/2 | The focused 26-test regression suite passes, but the latest full 38-test run failed when the confirmed patient booking did not appear in the doctor queue; three later tests were skipped. Earlier full runs passed, but the presenter has not completed the three-role runbook unaided. |
 | UI and accessibility | 1/2 | Last full-surface GPT-6 Luna UI review scored the web portals 6.3/10; a newer representative review averaged 6.8/10 for the screens it covered. The focused admin overview review scored 8.5/10. Keyboard, screen-reader, native-device, and client visual-direction evidence remain open. |
-| Reliability and data | 2/2 | The current candidate passes clean reset, type generation, build and 37-test E2E verification, with post-run E2E data cleanup verified. |
+| Reliability and data | 2/2 | The candidate passes clean reset, type generation, full build, and focused regression/security checks; the latest full run's doctor-queue failure remains tracked under complete journeys. Post-run E2E data cleanup is verified. |
 | Security and operations | 2/2 | RLS and private-file boundaries are exercised; payment is fail-closed. Production operator, restore, and live-gateway evidence are explicitly deferred. |
 
 | Dimension | 2 points requires | Evidence |
@@ -211,7 +211,7 @@ Show the current work to the client only when all are true:
 5. Enable a limited live cohort only after written business approval, Healthoraa-owned accounts, operational runbooks, support coverage, qualified privacy/clinical/product compliance review and rollback readiness.
 6. Track booking/order completion, abandonment, payment failures, refunds, late captures and support contacts; review weekly before widening access.
 
-**Current evidence:** Razorpay and a Healthoraa-owned sandbox account were confirmed by the user on 2026-11-26. The local E2E suite passes 37/37, including failed-payment diagnostics, repeat-safe booking/stock cancellation, and late-capture handling. It exercises unsigned Razorpay-shaped events only against local Supabase; it is not evidence of a real sandbox transaction or signed provider webhook. Local sandbox credentials, payment/reservation policy, named refund/reconciliation/support owners, and compliance review are still required. Keep both payment switches disabled.
+**Current evidence:** Razorpay and a Healthoraa-owned sandbox account were confirmed by the user on 2026-11-26. The focused local regression suite passes 26/26, including failed-payment diagnostics, repeat-safe booking/stock cancellation, late-capture handling, and HTTPS tracking URL validation at both app and database boundaries. The latest full 38-test run had 34 passes, one failure in the doctor queue lifecycle after payment confirmation, and three subsequent skips. All Razorpay-shaped events are unsigned local Supabase fixtures; there is no real sandbox transaction or signed provider webhook evidence. The user reports the local Razorpay test key, secret, and webhook secret are not available yet. Payment/reservation policy, named refund/reconciliation/support owners, and compliance review are still required. Keep both payment switches disabled.
 
 ## Phase 3: broader-launch readiness
 
@@ -219,6 +219,8 @@ Show the current work to the client only when all are true:
 - Configure and prove the agreement’s backup/restore, standby/failover and off-site file-copy expectations. Source configuration is not evidence that a secondary database or Cloudflare R2 vault exists or works.
 - Establish alert ownership, incident response, capacity limits, support coverage, accessibility checks and rollback criteria before wider rollout.
 - Release by cohort with measurable quality and support gates; retain an auditable record of approvals and recovery drills.
+
+**Current code-side progress:** The current branch adds an HTTPS carrier tracking URL to the admin shipment update flow and a patient-facing tracking action. This is a link handoff only; it does not establish carrier integration, operational ownership, backup/restore, failover or broader-launch readiness.
 
 ### Phase completion gates
 

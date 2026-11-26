@@ -91,6 +91,7 @@ const FILTERS: DataFilter<OrderWithCustomer>["options"] = [
 export default function OrdersView() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [trackingDraft, setTrackingDraft] = useState<Record<string, string>>({});
+  const [trackingUrlDraft, setTrackingUrlDraft] = useState<Record<string, string>>({});
   const { data: orders, isLoading, isError, error, refetch } = useOrders();
   const updateStatus = useUpdateOrderStatus();
 
@@ -104,6 +105,8 @@ export default function OrdersView() {
       status: next,
       trackingNumber:
         next === "shipped" ? trackingDraft[order.id] ?? order.tracking_number ?? undefined : undefined,
+      trackingUrl:
+        next === "shipped" ? trackingUrlDraft[order.id] ?? order.tracking_url ?? undefined : undefined,
     });
   };
 
@@ -172,14 +175,38 @@ export default function OrdersView() {
               </button>
             </div>
             {order.status === "shipped" && (
-              <input
-                type="text"
-                aria-label="Tracking number"
-                placeholder="Tracking number"
-                value={trackingDraft[order.id] ?? order.tracking_number ?? ""}
-                onChange={(e) => setTrackingDraft((prev) => ({ ...prev, [order.id]: e.target.value }))}
-                className={cn(INPUT, "py-1.5 text-xs font-mono")}
-              />
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  aria-label="Tracking number"
+                  placeholder="Tracking number"
+                  value={trackingDraft[order.id] ?? order.tracking_number ?? ""}
+                  onChange={(e) => setTrackingDraft((prev) => ({ ...prev, [order.id]: e.target.value }))}
+                  className={cn(INPUT, "py-1.5 text-xs font-mono")}
+                />
+                <input
+                  type="url"
+                  aria-label="Carrier tracking URL"
+                  placeholder="https://carrier.example/track/..."
+                  maxLength={2048}
+                  value={trackingUrlDraft[order.id] ?? order.tracking_url ?? ""}
+                  onChange={(e) => setTrackingUrlDraft((prev) => ({ ...prev, [order.id]: e.target.value }))}
+                  className={cn(INPUT, "py-1.5 text-xs")}
+                />
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => updateStatus.mutate({
+                    id: order.id,
+                    trackingNumber: trackingDraft[order.id] ?? order.tracking_number ?? "",
+                    trackingUrl: trackingUrlDraft[order.id] ?? order.tracking_url ?? "",
+                  })}
+                  className={ROW_MICRO}
+                >
+                  {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  Save tracking
+                </button>
+              </div>
             )}
           </div>
         );

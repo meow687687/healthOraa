@@ -44,27 +44,32 @@ export const useOrders = () => {
 
 export type UpdateOrderStatusArgs = {
   id: string;
-  status: OrderStatus;
+  status?: OrderStatus;
   trackingNumber?: string;
+  trackingUrl?: string;
 };
 
 export const useUpdateOrderStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation<Order, Error, UpdateOrderStatusArgs>({
-    mutationFn: async ({ id, status, trackingNumber }): Promise<Order> => {
+    mutationFn: async ({ id, status, trackingNumber, trackingUrl }): Promise<Order> => {
       const parsed = updateOrderStatusSchema.safeParse({
         status,
         tracking_number: trackingNumber,
+        tracking_url: trackingUrl,
       });
       if (!parsed.success) {
         throw new Error(parsed.error.issues[0]?.message ?? "Invalid order update.");
       }
 
       const input: UpdateTables<"orders"> = {
-        status: parsed.data.status,
+        ...(parsed.data.status !== undefined && { status: parsed.data.status }),
         ...(parsed.data.tracking_number !== undefined && {
           tracking_number: parsed.data.tracking_number || null,
+        }),
+        ...(parsed.data.tracking_url !== undefined && {
+          tracking_url: parsed.data.tracking_url || null,
         }),
       };
 

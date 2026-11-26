@@ -227,14 +227,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "checkout_fingerprint": string | null,"checkout_idempotency_key": string | null,"created_at": string,"customer_id": string,"id": string,"reservation_expires_at": string | null,"shipping_address": string,"status": Database["public"]['Enums']["order_status"],"stock_released_at": string | null,"total_amount_inr": number,"tracking_number": string | null
+                    "checkout_fingerprint": string | null,"checkout_idempotency_key": string | null,"created_at": string,"customer_id": string,"id": string,"reservation_expires_at": string | null,"shipping_address": string,"status": Database["public"]['Enums']["order_status"],"stock_released_at": string | null,"total_amount_inr": number,"tracking_number": string | null,"tracking_url": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "checkout_fingerprint"?: string | null,"checkout_idempotency_key"?: string | null,"created_at"?: string,"customer_id": string,"id"?: string,"reservation_expires_at"?: string | null,"shipping_address": string,"status"?: Database["public"]['Enums']["order_status"],"stock_released_at"?: string | null,"total_amount_inr": number,"tracking_number"?: string | null
+                    "checkout_fingerprint"?: string | null,"checkout_idempotency_key"?: string | null,"created_at"?: string,"customer_id": string,"id"?: string,"reservation_expires_at"?: string | null,"shipping_address": string,"status"?: Database["public"]['Enums']["order_status"],"stock_released_at"?: string | null,"total_amount_inr": number,"tracking_number"?: string | null,"tracking_url"?: string | null
                   }
                   Update: {
-                    "checkout_fingerprint"?: string | null,"checkout_idempotency_key"?: string | null,"created_at"?: string,"customer_id"?: string,"id"?: string,"reservation_expires_at"?: string | null,"shipping_address"?: string,"status"?: Database["public"]['Enums']["order_status"],"stock_released_at"?: string | null,"total_amount_inr"?: number,"tracking_number"?: string | null
+                    "checkout_fingerprint"?: string | null,"checkout_idempotency_key"?: string | null,"created_at"?: string,"customer_id"?: string,"id"?: string,"reservation_expires_at"?: string | null,"shipping_address"?: string,"status"?: Database["public"]['Enums']["order_status"],"stock_released_at"?: string | null,"total_amount_inr"?: number,"tracking_number"?: string | null,"tracking_url"?: string | null
                   }
                   Relationships: [
                     {
@@ -832,7 +832,8 @@ isOneToOne: false
 "status": Database["public"]['Enums']["order_status"],
 "stock_released_at": string | null,
 "total_amount_inr": number,
-"tracking_number": string | null
+"tracking_number": string | null,
+"tracking_url": string | null
             }
                           SetofOptions: {
         from: "*"
